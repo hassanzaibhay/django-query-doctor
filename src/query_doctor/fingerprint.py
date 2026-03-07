@@ -21,6 +21,9 @@ def normalize_sql(sql: str) -> str:
     # Replace single-quoted strings (including escaped quotes inside)
     result = re.sub(r"'(?:[^'\\]|\\.)*'", "?", result)
 
+    # Replace Django-style %s parameter placeholders
+    result = re.sub(r"%s", "?", result)
+
     # Replace boolean literals (standalone TRUE/FALSE)
     result = re.sub(r"\bTRUE\b", "?", result, flags=re.IGNORECASE)
     result = re.sub(r"\bFALSE\b", "?", result, flags=re.IGNORECASE)
