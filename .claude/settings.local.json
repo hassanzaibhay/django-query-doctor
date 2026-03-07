@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install -e \".[dev]\")",
+      "Bash(python -m pytest)",
+      "Bash(git checkout -b feat/phase-1)",
+      "Bash(git add -A)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
