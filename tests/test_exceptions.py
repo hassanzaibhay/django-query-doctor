@@ -1,4 +1,5 @@
 """Tests for query_doctor.exceptions."""
+
 from __future__ import annotations
 
 from query_doctor.exceptions import (

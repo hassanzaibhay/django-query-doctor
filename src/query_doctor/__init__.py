@@ -1,4 +1,5 @@
 """django-query-doctor: Automated diagnosis and prescriptions for slow Django ORM queries."""
+
 from __future__ import annotations
 
 from query_doctor.context_managers import diagnose_queries

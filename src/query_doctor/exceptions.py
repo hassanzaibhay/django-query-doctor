@@ -3,6 +3,7 @@
 All package exceptions inherit from QueryDoctorError to allow
 callers to catch any query-doctor-specific error with a single except clause.
 """
+
 from __future__ import annotations
 
 

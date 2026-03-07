@@ -4,6 +4,7 @@ This is the most critical test file. It validates that the N+1 analyzer
 correctly detects FK and M2M N+1 patterns, generates proper prescriptions,
 and avoids false positives when select_related/prefetch_related is used.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -32,23 +33,17 @@ class TestNPlusOneAnalyzer:
         for _ in range(5):
             BookFactory()
 
-        queries = self._capture_queries(
-            lambda: [book.author.name for book in Book.objects.all()]
-        )
+        queries = self._capture_queries(lambda: [book.author.name for book in Book.objects.all()])
 
         analyzer = NPlusOneAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
         # Should detect N+1 for author access
-        nplusone_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE
-        ]
+        nplusone_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE]
         assert len(nplusone_prescriptions) >= 1
 
         # Should suggest select_related('author')
-        author_rx = [
-            p for p in nplusone_prescriptions if "select_related" in p.fix_suggestion
-        ]
+        author_rx = [p for p in nplusone_prescriptions if "select_related" in p.fix_suggestion]
         assert len(author_rx) >= 1
         assert any("author" in p.fix_suggestion for p in author_rx)
 
@@ -58,23 +53,17 @@ class TestNPlusOneAnalyzer:
             BookFactory()
 
         queries = self._capture_queries(
-            lambda: [
-                book.author.name
-                for book in Book.objects.select_related("author").all()
-            ]
+            lambda: [book.author.name for book in Book.objects.select_related("author").all()]
         )
 
         analyzer = NPlusOneAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
         # Should not detect N+1 for author
-        nplusone_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE
-        ]
+        nplusone_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE]
         # Filter to only author-related ones
         author_prescriptions = [
-            p for p in nplusone_prescriptions
-            if "author" in p.description.lower()
+            p for p in nplusone_prescriptions if "author" in p.description.lower()
         ]
         assert len(author_prescriptions) == 0
 
@@ -92,15 +81,11 @@ class TestNPlusOneAnalyzer:
         analyzer = NPlusOneAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        nplusone_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE
-        ]
+        nplusone_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE]
         assert len(nplusone_prescriptions) >= 1
 
         # Should suggest prefetch_related for M2M
-        m2m_rx = [
-            p for p in nplusone_prescriptions if "prefetch_related" in p.fix_suggestion
-        ]
+        m2m_rx = [p for p in nplusone_prescriptions if "prefetch_related" in p.fix_suggestion]
         assert len(m2m_rx) >= 1
 
     def test_multiple_nplusone_patterns(self) -> None:
@@ -118,9 +103,7 @@ class TestNPlusOneAnalyzer:
         analyzer = NPlusOneAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        nplusone_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE
-        ]
+        nplusone_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE]
         # Should detect at least 2 different N+1 patterns
         assert len(nplusone_prescriptions) >= 2
 
@@ -130,17 +113,13 @@ class TestNPlusOneAnalyzer:
         for _ in range(2):
             BookFactory()
 
-        queries = self._capture_queries(
-            lambda: [book.author.name for book in Book.objects.all()]
-        )
+        queries = self._capture_queries(lambda: [book.author.name for book in Book.objects.all()])
 
         analyzer = NPlusOneAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
         # With only 2 books, there are only 2 author queries (below threshold=3)
-        nplusone_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE
-        ]
+        nplusone_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE]
         assert len(nplusone_prescriptions) == 0
 
     def test_severity_critical_for_many_queries(self) -> None:
@@ -148,16 +127,12 @@ class TestNPlusOneAnalyzer:
         for _ in range(12):
             BookFactory()
 
-        queries = self._capture_queries(
-            lambda: [book.author.name for book in Book.objects.all()]
-        )
+        queries = self._capture_queries(lambda: [book.author.name for book in Book.objects.all()])
 
         analyzer = NPlusOneAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        nplusone_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE
-        ]
+        nplusone_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE]
         assert len(nplusone_prescriptions) >= 1
         # 12 queries should be CRITICAL
         assert any(p.severity == Severity.CRITICAL for p in nplusone_prescriptions)
@@ -167,16 +142,12 @@ class TestNPlusOneAnalyzer:
         for _ in range(4):
             BookFactory()
 
-        queries = self._capture_queries(
-            lambda: [book.author.name for book in Book.objects.all()]
-        )
+        queries = self._capture_queries(lambda: [book.author.name for book in Book.objects.all()])
 
         analyzer = NPlusOneAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        nplusone_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE
-        ]
+        nplusone_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE]
         assert len(nplusone_prescriptions) >= 1
         assert any(p.severity == Severity.WARNING for p in nplusone_prescriptions)
 
@@ -185,16 +156,12 @@ class TestNPlusOneAnalyzer:
         for _ in range(5):
             BookFactory()
 
-        queries = self._capture_queries(
-            lambda: [book.author.name for book in Book.objects.all()]
-        )
+        queries = self._capture_queries(lambda: [book.author.name for book in Book.objects.all()])
 
         analyzer = NPlusOneAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        nplusone_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE
-        ]
+        nplusone_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE]
         assert len(nplusone_prescriptions) >= 1
         assert nplusone_prescriptions[0].query_count >= 5
 
@@ -207,9 +174,7 @@ class TestNPlusOneAnalyzer:
         analyzer = NPlusOneAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        nplusone_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE
-        ]
+        nplusone_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.N_PLUS_ONE]
         assert len(nplusone_prescriptions) == 0
 
     def test_empty_queries(self) -> None:

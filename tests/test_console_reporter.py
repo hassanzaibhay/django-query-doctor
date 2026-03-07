@@ -1,4 +1,5 @@
 """Tests for console reporter in query_doctor.reporters.console."""
+
 from __future__ import annotations
 
 from query_doctor.reporters.console import ConsoleReporter

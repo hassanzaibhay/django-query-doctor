@@ -1,4 +1,5 @@
 """Tests for context managers in query_doctor.context_managers."""
+
 from __future__ import annotations
 
 import pytest
@@ -47,9 +48,7 @@ class TestDiagnoseQueries:
                 _ = book.author.name
 
         assert report.issues >= 1
-        assert any(
-            p.issue_type == IssueType.N_PLUS_ONE for p in report.prescriptions
-        )
+        assert any(p.issue_type == IssueType.N_PLUS_ONE for p in report.prescriptions)
 
     def test_clean_context_no_queries(self) -> None:
         """No queries in context should produce empty report."""

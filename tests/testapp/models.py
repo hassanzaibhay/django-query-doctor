@@ -1,4 +1,5 @@
 """Test application models for django-query-doctor test suite."""
+
 from __future__ import annotations
 
 from django.db import models
@@ -23,9 +24,7 @@ class Author(models.Model):
     name = models.CharField(max_length=200)
     email = models.EmailField(unique=True)
     bio = models.TextField(blank=True)  # Large field, good for .defer() testing
-    publisher = models.ForeignKey(
-        Publisher, on_delete=models.CASCADE, related_name="authors"
-    )
+    publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE, related_name="authors")
 
     class Meta:
         app_label = "testapp"
@@ -53,9 +52,7 @@ class Book(models.Model):
     title = models.CharField(max_length=300)
     isbn = models.CharField(max_length=13, unique=True)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="books")
-    publisher = models.ForeignKey(
-        Publisher, on_delete=models.CASCADE, related_name="books"
-    )
+    publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE, related_name="books")
     categories = models.ManyToManyField(Category, related_name="books", blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     description = models.TextField(blank=True)  # Large field

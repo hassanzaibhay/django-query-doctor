@@ -1,4 +1,5 @@
 """Tests for core data structures in query_doctor.types."""
+
 from __future__ import annotations
 
 from query_doctor.types import (

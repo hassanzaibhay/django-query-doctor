@@ -4,6 +4,7 @@ Walks the call stack to find the first frame in user code (filtering out
 Django internals, this package, and stdlib modules) so each query can be
 attributed to a specific file:line in the application.
 """
+
 from __future__ import annotations
 
 import linecache
@@ -52,10 +53,7 @@ def capture_callsite(
             if any(pattern in filename for pattern in exclude):
                 continue
             # Skip frames from pytest/pluggy internals
-            if any(
-                p in filename
-                for p in ["_pytest", "pluggy", "site-packages", "runpy.py"]
-            ):
+            if any(p in filename for p in ["_pytest", "pluggy", "site-packages", "runpy.py"]):
                 continue
             user_frames.append(frame)
 

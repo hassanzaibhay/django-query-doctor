@@ -1,4 +1,5 @@
 """Tests for public API exports in query_doctor.__init__."""
+
 from __future__ import annotations
 
 

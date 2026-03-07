@@ -1,4 +1,5 @@
 """Tests for the query interceptor in query_doctor.interceptor."""
+
 from __future__ import annotations
 
 import threading

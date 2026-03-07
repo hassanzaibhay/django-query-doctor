@@ -4,6 +4,7 @@ Installs a query interceptor via connection.execute_wrapper(), captures
 all SQL queries during the request, runs enabled analyzers, and sends
 the diagnosis report to enabled reporters.
 """
+
 from __future__ import annotations
 
 import logging
@@ -55,9 +56,7 @@ class QueryDoctorMiddleware:
     analyzers and sends reports to configured reporters.
     """
 
-    def __init__(
-        self, get_response: Callable[[HttpRequest], HttpResponse]
-    ) -> None:
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         """Initialize the middleware.
 
         Args:
@@ -95,9 +94,7 @@ class QueryDoctorMiddleware:
             return self.get_response(request)
 
         # Install interceptor and process request
-        interceptor = QueryInterceptor(
-            capture_stack=config.get("CAPTURE_STACK_TRACES", True)
-        )
+        interceptor = QueryInterceptor(capture_stack=config.get("CAPTURE_STACK_TRACES", True))
 
         from django.db import connection
 
@@ -108,15 +105,11 @@ class QueryDoctorMiddleware:
         try:
             self._analyze_and_report(interceptor, config)
         except Exception:
-            logger.warning(
-                "query_doctor: analysis failed", exc_info=True
-            )
+            logger.warning("query_doctor: analysis failed", exc_info=True)
 
         return response
 
-    def _analyze_and_report(
-        self, interceptor: QueryInterceptor, config: dict[str, Any]
-    ) -> None:
+    def _analyze_and_report(self, interceptor: QueryInterceptor, config: dict[str, Any]) -> None:
         """Run analyzers and send report to reporters."""
         queries = interceptor.get_queries()
         if not queries:
@@ -148,6 +141,4 @@ class QueryDoctorMiddleware:
                 try:
                     reporter.report(report)
                 except Exception:
-                    logger.warning(
-                        "query_doctor: reporter failed", exc_info=True
-                    )
+                    logger.warning("query_doctor: reporter failed", exc_info=True)

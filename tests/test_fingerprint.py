@@ -1,4 +1,5 @@
 """Tests for SQL fingerprinting in query_doctor.fingerprint."""
+
 from __future__ import annotations
 
 from query_doctor.fingerprint import extract_tables, fingerprint, normalize_sql
@@ -14,7 +15,7 @@ class TestNormalizeSql:
         assert "?" in result
 
     def test_replace_string_literals_single_quotes(self) -> None:
-        sql = "SELECT * FROM \"book\" WHERE \"title\" = 'Django Unleashed'"
+        sql = 'SELECT * FROM "book" WHERE "title" = \'Django Unleashed\''
         result = normalize_sql(sql)
         assert "Django Unleashed" not in result
         assert "?" in result
@@ -152,8 +153,7 @@ class TestExtractTables:
 
     def test_subquery_from(self) -> None:
         sql = (
-            'SELECT * FROM "testapp_book" WHERE "author_id"'
-            ' IN (SELECT "id" FROM "testapp_author")'
+            'SELECT * FROM "testapp_book" WHERE "author_id" IN (SELECT "id" FROM "testapp_author")'
         )
         tables = extract_tables(sql)
         assert "testapp_book" in tables

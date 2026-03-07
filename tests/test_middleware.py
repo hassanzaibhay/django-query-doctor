@@ -1,4 +1,5 @@
 """Tests for Django middleware in query_doctor.middleware."""
+
 from __future__ import annotations
 
 import pytest

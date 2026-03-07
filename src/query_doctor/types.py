@@ -3,6 +3,7 @@
 Defines the contract types used across all modules: query captures,
 prescriptions, diagnosis reports, and supporting enums.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

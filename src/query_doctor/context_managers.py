@@ -3,6 +3,7 @@
 Provides diagnose_queries() for diagnosing queries within a specific
 code block rather than an entire request.
 """
+
 from __future__ import annotations
 
 import logging
@@ -57,6 +58,4 @@ def diagnose_queries() -> Generator[DiagnosisReport, None, None]:
                     exc_info=True,
                 )
     except Exception:
-        logger.warning(
-            "query_doctor: context manager analysis failed", exc_info=True
-        )
+        logger.warning("query_doctor: context manager analysis failed", exc_info=True)

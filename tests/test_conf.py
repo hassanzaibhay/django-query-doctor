@@ -1,4 +1,5 @@
 """Tests for configuration in query_doctor.conf."""
+
 from __future__ import annotations
 
 from django.test import override_settings

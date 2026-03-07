@@ -1,4 +1,5 @@
 """Factory Boy factories for test data generation."""
+
 from __future__ import annotations
 
 import factory
@@ -23,9 +24,7 @@ class AuthorFactory(factory.django.DjangoModelFactory):
         model = Author
 
     name = factory.Sequence(lambda n: f"Author {n}")
-    email = factory.LazyAttribute(
-        lambda o: f"{o.name.lower().replace(' ', '.')}@example.com"
-    )
+    email = factory.LazyAttribute(lambda o: f"{o.name.lower().replace(' ', '.')}@example.com")
     bio = "A prolific author."
     publisher = factory.SubFactory(PublisherFactory)
 

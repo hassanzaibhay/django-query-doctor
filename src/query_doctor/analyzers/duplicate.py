@@ -4,6 +4,7 @@ Detects exact and near-duplicate queries by grouping captured queries
 by their SQL text (exact) and fingerprint (near-duplicate). Suggests
 caching results in variables or consolidating with filter(id__in=[...]).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -58,14 +59,10 @@ class DuplicateAnalyzer(BaseAnalyzer):
         try:
             return self._detect_duplicates(queries)
         except Exception:
-            logger.warning(
-                "query_doctor: duplicate analysis failed", exc_info=True
-            )
+            logger.warning("query_doctor: duplicate analysis failed", exc_info=True)
             return []
 
-    def _detect_duplicates(
-        self, queries: list[CapturedQuery]
-    ) -> list[Prescription]:
+    def _detect_duplicates(self, queries: list[CapturedQuery]) -> list[Prescription]:
         """Core duplicate detection logic."""
         config = get_config()
         threshold = config["ANALYZERS"]["duplicate"].get("threshold", 2)
@@ -94,8 +91,7 @@ class DuplicateAnalyzer(BaseAnalyzer):
                     issue_type=IssueType.DUPLICATE_QUERY,
                     severity=Severity.WARNING,
                     description=(
-                        f"Duplicate query: {count} identical queries "
-                        f'for table "{table}"'
+                        f'Duplicate query: {count} identical queries for table "{table}"'
                     ),
                     fix_suggestion=(
                         "Assign the queryset result to a variable and reuse it "

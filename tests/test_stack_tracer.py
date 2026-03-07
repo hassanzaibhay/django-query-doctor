@@ -1,4 +1,5 @@
 """Tests for stack trace capture in query_doctor.stack_tracer."""
+
 from __future__ import annotations
 
 from query_doctor.stack_tracer import capture_callsite

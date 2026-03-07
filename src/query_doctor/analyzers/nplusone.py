@@ -12,6 +12,7 @@ Algorithm:
    c. Use Django _meta to find the relationship field name
 3. Generate Prescription with exact fix suggestion
 """
+
 from __future__ import annotations
 
 import logging
@@ -73,18 +74,13 @@ def _is_through_table(table_name: str) -> dict[str, Any] | None:
 
         for model in apps.get_models():
             for field in model._meta.get_fields():
-                if (
-                    hasattr(field, "m2m_db_table")
-                    and field.m2m_db_table() == table_name
-                ):
-                        return {
-                            "field_name": field.name,
-                            "parent_model": model,
-                        }
+                if hasattr(field, "m2m_db_table") and field.m2m_db_table() == table_name:
+                    return {
+                        "field_name": field.name,
+                        "parent_model": model,
+                    }
     except Exception:
-        logger.debug(
-            "query_doctor: failed to check through table", exc_info=True
-        )
+        logger.debug("query_doctor: failed to check through table", exc_info=True)
     return None
 
 
@@ -141,14 +137,10 @@ class NPlusOneAnalyzer(BaseAnalyzer):
         try:
             return self._detect_nplusone(queries)
         except Exception:
-            logger.warning(
-                "query_doctor: N+1 analysis failed", exc_info=True
-            )
+            logger.warning("query_doctor: N+1 analysis failed", exc_info=True)
             return []
 
-    def _detect_nplusone(
-        self, queries: list[CapturedQuery]
-    ) -> list[Prescription]:
+    def _detect_nplusone(self, queries: list[CapturedQuery]) -> list[Prescription]:
         """Core N+1 detection logic."""
         config = get_config()
         threshold = config["ANALYZERS"]["nplusone"].get("threshold", 3)
@@ -231,10 +223,10 @@ class NPlusOneAnalyzer(BaseAnalyzer):
         if pk_match:
             target_table = pk_match.group(1)
             fk_names = _find_fk_field_names(target_table)
-            field_name = fk_names[0] if fk_names else (
-                target_table.split("_", 1)[-1]
-                if "_" in target_table
-                else target_table
+            field_name = (
+                fk_names[0]
+                if fk_names
+                else (target_table.split("_", 1)[-1] if "_" in target_table else target_table)
             )
             return self._build_prescription(
                 group=group,
@@ -264,12 +256,9 @@ class NPlusOneAnalyzer(BaseAnalyzer):
             issue_type=IssueType.N_PLUS_ONE,
             severity=severity,
             description=(
-                f"N+1 detected: {count} queries for table "
-                f'"{table}" (field: {field_name})'
+                f'N+1 detected: {count} queries for table "{table}" (field: {field_name})'
             ),
-            fix_suggestion=(
-                f"Add .{strategy}('{field_name}') to your queryset"
-            ),
+            fix_suggestion=(f"Add .{strategy}('{field_name}') to your queryset"),
             callsite=callsite,
             query_count=count,
             time_saved_ms=total_time * (count - 1) / count if count > 0 else 0,

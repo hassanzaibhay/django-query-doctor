@@ -1,4 +1,5 @@
 """Tests for duplicate query detection in query_doctor.analyzers.duplicate."""
+
 from __future__ import annotations
 
 import pytest
@@ -36,9 +37,7 @@ class TestDuplicateAnalyzer:
         analyzer = DuplicateAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        dup_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY
-        ]
+        dup_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY]
         assert len(dup_prescriptions) >= 1
         assert dup_prescriptions[0].query_count >= 3
 
@@ -57,9 +56,7 @@ class TestDuplicateAnalyzer:
         analyzer = DuplicateAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        dup_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY
-        ]
+        dup_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY]
         assert len(dup_prescriptions) == 0
 
     def test_near_duplicates_same_structure(self) -> None:
@@ -97,9 +94,7 @@ class TestDuplicateAnalyzer:
         analyzer = DuplicateAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        dup_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY
-        ]
+        dup_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY]
         assert len(dup_prescriptions) >= 1
         assert dup_prescriptions[0].severity == Severity.WARNING
 
@@ -123,9 +118,7 @@ class TestDuplicateAnalyzer:
         analyzer = DuplicateAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        dup_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY
-        ]
+        dup_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY]
         assert len(dup_prescriptions) == 0
 
     def test_analyzer_name(self) -> None:
@@ -148,8 +141,6 @@ class TestDuplicateAnalyzer:
         analyzer = DuplicateAnalyzer()
         prescriptions = analyzer.analyze(queries)
 
-        dup_prescriptions = [
-            p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY
-        ]
+        dup_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY]
         assert len(dup_prescriptions) >= 1
         assert dup_prescriptions[0].fix_suggestion != ""

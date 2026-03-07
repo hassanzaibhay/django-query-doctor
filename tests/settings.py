@@ -1,4 +1,5 @@
 """Django settings for the test suite."""
+
 from __future__ import annotations
 
 SECRET_KEY = "test-secret-key-not-for-production"

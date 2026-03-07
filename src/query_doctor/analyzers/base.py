@@ -3,6 +3,7 @@
 Defines the interface that all analyzers must implement.
 Each analyzer detects one type of query optimization issue.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

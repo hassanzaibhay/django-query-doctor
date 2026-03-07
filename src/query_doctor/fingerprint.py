@@ -4,6 +4,7 @@ Provides functions to normalize SQL queries (replacing literals with placeholder
 generate deterministic fingerprints for grouping similar queries, and extract
 table names from SQL statements.
 """
+
 from __future__ import annotations
 
 import hashlib

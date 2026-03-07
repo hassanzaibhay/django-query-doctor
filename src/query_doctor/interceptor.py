@@ -4,6 +4,7 @@ Uses Django's connection.execute_wrapper() mechanism to intercept all SQL
 queries without requiring DEBUG=True. Stores captured queries per-thread
 using threading.local() for thread safety.
 """
+
 from __future__ import annotations
 
 import logging

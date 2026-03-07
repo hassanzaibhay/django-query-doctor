@@ -3,6 +3,7 @@
 Formats DiagnosisReport output for terminal display. Uses Rich library
 for beautiful formatting if available, falls back to plain text otherwise.
 """
+
 from __future__ import annotations
 
 import sys
@@ -78,16 +79,12 @@ class ConsoleReporter:
                 self._render_rich_prescription(console, prescription)
 
             if report.issues == 0:
-                console.print(
-                    Text("No issues detected.", style="green")
-                )
+                console.print(Text("No issues detected.", style="green"))
 
         parts.append(capture.get())
         return "".join(parts)
 
-    def _render_rich_prescription(
-        self, console: object, prescription: Prescription
-    ) -> None:
+    def _render_rich_prescription(self, console: object, prescription: Prescription) -> None:
         """Render a single prescription with Rich."""
         from rich.console import Console as RichConsole
 
@@ -97,16 +94,11 @@ class ConsoleReporter:
         style = "red bold" if prescription.severity == Severity.CRITICAL else "yellow bold"
 
         console.print()
-        console.print(
-            f"[{style}]{severity_label}[/{style}]: {prescription.description}"
-        )
+        console.print(f"[{style}]{severity_label}[/{style}]: {prescription.description}")
 
         if prescription.callsite:
             cs = prescription.callsite
-            console.print(
-                f"   Location: {cs.filepath}:{cs.line_number} "
-                f"in {cs.function_name}"
-            )
+            console.print(f"   Location: {cs.filepath}:{cs.line_number} in {cs.function_name}")
             if cs.code_context:
                 console.print(f"   Code: {cs.code_context}")
 
@@ -139,10 +131,7 @@ class ConsoleReporter:
 
             if prescription.callsite:
                 cs = prescription.callsite
-                lines.append(
-                    f"   Location: {cs.filepath}:{cs.line_number} "
-                    f"in {cs.function_name}"
-                )
+                lines.append(f"   Location: {cs.filepath}:{cs.line_number} in {cs.function_name}")
                 if cs.code_context:
                     lines.append(f"   Code: {cs.code_context}")
 
