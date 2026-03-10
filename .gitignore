@@ -12,3 +12,9 @@ build/
 htmlcov/
 .coverage
 *.sqlite3
+
+# Claude Code
+CLAUDE.md
+docs/SPEC.md
+.claude/
+.claudeignore

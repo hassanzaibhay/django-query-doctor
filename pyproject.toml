@@ -9,7 +9,7 @@ description = "Automated diagnosis and prescriptions for slow Django ORM queries
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-authors = [{ name = "Hassan", email = "hassanzaib.hay@gmail.com" }]
+authors = [{ name = "Hassan Zaib Hayat", email = "hassanzaibhayatske@gmail.com" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Framework :: Django",
