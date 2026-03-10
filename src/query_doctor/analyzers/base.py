@@ -40,4 +40,4 @@ class BaseAnalyzer(ABC):
 
         config = get_config()
         analyzer_config = config.get("ANALYZERS", {}).get(self.name, {})
-        return analyzer_config.get("enabled", True)
+        return bool(analyzer_config.get("enabled", True))

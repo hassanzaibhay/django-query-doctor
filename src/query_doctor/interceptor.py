@@ -103,7 +103,7 @@ class QueryInterceptor:
         """Get the thread-local query list, initializing if needed."""
         if not hasattr(self._local, "queries"):
             self._local.queries = []
-        return self._local.queries
+        return self._local.queries  # type: ignore[no-any-return]
 
     def get_queries(self) -> list[CapturedQuery]:
         """Return all captured queries for the current thread."""

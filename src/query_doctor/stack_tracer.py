@@ -64,11 +64,12 @@ def capture_callsite(
         frame = user_frames[-1]
 
         # Try to read the actual source line
-        code_context = linecache.getline(frame.filename, frame.lineno).strip()
+        line_no = frame.lineno or 0
+        code_context = linecache.getline(frame.filename, line_no).strip()
 
         return CallSite(
             filepath=frame.filename,
-            line_number=frame.lineno,
+            line_number=line_no,
             function_name=frame.name,
             code_context=code_context,
         )
