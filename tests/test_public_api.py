@@ -49,3 +49,15 @@ class TestPublicAPI:
         from query_doctor import QueryBudgetError
 
         assert issubclass(QueryBudgetError, Exception)
+
+    def test_import_captured_query(self) -> None:
+        """CapturedQuery should be importable from query_doctor."""
+        from query_doctor import CapturedQuery
+
+        assert CapturedQuery is not None
+
+    def test_version(self) -> None:
+        """__version__ should be available."""
+        import query_doctor
+
+        assert query_doctor.__version__ == "0.1.0"

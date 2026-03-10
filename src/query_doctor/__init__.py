@@ -7,13 +7,17 @@ from query_doctor.decorators import diagnose, query_budget
 from query_doctor.exceptions import QueryBudgetError
 from query_doctor.middleware import QueryDoctorMiddleware
 from query_doctor.types import (
+    CapturedQuery,
     DiagnosisReport,
     IssueType,
     Prescription,
     Severity,
 )
 
+__version__ = "0.1.0"
+
 __all__ = [
+    "CapturedQuery",
     "DiagnosisReport",
     "IssueType",
     "Prescription",
