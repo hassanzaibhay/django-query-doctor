@@ -6,6 +6,7 @@ from query_doctor.exceptions import (
     AnalyzerError,
     ConfigError,
     InterceptorError,
+    QueryBudgetError,
     QueryDoctorError,
 )
 
@@ -24,6 +25,14 @@ class TestExceptions:
 
     def test_interceptor_error_inherits(self) -> None:
         assert issubclass(InterceptorError, QueryDoctorError)
+
+    def test_budget_error_inherits(self) -> None:
+        assert issubclass(QueryBudgetError, QueryDoctorError)
+
+    def test_budget_error_has_report(self) -> None:
+        err = QueryBudgetError("over budget")
+        assert err.report is None
+        assert str(err) == "over budget"
 
     def test_can_raise_and_catch(self) -> None:
         try:

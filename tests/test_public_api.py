@@ -31,3 +31,21 @@ class TestPublicAPI:
 
         assert Severity.CRITICAL is not None
         assert IssueType.N_PLUS_ONE is not None
+
+    def test_import_diagnose_decorator(self) -> None:
+        """@diagnose should be importable from query_doctor."""
+        from query_doctor import diagnose
+
+        assert callable(diagnose)
+
+    def test_import_query_budget_decorator(self) -> None:
+        """@query_budget should be importable from query_doctor."""
+        from query_doctor import query_budget
+
+        assert callable(query_budget)
+
+    def test_import_query_budget_error(self) -> None:
+        """QueryBudgetError should be importable from query_doctor."""
+        from query_doctor import QueryBudgetError
+
+        assert issubclass(QueryBudgetError, Exception)
