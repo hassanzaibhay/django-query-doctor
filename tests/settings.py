@@ -11,4 +11,8 @@ INSTALLED_APPS = [
     "tests.testapp",
 ]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+ROOT_URLCONF = "tests.testapp.urls"
+MIDDLEWARE = [
+    "query_doctor.QueryDoctorMiddleware",
+]
 QUERY_DOCTOR: dict[str, object] = {}  # use all defaults
