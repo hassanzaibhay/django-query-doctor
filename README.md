@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/django-query-doctor.svg)](https://pypi.org/project/django-query-doctor/)
 [![Python versions](https://img.shields.io/pypi/pyversions/django-query-doctor.svg)](https://pypi.org/project/django-query-doctor/)
-[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.0%20%7C%205.1%20%7C%205.2-blue.svg)](https://pypi.org/project/django-query-doctor/)
+[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.x%20%7C%206.x-blue.svg)](https://pypi.org/project/django-query-doctor/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/hassanzaibhay/django-query-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/hassanzaibhay/django-query-doctor/actions)
 
@@ -138,7 +138,7 @@ Management commands for CI pipelines are planned for v0.2. In the meantime, use 
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+Contributions are welcome! Clone the repo, install with `pip install -e ".[dev]"`, and run `pytest` before submitting a PR.
 
 ## Requirements
 
