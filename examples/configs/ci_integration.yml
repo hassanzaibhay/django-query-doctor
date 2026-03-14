@@ -1,0 +1,72 @@
+# .github/workflows/query-check.yml
+# Add this to your CI pipeline to catch query regressions in PRs
+
+name: Query Performance Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  query-check:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for --diff
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install django-query-doctor
+
+      - name: Run migrations
+        run: python manage.py migrate
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/testdb
+
+      - name: Seed test data
+        run: python manage.py seed_data --users 10 --products 20
+
+      - name: Check queries (diff-aware)
+        run: |
+          python manage.py check_queries \
+            --url /api/products/ \
+            --url /api/orders/ \
+            --format json \
+            --fail-on critical \
+            --diff=origin/main
+
+      - name: Full project diagnosis
+        run: |
+          python manage.py diagnose_project \
+            --format json \
+            --output query_report.json \
+            --exclude-urls /admin/ /static/
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: query-report
+          path: query_report.json

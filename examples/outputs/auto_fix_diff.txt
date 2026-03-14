@@ -1,0 +1,183 @@
+============================================================
+fix_queries --dry-run output
+============================================================
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: N+1 detected: 25 queries for table "sample_project_author" (field: project_author)
++ Fix: Add .select_related('project_author') to your queryset
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: N+1 detected: 25 queries for table "sample_project_publisher" (field: project_publisher)
++ Fix: Add .select_related('project_publisher') to your queryset
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 5 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 5 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 4 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 6 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 7 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 2 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 4 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 5 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 2 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 3 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 4 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 2 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: N+1 detected: 25 queries for table "sample_project_author" (field: project_author)
++ Fix: Add .select_related('project_author') to your queryset
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: N+1 detected: 25 queries for table "sample_project_publisher" (field: project_publisher)
++ Fix: Add .select_related('project_publisher') to your queryset
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 5 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 5 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 4 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 6 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 7 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 2 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 4 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 5 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 2 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 3 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 4 identical queries for table "sample_project_author"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 19 @@
+  Issue: Duplicate query: 2 identical queries for table "sample_project_publisher"
++ Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 74 @@
+  Issue: N+1 detected: 5 queries for table "sample_project_book" (field: publisher)
++ Fix: Add .prefetch_related('publisher') to your queryset
+
+--- C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py
++++ C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py (fixed)
+@@ Line 76 @@
+  Issue: N+1 detected: 5 queries for table "sample_project_book" (field: publisher)
++ Fix: Add .prefetch_related('publisher') to your queryset

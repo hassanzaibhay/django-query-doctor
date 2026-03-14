@@ -1,0 +1,28 @@
+#!/bin/bash
+# Example 12: Project-Wide Diagnosis
+
+echo "============================================================"
+echo "Example 12: Project-Wide Diagnosis"
+echo "============================================================"
+
+echo ""
+echo "# Scan entire project:"
+echo "$ python manage.py diagnose_project"
+echo ""
+echo "# Output to specific file:"
+echo "$ python manage.py diagnose_project --output health_report.html"
+echo ""
+echo "# Only scan specific apps:"
+echo "$ python manage.py diagnose_project --apps shop blog"
+echo ""
+echo "# JSON output for CI:"
+echo "$ python manage.py diagnose_project --format json"
+echo ""
+echo "# The HTML report includes:"
+echo "  - Overall health score (0-100)"
+echo "  - Per-app health scores with sortable scoreboard"
+echo "  - Per-URL query breakdown"
+echo "  - Prescriptions with severity, fix, and callsite"
+echo "  - Skipped URLs section"
+echo "  - Dark mode support"
+echo "  - Print-friendly CSS"

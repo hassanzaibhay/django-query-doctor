@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>{{ book.title }}</title></head>
+<body>
+<h1>{{ book.title }}</h1>
+<p>By {{ book.author.name }} | Published by {{ book.publisher.name }}</p>
+<p>Price: ${{ book.price }}</p>
+<p>{{ review_count }} reviews</p>
+
+<h2>Reviews</h2>
+{% for review in reviews %}
+<div>
+    <strong>{{ review.rating }}*</strong> by {{ review.reviewer_name }}
+    <p>{{ review.comment }}</p>
+</div>
+{% endfor %}
+</body>
+</html>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="310" viewBox="0 0 720 310">
+<defs><style>
+  @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap");
+  .terminal-text { font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace; }
+</style></defs>
+<rect width="720" height="310" rx="8" fill="#1E1E1E"/>
+<rect width="720" height="36" rx="8" fill="#2D2D2D"/>
+<rect x="0" y="8" width="720" height="28" fill="#2D2D2D"/>
+<circle cx="20" cy="18" r="6" fill="#FF5F57"/>
+<circle cx="40" cy="18" r="6" fill="#FFBD2E"/>
+<circle cx="60" cy="18" r="6" fill="#28CA41"/>
+<text x="360" y="22" text-anchor="middle" class="terminal-text" fill="#8C8C8C" font-size="12">query-doctor — Quick Start</text>
+<text x="16" y="50" class="terminal-text" font-size="13" fill="#6A9955" ># Step 1: Install</text>
+<text x="16" y="70" class="terminal-text" font-size="13" fill="#D4D4D4" >$ pip install django-query-doctor</text>
+<text x="16" y="110" class="terminal-text" font-size="13" fill="#6A9955" ># Step 2: Add one line to settings.py</text>
+<text x="16" y="130" class="terminal-text" font-size="13" fill="#CE9178" >MIDDLEWARE = [</text>
+<text x="16" y="150" class="terminal-text" font-size="13" fill="#808080" >    ...</text>
+<text x="16" y="170" class="terminal-text" font-size="13" fill="#4EC9B0" >    &quot;query_doctor.QueryDoctorMiddleware&quot;,</text>
+<text x="16" y="190" class="terminal-text" font-size="13" fill="#CE9178" >]</text>
+<text x="16" y="230" class="terminal-text" font-size="13" fill="#6A9955" ># Step 3: Run your app</text>
+<text x="16" y="250" class="terminal-text" font-size="13" fill="#D4D4D4" >$ python manage.py runserver</text>
+<text x="16" y="270" class="terminal-text" font-size="13" fill="#6A9955" ># That&#x27;s it! Check your terminal for prescriptions.</text>
+</svg>

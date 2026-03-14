@@ -1,0 +1,11 @@
+============================================================
+Query Doctor — Query Budget Example
+============================================================
+
+@query_budget(max_queries=5)
+def budget_limited_view():
+    books = list(Book.objects.all())
+    for b in books:
+        _ = b.author.name  # N+1 — exceeds budget
+
+Result: Budget: EXCEEDED — Query budget exceeded: 26 queries (max_queries=5)

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="470" viewBox="0 0 820 470">
+<defs><style>
+  @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap");
+  .terminal-text { font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace; }
+</style></defs>
+<rect width="820" height="470" rx="8" fill="#1E1E1E"/>
+<rect width="820" height="36" rx="8" fill="#2D2D2D"/>
+<rect x="0" y="8" width="820" height="28" fill="#2D2D2D"/>
+<circle cx="20" cy="18" r="6" fill="#FF5F57"/>
+<circle cx="40" cy="18" r="6" fill="#FFBD2E"/>
+<circle cx="60" cy="18" r="6" fill="#28CA41"/>
+<text x="410" y="22" text-anchor="middle" class="terminal-text" fill="#8C8C8C" font-size="12">query-doctor — Console Output</text>
+<text x="16" y="50" class="terminal-text" font-size="13">
+  <tspan fill="#6A9955">$</tspan><tspan fill="#D4D4D4"> python manage.py runserver</tspan>
+</text>
+<text x="16" y="90" class="terminal-text" font-size="13" fill="#569CD6" >════════════════════════════════════════════════════════════</text>
+<text x="16" y="110" class="terminal-text" font-size="13" fill="#569CD6" font-weight="700">  Query Doctor Report</text>
+<text x="16" y="130" class="terminal-text" font-size="13" fill="#569CD6" >  Total queries: 53 | Time: 127.3ms | Issues: 3</text>
+<text x="16" y="150" class="terminal-text" font-size="13" fill="#569CD6" >════════════════════════════════════════════════════════════</text>
+<text x="16" y="190" class="terminal-text" font-size="13" fill="#F44747" font-weight="700">CRITICAL  N+1 detected: 47 queries for table &quot;myapp_author&quot;</text>
+<text x="40" y="210" class="terminal-text" font-size="13" fill="#808080" >Location: myapp/views.py:83 in get_queryset</text>
+<text x="40" y="230" class="terminal-text" font-size="13" fill="#808080" >Code: books = Book.objects.all()</text>
+<text x="40" y="250" class="terminal-text" font-size="13" fill="#4EC9B0" >Fix: Add .select_related(&#x27;author&#x27;) to your queryset</text>
+<text x="40" y="270" class="terminal-text" font-size="13" fill="#808080" >Queries: 47 | Est. savings: ~89.0ms</text>
+<text x="16" y="310" class="terminal-text" font-size="13" fill="#CE9178" font-weight="700">WARNING   Duplicate query: 6 identical queries</text>
+<text x="40" y="330" class="terminal-text" font-size="13" fill="#808080" >Location: myapp/views.py:91 in get_context_data</text>
+<text x="40" y="350" class="terminal-text" font-size="13" fill="#4EC9B0" >Fix: Assign the queryset result to a variable and reuse it</text>
+<text x="40" y="370" class="terminal-text" font-size="13" fill="#808080" >Queries: 6 | Est. savings: ~4.2ms</text>
+<text x="16" y="410" class="terminal-text" font-size="13" fill="#569CD6" font-weight="700">INFO      Column &quot;published_date&quot; has no index on &quot;myapp_book&quot;</text>
+<text x="40" y="430" class="terminal-text" font-size="13" fill="#4EC9B0" >Fix: Add db_index=True to the published_date field</text>
+</svg>

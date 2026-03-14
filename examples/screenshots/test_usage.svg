@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="310" viewBox="0 0 820 310">
+<defs><style>
+  @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap");
+  .terminal-text { font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace; }
+</style></defs>
+<rect width="820" height="310" rx="8" fill="#1E1E1E"/>
+<rect width="820" height="36" rx="8" fill="#2D2D2D"/>
+<rect x="0" y="8" width="820" height="28" fill="#2D2D2D"/>
+<circle cx="20" cy="18" r="6" fill="#FF5F57"/>
+<circle cx="40" cy="18" r="6" fill="#FFBD2E"/>
+<circle cx="60" cy="18" r="6" fill="#28CA41"/>
+<text x="410" y="22" text-anchor="middle" class="terminal-text" fill="#8C8C8C" font-size="12">query-doctor — Test Usage</text>
+<text x="16" y="50" class="terminal-text" font-size="13">
+  <tspan fill="#6A9955">$</tspan><tspan fill="#D4D4D4"> pytest tests/test_queries.py -v</tspan>
+</text>
+<text x="16" y="90" class="terminal-text" font-size="13" fill="#28CA41" >tests/test_queries.py::test_book_list_no_nplusone PASSED</text>
+<text x="16" y="110" class="terminal-text" font-size="13" fill="#28CA41" >tests/test_queries.py::test_book_list_query_count PASSED</text>
+<text x="16" y="130" class="terminal-text" font-size="13" fill="#28CA41" >tests/test_queries.py::test_no_duplicate_queries PASSED</text>
+<text x="16" y="150" class="terminal-text" font-size="13" fill="#F44747" >tests/test_queries.py::test_api_under_budget FAILED</text>
+<text x="16" y="190" class="terminal-text" font-size="13" fill="#F44747" font-weight="700">FAILED tests/test_queries.py::test_api_under_budget</text>
+<text x="32" y="210" class="terminal-text" font-size="13" fill="#F44747" >AssertionError: Too many queries: 47.</text>
+<text x="32" y="230" class="terminal-text" font-size="13" fill="#F44747" >Issues: [&#x27;N+1 detected: 47 queries for table author&#x27;]</text>
+<text x="16" y="270" class="terminal-text" font-size="13" fill="#CE9178" font-weight="700">3 passed, 1 failed in 0.42s</text>
+</svg>

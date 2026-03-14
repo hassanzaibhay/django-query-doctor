@@ -1,0 +1,32 @@
+#!/bin/bash
+# Example 5: Management Commands
+
+echo "============================================================"
+echo "Example 5: Management Commands"
+echo "============================================================"
+
+echo ""
+echo "--- check_queries: Analyze a URL ---"
+echo "$ python manage.py check_queries --url /api/books/"
+echo "$ python manage.py check_queries --url /api/books/ --format json"
+echo "$ python manage.py check_queries --url /api/books/ --fail-on critical"
+echo ""
+echo "--- query_budget: Enforce limits ---"
+echo '$ python manage.py query_budget --max-queries 20 --execute "from myapp.models import Book; list(Book.objects.all())"'
+echo ""
+echo "--- fix_queries: Auto-fix issues ---"
+echo "$ python manage.py fix_queries --url /api/books/                    # Dry-run (default)"
+echo "$ python manage.py fix_queries --url /api/books/ --apply            # Apply fixes"
+echo "$ python manage.py fix_queries --url /api/books/ --apply --no-backup"
+echo "$ python manage.py fix_queries --url /api/books/ --issue-type nplusone"
+echo ""
+echo "--- diagnose_project: Full project scan ---"
+echo "$ python manage.py diagnose_project                                 # HTML report"
+echo "$ python manage.py diagnose_project --output report.html"
+echo "$ python manage.py diagnose_project --format json"
+echo "$ python manage.py diagnose_project --apps myapp accounts"
+echo "$ python manage.py diagnose_project --exclude-urls /admin/ /health/"
+echo ""
+echo "--- check_queries with diff mode ---"
+echo "$ python manage.py check_queries --url /api/books/ --diff=main"
+echo "$ python manage.py check_queries --url /api/books/ --diff=origin/develop"

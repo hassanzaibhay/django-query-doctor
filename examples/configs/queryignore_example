@@ -1,0 +1,33 @@
+# .queryignore — Query Doctor Ignore Rules
+# ==========================================
+# Place this file in your project root (same level as manage.py)
+#
+# Supported rule types:
+#   sql:<pattern>                         — Ignore queries matching SQL pattern (% = wildcard)
+#   file:<pattern>                        — Ignore queries from matching file paths (* = glob)
+#   callsite:<file>:<line>                — Ignore a specific callsite
+#   ignore:<issue_type>:<path>:<context>  — Ignore specific issue type in specific context
+#
+# Lines starting with # are comments. Blank lines are ignored.
+
+# Django internals — these are fine
+sql:SELECT * FROM django_session%
+sql:SELECT * FROM django_content_type%
+sql:SELECT * FROM auth_permission%
+
+# Migration queries
+file:*/migrations/*
+
+# Management commands that do bulk operations
+file:myapp/management/commands/import_data.py
+file:myapp/management/commands/seed_data.py
+
+# Known acceptable N+1 in admin (Django admin does this by design)
+ignore:nplusone:django/contrib/admin/*
+
+# Legacy view we can't refactor until Q3
+callsite:myapp/views.py:287
+ignore:nplusone:myapp/views.py:LegacyOrderExportView
+
+# Third-party library queries we can't control
+file:*/site-packages/*

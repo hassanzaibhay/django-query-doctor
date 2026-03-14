@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><title>Books</title></head>
+<body>
+<h1>Books</h1>
+<table>
+    <tr><th>Title</th><th>Author</th><th>Publisher</th><th>Price</th></tr>
+    {% for book in books %}
+    <tr>
+        <!-- These access FK fields, triggering N+1 -->
+        <td><a href="/books/{{ book.pk }}/">{{ book.title }}</a></td>
+        <td>{{ book.author.name }}</td>
+        <td>{{ book.publisher.name }}</td>
+        <td>${{ book.price }}</td>
+    </tr>
+    {% endfor %}
+</table>
+</body>
+</html>

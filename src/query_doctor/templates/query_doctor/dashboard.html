@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Query Doctor Dashboard</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f4f6f9; color: #333; padding: 20px;
+}
+.container { max-width: 1100px; margin: 0 auto; }
+h1 { color: #2c3e50; margin-bottom: 24px; font-size: 24px; }
+.cards {
+    display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+}
+.card {
+    background: #fff; border-radius: 8px; padding: 20px; min-width: 160px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; flex: 1;
+}
+.card-value { font-size: 32px; font-weight: bold; }
+.card-label { font-size: 13px; color: #666; text-transform: uppercase; margin-top: 4px; }
+.card-critical .card-value { color: #dc3545; }
+.card-issues .card-value { color: #e67e22; }
+.filters {
+    margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.filters label { font-size: 13px; color: #555; cursor: pointer; }
+.filters input[type="checkbox"] { margin-right: 4px; }
+.btn {
+    padding: 6px 14px; border: 1px solid #ccc; border-radius: 4px;
+    background: #fff; cursor: pointer; font-size: 13px;
+}
+.btn:hover { background: #f0f0f0; }
+.btn.active { background: #3498db; color: #fff; border-color: #3498db; }
+table {
+    width: 100%; background: #fff; border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-collapse: collapse;
+    overflow: hidden;
+}
+th {
+    background: #f8f9fa; padding: 12px 16px; text-align: left;
+    font-size: 13px; color: #555; text-transform: uppercase; cursor: pointer;
+    border-bottom: 2px solid #dee2e6; user-select: none;
+}
+th:hover { background: #e9ecef; }
+td { padding: 10px 16px; border-bottom: 1px solid #eee; font-size: 14px; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover { background: #f8f9fa; }
+.badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: bold; color: #fff;
+}
+.badge-critical { background: #dc3545; }
+.badge-warning { background: #ffc107; color: #333; }
+.badge-info { background: #17a2b8; }
+.detail-row { display: none; }
+.detail-row td { padding: 0; }
+.detail-content {
+    padding: 16px 24px; background: #fafbfc; border-top: 1px solid #eee;
+}
+.rx-item {
+    padding: 8px 0; border-bottom: 1px solid #eee;
+}
+.rx-item:last-child { border-bottom: none; }
+.rx-desc { font-size: 14px; margin: 4px 0; }
+.rx-fix {
+    font-size: 13px; background: #e8f5e9; padding: 4px 8px;
+    border-radius: 4px; margin-top: 4px; display: inline-block;
+}
+.rx-callsite { font-size: 12px; color: #888; font-family: monospace; }
+.no-data {
+    text-align: center; padding: 40px; color: #999; font-size: 16px;
+}
+.auto-refresh {
+    float: right; font-size: 13px; color: #666;
+}
+@media (max-width: 768px) {
+    .cards { flex-direction: column; }
+    .card { min-width: auto; }
+    table { font-size: 12px; }
+    td, th { padding: 8px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>
+    Query Doctor Dashboard
+    <span class="auto-refresh">
+        <label><input type="checkbox" id="autoRefresh"> Auto-refresh (10s)</label>
+    </span>
+</h1>
+
+<div class="cards">
+    <div class="card">
+        <div class="card-value">{{ total_reports }}</div>
+        <div class="card-label">Requests Analyzed</div>
+    </div>
+    <div class="card card-issues">
+        <div class="card-value">{{ total_issues }}</div>
+        <div class="card-label">Total Issues</div>
+    </div>
+    <div class="card card-critical">
+        <div class="card-value">{{ critical_count }}</div>
+        <div class="card-label">Critical</div>
+    </div>
+</div>
+
+<div class="filters">
+    <label><input type="checkbox" id="filterHasIssues"> Has Issues</label>
+    <label><input type="checkbox" id="filterCritical"> Critical Only</label>
+</div>
+
+{% if reports %}
+<table id="reportTable">
+<thead>
+<tr>
+    <th data-sort="timestamp">Timestamp</th>
+    <th data-sort="method">Method</th>
+    <th data-sort="path">Path</th>
+    <th data-sort="queries">Queries</th>
+    <th data-sort="time">Time (ms)</th>
+    <th data-sort="issues">Issues</th>
+</tr>
+</thead>
+<tbody>
+{% for r in reports %}
+<tr class="clickable data-row"
+    data-issues="{{ r.issues }}"
+    data-critical="{{ r.critical|yesno:'true,false' }}"
+    onclick="toggleDetail(this)">
+    <td>{{ r.timestamp }}</td>
+    <td>{{ r.method }}</td>
+    <td>{{ r.path }}</td>
+    <td>{{ r.total_queries }}</td>
+    <td>{{ r.total_time_ms }}</td>
+    <td>
+        {% if r.critical %}
+        <span class="badge badge-critical">{{ r.issues }}</span>
+        {% elif r.issues > 0 %}
+        <span class="badge badge-warning">{{ r.issues }}</span>
+        {% else %}
+        {{ r.issues }}
+        {% endif %}
+    </td>
+</tr>
+<tr class="detail-row">
+    <td colspan="6">
+        <div class="detail-content">
+            {% for rx in r.prescriptions %}
+            <div class="rx-item">
+                <span class="badge badge-{{ rx.severity }}">{{ rx.severity|upper }}</span>
+                <span class="rx-desc">{{ rx.description }}</span>
+                {% if rx.callsite %}
+                <div class="rx-callsite">{{ rx.callsite }}</div>
+                {% endif %}
+                {% if rx.fix %}
+                <div class="rx-fix">{{ rx.fix }}</div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div style="color: #999;">No issues for this request.</div>
+            {% endfor %}
+        </div>
+    </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% else %}
+<div class="no-data">No reports recorded yet. Enable the admin dashboard in settings and make some requests.</div>
+{% endif %}
+</div>
+
+<script>
+function toggleDetail(row) {
+    var detail = row.nextElementSibling;
+    if (detail && detail.classList.contains('detail-row')) {
+        detail.style.display = detail.style.display === 'table-row' ? 'none' : 'table-row';
+    }
+}
+
+document.getElementById('filterHasIssues').addEventListener('change', applyFilters);
+document.getElementById('filterCritical').addEventListener('change', applyFilters);
+
+function applyFilters() {
+    var hasIssues = document.getElementById('filterHasIssues').checked;
+    var criticalOnly = document.getElementById('filterCritical').checked;
+    var rows = document.querySelectorAll('.data-row');
+    rows.forEach(function(row) {
+        var issues = parseInt(row.getAttribute('data-issues'));
+        var critical = row.getAttribute('data-critical') === 'true';
+        var show = true;
+        if (hasIssues && issues === 0) show = false;
+        if (criticalOnly && !critical) show = false;
+        row.style.display = show ? '' : 'none';
+        row.nextElementSibling.style.display = 'none';
+    });
+}
+
+var refreshTimer = null;
+document.getElementById('autoRefresh').addEventListener('change', function() {
+    if (this.checked) {
+        refreshTimer = setInterval(function() { location.reload(); }, 10000);
+    } else {
+        clearInterval(refreshTimer);
+    }
+});
+</script>
+</body>
+</html>

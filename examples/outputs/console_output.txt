@@ -1,0 +1,64 @@
+============================================================
+Query Doctor — Console Output Example
+URL: / (book list)
+============================================================
+
+Total queries: 51
+Total time: 273.7ms
+Issues found: 14
+
+CRITICAL: N+1 detected: 25 queries for table "sample_project_author" (field: project_author)
+  Fix: Add .select_related('project_author') to your queryset
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+CRITICAL: N+1 detected: 25 queries for table "sample_project_publisher" (field: project_publisher)
+  Fix: Add .select_related('project_publisher') to your queryset
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 5 identical queries for table "sample_project_author"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 5 identical queries for table "sample_project_publisher"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 4 identical queries for table "sample_project_author"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 6 identical queries for table "sample_project_publisher"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 7 identical queries for table "sample_project_publisher"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 2 identical queries for table "sample_project_author"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 4 identical queries for table "sample_project_author"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 5 identical queries for table "sample_project_publisher"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 2 identical queries for table "sample_project_author"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 3 identical queries for table "sample_project_author"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 4 identical queries for table "sample_project_author"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
+
+WARNING: Duplicate query: 2 identical queries for table "sample_project_publisher"
+  Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+  Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19
