@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] - 2026-03-16
+
+### Fixed
+- Fixed SVG terminal renders not displaying on GitHub (switched to absolute URLs)
+- Removed Google Fonts @import from SVGs blocked by GitHub CSP
+
 ## [1.0.0] - 2026-03-13
 
 ### Added

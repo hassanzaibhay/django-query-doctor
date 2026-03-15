@@ -23,7 +23,7 @@ Tools like django-debug-toolbar can show you *what* queries ran, but they leave 
 - A concrete code fix you can copy-paste
 
 <p align="center">
-  <img src="examples/screenshots/quick_start.svg" alt="Quick Start" width="720">
+  <img src="https://raw.githubusercontent.com/hassanzaibhay/django-query-doctor/main/examples/screenshots/quick_start.svg" alt="Quick Start" width="720">
 </p>
 
 ## Quick Start
@@ -72,7 +72,7 @@ INFO: Column "published_date" in WHERE clause has no index on table "myapp_book"
 ```
 
 <p align="center">
-  <img src="examples/screenshots/console_output.svg" alt="Console Output" width="820">
+  <img src="https://raw.githubusercontent.com/hassanzaibhay/django-query-doctor/main/examples/screenshots/console_output.svg" alt="Console Output" width="820">
 </p>
 
 ## What It Detects
@@ -120,7 +120,7 @@ def my_view(request):
 ```
 
 <p align="center">
-  <img src="examples/screenshots/query_budget.svg" alt="Query Budget" width="820">
+  <img src="https://raw.githubusercontent.com/hassanzaibhay/django-query-doctor/main/examples/screenshots/query_budget.svg" alt="Query Budget" width="820">
 </p>
 
 ## Management Commands
@@ -194,7 +194,7 @@ Generates a standalone HTML report with:
 Run before each release to catch query regressions across your entire project.
 
 <p align="center">
-  <img src="examples/screenshots/project_diagnosis.svg" alt="Project Health Scan" width="820">
+  <img src="https://raw.githubusercontent.com/hassanzaibhay/django-query-doctor/main/examples/screenshots/project_diagnosis.svg" alt="Project Health Scan" width="820">
 </p>
 
 ## Celery Task Support
@@ -313,7 +313,7 @@ By default, `fix_queries` runs in **dry-run mode** — it shows you the proposed
 - Skips ambiguous fixes with a warning rather than guessing
 
 <p align="center">
-  <img src="examples/screenshots/auto_fix.svg" alt="Auto-Fix Preview" width="820">
+  <img src="https://raw.githubusercontent.com/hassanzaibhay/django-query-doctor/main/examples/screenshots/auto_fix.svg" alt="Auto-Fix Preview" width="820">
 </p>
 
 ## Admin Dashboard
@@ -405,7 +405,7 @@ def test_optimized_view(query_doctor):
 The plugin is automatically registered when you install `django-query-doctor`.
 
 <p align="center">
-  <img src="examples/screenshots/test_usage.svg" alt="Test Usage" width="820">
+  <img src="https://raw.githubusercontent.com/hassanzaibhay/django-query-doctor/main/examples/screenshots/test_usage.svg" alt="Test Usage" width="820">
 </p>
 
 ## Configuration

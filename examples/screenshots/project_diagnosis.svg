@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="820" height="530" viewBox="0 0 820 530">
 <defs><style>
-  @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap");
   .terminal-text { font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace; }
 </style></defs>
 <rect width="820" height="530" rx="8" fill="#1E1E1E"/>

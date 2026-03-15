@@ -39,7 +39,6 @@ def create_terminal_svg(
     svg_lines = []
     svg_lines.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">')
     svg_lines.append('<defs><style>')
-    svg_lines.append('  @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap");')
     svg_lines.append('  .terminal-text { font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace; }')
     svg_lines.append('</style></defs>')
 
