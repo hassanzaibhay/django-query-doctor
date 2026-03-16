@@ -50,7 +50,7 @@ That's it. Zero config required.
 
 ## Example Output
 
-```
+```text
 ============================================================
 Query Doctor Report
 Total queries: 53 | Time: 127.3ms | Issues: 3
@@ -346,7 +346,7 @@ The dashboard shows recent requests with query counts, timing, and prescriptions
 
 Suppress known false positives with a `.queryignore` file in your project root:
 
-```
+```text
 # .queryignore — Patterns to exclude from analysis
 
 # Ignore queries matching SQL patterns

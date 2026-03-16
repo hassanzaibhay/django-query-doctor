@@ -10,6 +10,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Fixed SVG terminal renders not displaying on GitHub (switched to absolute URLs)
 - Removed Google Fonts @import from SVGs blocked by GitHub CSP
 
+## [1.0.1] - 2026-03-15
+
+### Changed
+- Added SVG terminal renders to README for visual feature showcase
+- Added Django 6.0 mention in README requirements
+- Cleaned up committed __pycache__ artifacts
+- Updated .gitignore with additional exclusions
+
 ## [1.0.0] - 2026-03-13
 
 ### Added
@@ -67,11 +75,3 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Optional extras: Rich, Celery, OpenTelemetry
 - Full type annotations with `py.typed` (PEP 561)
 - CI matrix: Python 3.10-3.13 x Django 4.2-6.0
-
-## [1.0.1] - 2026-03-15
-
-### Patch (1.0.1)
-- Added SVG terminal renders to README for visual feature showcase
-- Added Django 6.0 mention in README requirements
-- Cleaned up committed __pycache__ artifacts
-- Updated .gitignore with additional exclusions
