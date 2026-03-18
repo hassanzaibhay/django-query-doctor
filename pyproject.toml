@@ -35,7 +35,12 @@ dependencies = ["django>=4.2"]
 rich = ["rich>=13.0"]
 celery = ["celery>=5.0"]
 otel = ["opentelemetry-api>=1.0", "opentelemetry-sdk>=1.0"]
-all = ["rich>=13.0", "celery>=5.0", "opentelemetry-api>=1.0", "opentelemetry-sdk>=1.0"]
+all = ["django-query-doctor[rich,celery,otel]"]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.24",
+    "mkdocs-git-revision-date-localized-plugin>=1.2",
+]
 dev = [
     "pytest>=8.0",
     "pytest-django>=4.7",
@@ -53,9 +58,10 @@ query_doctor = "query_doctor.pytest_plugin"
 
 [project.urls]
 Homepage = "https://github.com/hassanzaibhay/django-query-doctor"
+Documentation = "https://hassanzaibhay.github.io/django-query-doctor"
 Repository = "https://github.com/hassanzaibhay/django-query-doctor"
-Issues = "https://github.com/hassanzaibhay/django-query-doctor/issues"
-Documentation = "https://github.com/hassanzaibhay/django-query-doctor#readme"
+Changelog = "https://github.com/hassanzaibhay/django-query-doctor/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/hassanzaibhay/django-query-doctor/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/query_doctor"]

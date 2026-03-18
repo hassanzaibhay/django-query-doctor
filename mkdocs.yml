@@ -1,0 +1,152 @@
+site_name: django-query-doctor
+site_url: https://hassanzaibhay.github.io/django-query-doctor
+site_author: Hassan Zaib Hayat
+site_description: >-
+  Automated diagnosis and prescriptions for slow Django ORM queries.
+  Detects N+1s, duplicates, missing indexes, and more — with exact
+  file:line references and copy-paste code fixes.
+
+repo_name: hassanzaibhay/django-query-doctor
+repo_url: https://github.com/hassanzaibhay/django-query-doctor
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2024-2026 Hassan Zaib Hayat
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            docstring_style: google
+            merge_init_into_class: true
+            show_if_no_docstring: false
+  - git-revision-date-localized:
+      enable_creation_date: true
+      enable_git_follow: false
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets
+  - pymdownx.mark
+  - pymdownx.critic
+  - pymdownx.keys
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/hassanzaibhay
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/django-query-doctor/
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - Deep Dive:
+    - Why This Tool Exists: deep-dive/why-this-tool.md
+    - Architecture: deep-dive/architecture.md
+    - Design Decisions: deep-dive/design-decisions.md
+    - Performance & Benchmarks: deep-dive/performance.md
+    - Comparison with Alternatives: deep-dive/comparison.md
+  - Guides:
+    - How It Works: guides/how-it-works.md
+    - Middleware Usage: guides/middleware.md
+    - Management Commands: guides/management-commands.md
+    - Pytest Plugin: guides/pytest-plugin.md
+    - Auto-Fix Mode: guides/auto-fix.md
+    - CI/CD Integration: guides/ci-integration.md
+    - Celery Support: guides/celery.md
+    - Async & ASGI: guides/async-support.md
+    - Admin Dashboard: guides/admin-dashboard.md
+    - Custom Plugins: guides/custom-plugins.md
+    - Query Ignore: guides/query-ignore.md
+  - Analyzers:
+    - Overview: analyzers/overview.md
+    - N+1 Queries: analyzers/nplusone.md
+    - Duplicate Queries: analyzers/duplicate.md
+    - Missing Indexes: analyzers/missing-index.md
+    - Fat SELECT: analyzers/fat-select.md
+    - QuerySet Evaluation: analyzers/queryset-eval.md
+    - DRF Serializer: analyzers/drf-serializer.md
+    - Query Complexity: analyzers/query-complexity.md
+  - Reporters:
+    - Overview: reporters/overview.md
+    - Console (Rich): reporters/console.md
+    - JSON: reporters/json.md
+    - HTML Dashboard: reporters/html.md
+    - Log File: reporters/log.md
+    - OpenTelemetry: reporters/opentelemetry.md
+  - Examples:
+    - Real-World Scenarios: examples/real-world.md
+    - DRF ViewSets: examples/drf-viewsets.md
+    - Large Codebases: examples/large-codebases.md
+  - API Reference: api/reference.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+  - FAQ: faq.md
