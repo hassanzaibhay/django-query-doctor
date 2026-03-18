@@ -72,7 +72,7 @@ QUERY_DOCTOR = {
 +-----------+---------+----------------------------------------------+
 | WARNING   | Index   | Column 'isbn' in WHERE clause has no index   |
 |           |         | Location: views.py:55                        |
-|           |         | Fix: Add db_index=True to Book.isbn          |
+|           |         | Fix: Add models.Index(fields=["isbn"]) to Book's Meta.indexes |
 +-----------+---------+----------------------------------------------+
 | INFO      | Fat SEL | SELECT * fetches 15 unused columns           |
 |           |         | Location: views.py:42                        |
@@ -98,7 +98,7 @@ QUERY_DOCTOR = {
 [WARNING] Missing Index
   Column 'isbn' in WHERE clause has no index
   Location: views.py:55
-  Fix: Add db_index=True to Book.isbn
+  Fix: Add models.Index(fields=["isbn"]) to Book's Meta.indexes
 
 [INFO] Fat SELECT
   SELECT * fetches 15 unused columns

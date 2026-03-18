@@ -227,7 +227,7 @@ Every issue detected by an analyzer is represented as a `Prescription`:
 - *Exact duplicates*: Same SQL and same parameters, executed more than once.
 - *Near duplicates*: Same fingerprint, similar parameters (e.g., fetching the same set of rows with slightly different orderings).
 
-**Missing Index Analyzer** (`missing_index.py`): Examines WHERE and JOIN clauses for column references, then checks Django model meta information to determine if those columns are indexed. Suggests `db_index=True` or composite indexes.
+**Missing Index Analyzer** (`missing_index.py`): Examines WHERE and JOIN clauses for column references, then checks Django model meta information to determine if those columns are indexed. Suggests `Meta.indexes` with `models.Index()` for missing indexes.
 
 **Fat SELECT Analyzer** (`fat_select.py`): Detects `SELECT *` patterns (or selecting all model fields) when the code only accesses a subset of fields. Suggests `.only()` or `.values()` calls.
 

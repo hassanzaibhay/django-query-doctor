@@ -68,7 +68,7 @@ WARNING: Duplicate query: 6 identical queries for table "myapp_publisher"
    Queries: 6 | Est. savings: ~4.2ms
 
 INFO: Column "published_date" in WHERE clause has no index on table "myapp_book"
-   Fix: Add db_index=True to the published_date field on Book
+   Fix: Add models.Index(fields=["published_date"]) to Book's Meta.indexes
 ```
 
 <p align="center">
@@ -81,7 +81,7 @@ INFO: Column "published_date" in WHERE clause has no index on table "myapp_book"
 |------------|----------|---------------|-------------|
 | **N+1 Queries** | CRITICAL | Looping over a queryset and hitting a FK/M2M on each row | `Book.objects.select_related('author')` |
 | **Duplicate Queries** | WARNING | The exact same SQL executed multiple times | Assign the result to a variable and reuse it |
-| **Missing Indexes** | INFO | WHERE/ORDER BY columns without a database index | `db_index=True` on the field |
+| **Missing Indexes** | INFO | WHERE/ORDER BY columns without a database index | `Meta.indexes = [models.Index(fields=["field"])]` |
 | **DRF Serializer N+1** | WARNING | Nested serializers without prefetching | `select_related()` / `prefetch_related()` on the view queryset |
 | **Fat SELECT** | INFO | `SELECT *` when only a few columns are used | `.only('field1', 'field2')` or `.values('field1', 'field2')` |
 | **QuerySet Evaluation** | WARNING | Full queryset evaluation patterns (e.g., `list()` on large tables) | `.iterator()`, `.exists()`, `.count()`, or slicing |

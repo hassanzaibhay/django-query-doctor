@@ -91,7 +91,8 @@ class QuerySetEvalAnalyzer(BaseAnalyzer):
                         pattern="list(qs)[0]",
                         suggestion=(
                             "Use .first() instead of list(qs)[0] "
-                            "to avoid loading the entire queryset"
+                            "to avoid loading the entire queryset. "
+                            "For large result sets, consider .iterator() to reduce memory usage"
                         ),
                     )
                 )
@@ -100,7 +101,10 @@ class QuerySetEvalAnalyzer(BaseAnalyzer):
                     self._build_prescription(
                         query=query,
                         pattern="len(qs)",
-                        suggestion="Use .count() instead of len() to let the database count rows",
+                        suggestion=(
+                            "Use .count() instead of len() to let the database count rows. "
+                            "If iterating afterward, consider .iterator() for large querysets"
+                        ),
                     )
                 )
             elif _BOOL_PATTERN.search(code):

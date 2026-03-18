@@ -232,7 +232,7 @@ class QueryFixer:
         """
         indent = len(line) - len(line.lstrip())
         prefix = line[:indent]
-        return f"{prefix}# TODO: Consider adding db_index=True — {suggestion}\n{line}"
+        return f"{prefix}# TODO: Consider adding an index via Meta.indexes — {suggestion}\n{line}"
 
     def generate_diff(self, fixes: list[ProposedFix]) -> str:
         """Generate a unified diff string from proposed fixes.

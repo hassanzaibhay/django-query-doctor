@@ -26,5 +26,5 @@
 <text x="40" y="350" class="terminal-text" font-size="13" fill="#4EC9B0" >Fix: Assign the queryset result to a variable and reuse it</text>
 <text x="40" y="370" class="terminal-text" font-size="13" fill="#808080" >Queries: 6 | Est. savings: ~4.2ms</text>
 <text x="16" y="410" class="terminal-text" font-size="13" fill="#569CD6" font-weight="700">INFO      Column &quot;published_date&quot; has no index on &quot;myapp_book&quot;</text>
-<text x="40" y="430" class="terminal-text" font-size="13" fill="#4EC9B0" >Fix: Add db_index=True to the published_date field</text>
+<text x="40" y="430" class="terminal-text" font-size="13" fill="#4EC9B0" >Fix: Add models.Index(fields=[&quot;published_date&quot;]) to Meta.indexes</text>
 </svg>

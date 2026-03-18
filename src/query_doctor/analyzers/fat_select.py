@@ -193,7 +193,10 @@ class FatSelectAnalyzer(BaseAnalyzer):
 
         if large_fields:
             fields_str = ", ".join(f"'{f}'" for f in large_fields)
-            fix = f"Use .defer({fields_str}) to skip loading large fields"
+            fix = (
+                f"Use .defer({fields_str}) to skip loading large fields, "
+                "or .values()/.values_list() if you don't need model instances"
+            )
             desc = (
                 f"Fat SELECT: {col_count} columns from "
                 f'"{table}" including large fields: {", ".join(large_fields)}'
@@ -201,7 +204,8 @@ class FatSelectAnalyzer(BaseAnalyzer):
         else:
             fix = (
                 "Use .only('field1', 'field2', ...) to select "
-                "only the fields you need, or .defer() to skip large fields"
+                "only the fields you need, .defer() to skip large fields, "
+                "or .values()/.values_list() if you don't need model instances"
             )
             desc = f'Fat SELECT: {col_count} columns from "{table}"'
 

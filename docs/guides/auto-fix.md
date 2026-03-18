@@ -67,7 +67,7 @@ python manage.py fix_queries --url /api/books/ --apply
 | `select_related` | Adds `.select_related()` calls for FK/OneToOne N+1 patterns | `.select_related('author', 'publisher')` |
 | `prefetch_related` | Adds `.prefetch_related()` calls for M2M/reverse FK N+1 patterns | `.prefetch_related('categories', 'tags')` |
 | `only_defer` | Replaces `SELECT *` with `.only()` or adds `.defer()` for unused columns | `.only('id', 'title', 'price')` |
-| `db_index` | Adds `db_index=True` to model field definitions for missing indexes | `published_date = DateField(db_index=True)` |
+| `meta_index` | Adds `models.Index()` entry to model's `Meta.indexes` for missing indexes | `Meta: indexes = [models.Index(fields=["published_date"])]` |
 | `cache_queryset` | Extracts repeated queryset evaluations into a variable | `books = list(Book.objects.filter(...))` |
 
 ---
@@ -81,7 +81,7 @@ You can limit which categories of fixes are applied using `--fix-type`:
 python manage.py fix_queries --url /api/books/ --fix-type select_related --apply
 
 # Only apply index-related fixes
-python manage.py fix_queries --url /api/books/ --fix-type db_index --apply
+python manage.py fix_queries --url /api/books/ --fix-type meta_index --apply
 
 # Apply multiple specific fix types
 python manage.py fix_queries --url /api/books/ \
@@ -90,7 +90,7 @@ python manage.py fix_queries --url /api/books/ \
     --apply
 ```
 
-This is useful when you want to apply safe, well-understood fixes (like `select_related`) while leaving more complex changes (like `db_index`, which requires a migration) for manual review.
+This is useful when you want to apply safe, well-understood fixes (like `select_related`) while leaving more complex changes (like `meta_index`, which requires a migration) for manual review.
 
 ---
 
@@ -147,9 +147,9 @@ books = Book.objects.filter(published=True).only('id', 'title')
 titles = [book.title for book in books]
 ```
 
-### `db_index`
+### `meta_index`
 
-Targets model fields used in `WHERE` or `ORDER BY` clauses that lack a database index. The fix adds `db_index=True` to the field definition.
+Targets model fields used in `WHERE` or `ORDER BY` clauses that lack a database index. The fix adds a `models.Index()` entry to the model's `Meta.indexes`.
 
 Before:
 ```python
@@ -160,10 +160,15 @@ class Book(models.Model):
 After:
 ```python
 class Book(models.Model):
-    published_date = models.DateField(db_index=True)
+    published_date = models.DateField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["published_date"]),
+        ]
 ```
 
-> **Note:** After applying `db_index` fixes, you must generate and run a migration:
+> **Note:** After applying `meta_index` fixes, you must generate and run a migration:
 >
 > ```bash
 > python manage.py makemigrations
@@ -201,7 +206,7 @@ def get_context_data(self, **kwargs):
 2. **Commit before applying.** Use version control so you can revert if needed.
 3. **Apply one fix type at a time.** This makes it easier to review and test each change.
 4. **Run tests after applying.** Ensure your test suite passes after each batch of fixes.
-5. **Handle `db_index` separately.** Index changes require migrations and may affect write performance. Evaluate each one individually.
+5. **Handle `meta_index` separately.** Index changes require migrations and may affect write performance. Evaluate each one individually.
 
 ---
 

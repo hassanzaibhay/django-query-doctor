@@ -31,19 +31,10 @@ def recent_books(request):
 
 ## Fix Code
 
-Add `db_index=True` to the field, or define an index in `Meta.indexes`:
+Add a `models.Index()` entry to the model's `Meta.indexes`:
 
 ```python
-# models.py -- Option A: field-level index
-
-class Book(models.Model):
-    title = models.CharField(max_length=200)
-    published_date = models.DateField(db_index=True)
-    status = models.CharField(max_length=20)
-```
-
-```python
-# models.py -- Option B: Meta.indexes (supports composite indexes)
+# models.py -- Meta.indexes (supports single and composite indexes)
 
 class Book(models.Model):
     title = models.CharField(max_length=200)
@@ -71,10 +62,7 @@ python manage.py migrate
   Location: views.py:6
   Issue:    Column `published_date` on table `app_book` is used in a
             WHERE clause but has no database index.
-  Fix:      Add an index to the field definition in models.py:
-
-            - published_date = models.DateField()
-            + published_date = models.DateField(db_index=True)
+  Fix:      Add models.Index(fields=["published_date"]) to Book's Meta.indexes
 
             Then run: python manage.py makemigrations && python manage.py migrate
 ```

@@ -1,7 +1,7 @@
 """Tests for the missing index analyzer.
 
 Verifies that the analyzer correctly detects queries filtering or ordering
-on non-indexed columns and suggests adding db_index=True or Meta.indexes.
+on non-indexed columns and suggests adding Meta.indexes with models.Index().
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ class TestMissingIndexAnalyzer:
         rx = prescriptions[0]
         assert rx.issue_type == IssueType.MISSING_INDEX
         assert "published_date" in rx.description
-        assert "db_index" in rx.fix_suggestion or "indexes" in rx.fix_suggestion
+        assert "Meta.indexes" in rx.fix_suggestion
 
     @pytest.mark.django_db
     def test_filter_on_indexed_field_not_detected(self) -> None:

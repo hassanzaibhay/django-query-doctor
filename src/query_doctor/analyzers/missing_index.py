@@ -2,13 +2,14 @@
 
 Detects SELECT queries that filter (WHERE) or order (ORDER BY) on columns
 that lack a database index, and generates prescriptions suggesting
-db_index=True or Meta.indexes.
+Meta.indexes with models.Index().
 
 Algorithm:
 1. For each SELECT query, extract WHERE and ORDER BY column references.
 2. Map column names back to Django model fields via Model._meta.get_fields().
-3. For each field, check if it has an index (db_index, unique, PK, FK, Meta.indexes).
-4. If not indexed, generate a Prescription suggesting db_index=True.
+3. For each field, check if it has an index (db_index, unique, PK, FK,
+   Meta.indexes, or Meta.constraints with UniqueConstraint).
+4. If not indexed, generate a Prescription suggesting Meta.indexes.
 """
 
 from __future__ import annotations
@@ -62,7 +63,8 @@ def _field_is_indexed(model: Any, field_name: str) -> bool:
     """Check if a model field has any kind of index.
 
     Checks: db_index, unique, primary_key, ForeignKey (auto-indexed),
-    and Meta.indexes / Meta.unique_together.
+    Meta.indexes, Meta.unique_together, and Meta.constraints
+    (UniqueConstraint creates an implicit index).
     """
     try:
         field = model._meta.get_field(field_name)
@@ -93,8 +95,20 @@ def _field_is_indexed(model: Any, field_name: str) -> bool:
         if field_name in index_fields:
             return True
 
-    # Check Meta.unique_together
-    return any(field_name in unique_set for unique_set in model._meta.unique_together)
+    # Check Meta.unique_together (legacy, still supported at runtime)
+    if any(field_name in unique_set for unique_set in model._meta.unique_together):
+        return True
+
+    # Check Meta.constraints for UniqueConstraint (modern Django 4.2+ approach)
+    from django.db.models import UniqueConstraint
+
+    for constraint in model._meta.constraints:
+        if isinstance(constraint, UniqueConstraint) and field_name in getattr(
+            constraint, "fields", ()
+        ):
+            return True
+
+    return False
 
 
 def _extract_where_columns(normalized_sql: str) -> list[tuple[str, str]]:
@@ -126,7 +140,7 @@ class MissingIndexAnalyzer(BaseAnalyzer):
     """Analyzer that detects queries on non-indexed columns.
 
     Examines WHERE and ORDER BY clauses to find columns that lack
-    database indexes, and suggests adding db_index=True or Meta.indexes.
+    database indexes, and suggests adding Meta.indexes with models.Index().
     """
 
     name: str = "missing_index"
@@ -202,7 +216,7 @@ class MissingIndexAnalyzer(BaseAnalyzer):
                 f"is used in WHERE/ORDER BY but has no index"
             ),
             fix_suggestion=(
-                f"Add db_index=True to {model_name}.{column}, or add to Meta.indexes: "
+                f"Add to {model_name}'s Meta.indexes: "
                 f'indexes = [models.Index(fields=["{column}"], name="idx_{table}_{column}")]'
             ),
             callsite=query.callsite,

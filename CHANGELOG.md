@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.3] - 2026-03-18
+
+### Fixed
+- Missing Index analyzer now recommends `Meta.indexes` with `models.Index()` instead of `db_index=True`, following Django's official recommendation since 4.2 (fixes #1)
+- Auto-fix for missing indexes now generates `Meta.indexes` suggestion instead of `db_index=True`
+- `_field_is_indexed` now checks `Meta.constraints` for `UniqueConstraint` (modern Django 4.2+ pattern) in addition to `unique_together`
+
+### Changed
+- Full audit of all prescription texts across all 7 analyzers to align with Django 4.2–6.0 best practices
+- Fat SELECT prescriptions now mention `.values()`/`.values_list()` as alternatives when model instances aren't needed
+- N+1 prescriptions for `prefetch_related` now mention `Prefetch()` objects for advanced filtering scenarios
+- QuerySet evaluation prescriptions now mention `.iterator()` for large querysets to reduce memory usage
+- Updated docs, README, and all affected tests to reflect new recommendation text
+
 ## [1.0.2] - 2026-03-16
 
 ### Fixed

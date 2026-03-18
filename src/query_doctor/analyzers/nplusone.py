@@ -258,7 +258,15 @@ class NPlusOneAnalyzer(BaseAnalyzer):
             description=(
                 f'N+1 detected: {count} queries for table "{table}" (field: {field_name})'
             ),
-            fix_suggestion=(f"Add .{strategy}('{field_name}') to your queryset"),
+            fix_suggestion=(
+                f"Add .{strategy}('{field_name}') to your queryset"
+                + (
+                    f". For advanced filtering, use "
+                    f"Prefetch('{field_name}', queryset=...)"
+                    if strategy == "prefetch_related"
+                    else ""
+                )
+            ),
             callsite=callsite,
             query_count=count,
             time_saved_ms=total_time * (count - 1) / count if count > 0 else 0,

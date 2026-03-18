@@ -43,7 +43,7 @@ Browse your app as normal. Every request will now show query analysis in your co
    Fix: Assign the queryset result to a variable and reuse it
 
  INFO  Column "published_date" has no index on "myapp_book"
-   Fix: Add db_index=True to the published_date field
+   Fix: Add models.Index(fields=["published_date"]) to Book's Meta.indexes
 ```
 
 Every issue includes the exact file, line number, and a ready-to-apply fix.
