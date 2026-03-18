@@ -261,8 +261,7 @@ class NPlusOneAnalyzer(BaseAnalyzer):
             fix_suggestion=(
                 f"Add .{strategy}('{field_name}') to your queryset"
                 + (
-                    f". For advanced filtering, use "
-                    f"Prefetch('{field_name}', queryset=...)"
+                    f". For advanced filtering, use Prefetch('{field_name}', queryset=...)"
                     if strategy == "prefetch_related"
                     else ""
                 )
