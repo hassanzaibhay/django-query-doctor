@@ -260,7 +260,7 @@ class PatientListView(ListAPIView):
     python manage.py fix_queries --dry-run  # Preview changes
     python manage.py fix_queries            # Apply fixes with .bak backups
     ```
-    See the [management commands documentation](../getting-started/quickstart.md)
+    See the [management commands documentation](../guides/management-commands.md)
     for details.
 
 See also: [DRF ViewSet Examples](drf-viewsets.md) | [Large Codebase Strategies](large-codebases.md)

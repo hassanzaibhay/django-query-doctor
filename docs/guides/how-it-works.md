@@ -50,7 +50,7 @@ Grouped queries are passed through a chain of **analyzers**, each responsible fo
 | `DuplicateAnalyzer` | Exact and near-duplicate queries within one request | [Duplicates](../analyzers/duplicate.md) |
 | `MissingIndexAnalyzer` | `WHERE`/`ORDER BY` on columns without indexes | [Missing Indexes](../analyzers/missing-index.md) |
 | `FatSelectAnalyzer` | `SELECT *` when only a few columns are used | [Fat SELECT](../analyzers/fat-select.md) |
-| `QuerysetEvalAnalyzer` | Unnecessary queryset evaluations (e.g., calling `.count()` after `.all()`) | [Queryset Evaluation](../analyzers/queryset-eval.md) |
+| `QuerysetEvalAnalyzer` | Unnecessary queryset evaluations (e.g., `len(qs)` instead of `qs.count()`, `if qs:` instead of `qs.exists()`) | [Queryset Evaluation](../analyzers/queryset-eval.md) |
 | `DRFSerializerAnalyzer` | N+1 patterns inside DRF serializers | [DRF Serializer](../analyzers/drf-serializer.md) |
 | `QueryComplexityAnalyzer` | Overly complex queries (too many JOINs, subqueries) | [Query Complexity](../analyzers/query-complexity.md) |
 
@@ -76,17 +76,17 @@ Every issue detected by an analyzer is returned as a **Prescription** dataclass.
 
 | Field | Type | Description |
 |---|---|---|
+| `issue_type` | `IssueType` enum | The category of issue (e.g., `N_PLUS_ONE`, `DUPLICATE_QUERY`, `MISSING_INDEX`) |
 | `severity` | `Severity` enum | One of `CRITICAL`, `WARNING`, `INFO` |
-| `analyzer` | `str` | Name of the analyzer that produced this prescription |
-| `issue` | `str` | Human-readable description of the problem |
-| `table` | `str` | Database table involved |
-| `location` | `Location` | Source file path and line number where the issue originates |
-| `fix` | `str` | A ready-to-apply code fix (e.g., `.select_related('author')`) |
+| `description` | `str` | Human-readable description of the problem |
+| `fix_suggestion` | `str` | A ready-to-apply code fix (e.g., `Add .select_related('author') to your queryset`) |
+| `callsite` | `CallSite` | Source file path, line number, and function name where the issue originates |
 | `query_count` | `int` | Number of queries involved in this issue |
 | `time_saved_ms` | `float` | Estimated time savings if the fix is applied |
 | `fingerprint` | `str` | The SHA-256 fingerprint of the query group |
+| `extra` | `dict` | Additional metadata (e.g., table name, field name) |
 
-Prescriptions are not just warnings. They are actionable: the `fix` field contains the exact code change you need to make, and the `location` field tells you exactly where to make it.
+Prescriptions are not just warnings. They are actionable: the `fix_suggestion` field contains the exact code change you need to make, and the `callsite` field tells you exactly where to make it.
 
 ---
 

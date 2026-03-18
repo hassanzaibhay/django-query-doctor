@@ -31,25 +31,29 @@ class BaseAnalyzer(ABC):
 
 A `Prescription` contains:
 
-| Field          | Type   | Description                                         |
-|----------------|--------|-----------------------------------------------------|
-| `severity`     | `str`  | `"high"`, `"medium"`, or `"low"`                    |
-| `issue`        | `str`  | Human-readable description of the problem            |
-| `location`     | `str`  | `file:line` reference in user code                   |
-| `suggestion`   | `str`  | The exact code fix as a string                       |
-| `analyzer`     | `str`  | Name of the analyzer that produced the prescription  |
+| Field            | Type           | Description                                                     |
+|------------------|----------------|-----------------------------------------------------------------|
+| `issue_type`     | `IssueType`    | Enum: `N_PLUS_ONE`, `DUPLICATE_QUERY`, `MISSING_INDEX`, etc.    |
+| `severity`       | `Severity`     | Enum: `CRITICAL`, `WARNING`, or `INFO`                          |
+| `description`    | `str`          | Human-readable description of the problem                       |
+| `fix_suggestion` | `str`          | The exact code fix as a string                                  |
+| `callsite`       | `CallSite`     | Source file path, line number, and function name                 |
+| `query_count`    | `int`          | Number of queries involved in this issue                        |
+| `time_saved_ms`  | `float`        | Estimated time savings if the fix is applied                    |
+| `fingerprint`    | `str`          | SHA-256 fingerprint of the query group                          |
+| `extra`          | `dict`         | Additional metadata (e.g., table name, field name)              |
 
 ## Built-in Analyzers
 
 | Analyzer | Detects | Default Severity | Documentation |
 |----------|---------|-------------------|---------------|
-| [N+1 Query](nplusone.md) | Repeated queries caused by accessing related objects inside loops | high | [nplusone.md](nplusone.md) |
-| [Duplicate Query](duplicate.md) | Identical SQL executed multiple times within the same request | medium | [duplicate.md](duplicate.md) |
-| [Missing Index](missing-index.md) | Filters, ordering, or grouping on columns that lack a database index | medium | [missing-index.md](missing-index.md) |
-| [Fat SELECT](fat-select.md) | Selecting all columns when only a subset is used | low | [fat-select.md](fat-select.md) |
-| [QuerySet Evaluation](queryset-eval.md) | Unintended queryset evaluation patterns such as `len()` vs `.count()` | medium | [queryset-eval.md](queryset-eval.md) |
-| [DRF Serializer](drf-serializer.md) | N+1 queries originating from Django REST Framework serializer nesting | high | [drf-serializer.md](drf-serializer.md) |
-| [Query Complexity](query-complexity.md) | Overly complex SQL with excessive JOINs, subqueries, or aggregations | low | [query-complexity.md](query-complexity.md) |
+| [N+1 Query](nplusone.md) | Repeated queries caused by accessing related objects inside loops | CRITICAL / WARNING | [nplusone.md](nplusone.md) |
+| [Duplicate Query](duplicate.md) | Identical SQL executed multiple times within the same request | WARNING | [duplicate.md](duplicate.md) |
+| [Missing Index](missing-index.md) | Filters, ordering, or grouping on columns that lack a database index | INFO | [missing-index.md](missing-index.md) |
+| [Fat SELECT](fat-select.md) | Selecting all columns when only a subset is used | INFO | [fat-select.md](fat-select.md) |
+| [QuerySet Evaluation](queryset-eval.md) | Unintended queryset evaluation patterns such as `len()` vs `.count()` | WARNING | [queryset-eval.md](queryset-eval.md) |
+| [DRF Serializer](drf-serializer.md) | N+1 queries originating from Django REST Framework serializer nesting | WARNING | [drf-serializer.md](drf-serializer.md) |
+| [Query Complexity](query-complexity.md) | Overly complex SQL with excessive JOINs, subqueries, or aggregations | WARNING / CRITICAL | [query-complexity.md](query-complexity.md) |
 
 ## Disabling Specific Analyzers
 
