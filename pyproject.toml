@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-query-doctor"
-version = "1.0.3"
-description = "Automated diagnosis and prescriptions for slow Django ORM queries"
+version = "2.0.0"
+description = "Automated Django ORM query diagnosis and optimization. SQL compilation caching, prepared statements, N+1 detection, and DRF analysis."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [{ name = "Hassan Zaib Hayat", email = "hassanzaibhayatske@gmail.com" }]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.0",
@@ -28,7 +28,11 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Quality Assurance",
 ]
-keywords = ["django", "orm", "query", "optimization", "n+1", "performance"]
+keywords = [
+    "django", "orm", "query", "optimization", "n+1", "performance",
+    "sql", "cache", "prepared-statements", "drf", "rest-framework",
+    "profiling", "diagnosis",
+]
 dependencies = ["django>=4.2"]
 
 [project.optional-dependencies]
@@ -62,6 +66,13 @@ Documentation = "https://hassanzaibhay.github.io/django-query-doctor"
 Repository = "https://github.com/hassanzaibhay/django-query-doctor"
 Changelog = "https://github.com/hassanzaibhay/django-query-doctor/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/hassanzaibhay/django-query-doctor/issues"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "benchmarks/report.html",
+    "benchmarks/results.json",
+    "PROJECT_AUDIT.md",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/query_doctor"]

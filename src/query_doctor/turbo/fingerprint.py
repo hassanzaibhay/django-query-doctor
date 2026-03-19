@@ -1,0 +1,209 @@
+"""Query tree fingerprinting for the SQL compilation cache.
+
+Computes a structural fingerprint of a Django ORM Query object by walking
+the WHERE tree, SELECT columns, JOINs, ORDER BY, GROUP BY, annotations,
+and other structural metadata — excluding parameter values. The fingerprint
+is a blake2b hash that identifies query structure for cache lookups.
+"""
+
+from __future__ import annotations
+
+import hashlib
+from typing import Any
+
+from django.db.models.lookups import Lookup
+from django.db.models.sql import Query
+from django.db.models.sql.compiler import SQLCompiler
+from django.db.models.sql.where import WhereNode
+
+
+def compute_fingerprint(query: Query, compiler: SQLCompiler) -> str:
+    """Compute a structural fingerprint of a Query tree.
+
+    The fingerprint captures the query's structural identity (model, fields,
+    lookups, joins, ordering, etc.) without any user-supplied parameter values.
+    Two queries with identical structure but different parameter values will
+    produce the same fingerprint.
+
+    Args:
+        query: The Django ORM Query object.
+        compiler: The SQLCompiler instance (provides connection/db info).
+
+    Returns:
+        A hex string (32 chars) from blake2b with 16-byte digest.
+    """
+    parts: list[str] = []
+
+    # Database identity
+    parts.append(f"vendor:{compiler.connection.vendor}")
+    parts.append(f"using:{compiler.using}")
+
+    # Model identity
+    model = query.model
+    if model is None:
+        parts.append("model:unknown")
+    else:
+        parts.append(f"model:{model._meta.label}")
+
+    # Compiler class
+    parts.append(f"compiler:{type(compiler).__name__}")
+
+    # DISTINCT
+    if query.distinct:
+        parts.append("distinct:true")
+        if query.distinct_fields:
+            parts.append(f"distinct_fields:{','.join(query.distinct_fields)}")
+
+    # SELECT columns
+    _fingerprint_select(query, parts)
+
+    # WHERE tree
+    if query.where:
+        _fingerprint_where(query.where, parts)
+
+    # JOINs
+    _fingerprint_joins(query, parts)
+
+    # ORDER BY
+    _fingerprint_order_by(query, parts)
+
+    # GROUP BY
+    if query.group_by is not None:
+        parts.append("group_by:true")
+
+    # Annotations
+    _fingerprint_annotations(query, parts)
+
+    # LIMIT/OFFSET existence (not actual values)
+    if query.low_mark:
+        parts.append("offset:true")
+    if query.high_mark is not None:
+        parts.append("limit:true")
+
+    # Select related
+    if query.select_related:
+        if isinstance(query.select_related, dict):
+            parts.append(f"select_related:{_sorted_dict_repr(query.select_related)}")
+        else:
+            parts.append("select_related:true")
+
+    fingerprint_str = "|".join(parts)
+    return hashlib.blake2b(
+        fingerprint_str.encode("utf-8"), digest_size=16
+    ).hexdigest()
+
+
+def _fingerprint_select(query: Query, parts: list[str]) -> None:
+    """Fingerprint SELECT column list."""
+    if query.select:
+        col_names: list[str] = []
+        for col in query.select:
+            try:
+                target = getattr(col, "target", None)
+                if target is not None:
+                    col_names.append(
+                        f"{target.model._meta.label}.{target.column}"
+                    )
+                elif hasattr(col, "output_field"):
+                    col_names.append(str(col.output_field))
+                else:
+                    col_names.append(str(type(col).__name__))
+            except AttributeError:
+                col_names.append(str(type(col).__name__))
+        parts.append(f"select:{','.join(col_names)}")
+
+    if query.values_select:
+        parts.append(f"values_select:{','.join(query.values_select)}")
+
+
+def _fingerprint_where(node: WhereNode, parts: list[str], depth: int = 0) -> None:
+    """Walk the WHERE tree recursively, capturing structure without values.
+
+    For Lookup nodes: captures (lookup_name, lhs field path) but NOT rhs value.
+    For WhereNode connectors: captures (connector, negated).
+    """
+    prefix = f"where[{depth}]"
+    parts.append(f"{prefix}:connector={node.connector},negated={node.negated}")
+
+    for child in node.children:
+        if isinstance(child, WhereNode):
+            _fingerprint_where(child, parts, depth + 1)
+        elif isinstance(child, Lookup):
+            _fingerprint_lookup(child, parts, depth)
+        else:
+            # Unknown node type — include class name for safety
+            parts.append(f"{prefix}:unknown={type(child).__name__}")
+
+
+def _fingerprint_lookup(lookup: Lookup, parts: list[str], depth: int) -> None:  # type: ignore[type-arg]
+    """Fingerprint a single Lookup node."""
+    prefix = f"where[{depth}]"
+    lookup_name = lookup.lookup_name
+
+    # Get the LHS field path
+    lhs_path = _get_field_path(lookup.lhs)
+
+    parts.append(f"{prefix}:lookup={lookup_name},lhs={lhs_path}")
+
+
+def _get_field_path(expression: Any) -> str:
+    """Extract the field path from a lookup's LHS expression."""
+    try:
+        # Col object has target attribute with model and column
+        if hasattr(expression, "target") and hasattr(expression, "alias"):
+            target = expression.target
+            model_label = target.model._meta.label if target.model else "?"
+            return f"{model_label}.{target.column}"
+    except (AttributeError, TypeError):
+        pass
+
+    # Fallback: use the expression type name
+    return type(expression).__name__
+
+
+def _fingerprint_joins(query: Query, parts: list[str]) -> None:
+    """Fingerprint JOIN clauses."""
+    if not hasattr(query, "alias_map"):
+        return
+
+    join_parts: list[str] = []
+    for alias, join in query.alias_map.items():
+        try:
+            join_parts.append(
+                f"{join.table_name}:{join.join_type}"
+            )
+        except AttributeError:
+            join_parts.append(f"{alias}:{type(join).__name__}")
+
+    if join_parts:
+        join_parts.sort()  # Deterministic ordering
+        parts.append(f"joins:{','.join(join_parts)}")
+
+
+def _fingerprint_order_by(query: Query, parts: list[str]) -> None:
+    """Fingerprint ORDER BY clause."""
+    if query.order_by:
+        parts.append(f"order_by:{','.join(str(o) for o in query.order_by)}")
+    if query.extra_order_by:
+        parts.append(f"extra_order_by:{','.join(str(o) for o in query.extra_order_by)}")
+
+
+def _fingerprint_annotations(query: Query, parts: list[str]) -> None:
+    """Fingerprint annotation names and types (not values)."""
+    if query.annotations:
+        ann_parts: list[str] = []
+        for name, annotation in sorted(query.annotations.items()):
+            ann_parts.append(f"{name}:{type(annotation).__name__}")
+        parts.append(f"annotations:{','.join(ann_parts)}")
+
+
+def _sorted_dict_repr(d: dict[str, Any]) -> str:
+    """Create a stable string representation of a nested dict."""
+    items: list[str] = []
+    for key in sorted(d.keys()):
+        val = d[key]
+        if isinstance(val, dict):
+            items.append(f"{key}:{{{_sorted_dict_repr(val)}}}")
+        else:
+            items.append(f"{key}:{val}")
+    return ",".join(items)

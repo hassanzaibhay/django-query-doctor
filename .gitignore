@@ -13,9 +13,15 @@ htmlcov/
 .coverage
 *.sqlite3
 
+# Generated artifacts
+benchmarks/report.html
+benchmarks/results.json
+PROJECT_AUDIT.md
+
 # Claude Code
 CLAUDE.md
 docs/SPEC.md
+docs/v2-plan.md
 .claude/
 .claudeignore
 site/

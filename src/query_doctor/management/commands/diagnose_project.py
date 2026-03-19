@@ -76,6 +76,26 @@ class Command(BaseCommand):
             default=["GET"],
             help="HTTP methods to test (default: GET)",
         )
+        parser.add_argument(
+            "--file",
+            action="append",
+            default=None,
+            dest="file_patterns",
+            help=(
+                "Only report issues in the given file (substring match). "
+                "Can be specified multiple times."
+            ),
+        )
+        parser.add_argument(
+            "--module",
+            action="append",
+            default=None,
+            dest="module_patterns",
+            help=(
+                "Only report issues in the given module (substring match). "
+                "Can be specified multiple times."
+            ),
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         """Execute the command."""
@@ -99,6 +119,23 @@ class Command(BaseCommand):
             self.stdout.write("Running diagnosis...")
 
         result = diagnoser.diagnose(urls, methods=options["methods"])
+
+        # Apply per-file/module filtering to each endpoint's prescriptions
+        file_patterns = options.get("file_patterns")
+        module_patterns = options.get("module_patterns")
+        if file_patterns or module_patterns:
+            from query_doctor.filters.file_filter import PrescriptionFilter
+
+            pf = PrescriptionFilter(
+                file_patterns=file_patterns,
+                module_patterns=module_patterns,
+            )
+            for app_result in result.app_results:
+                for url_result in app_result.url_results:
+                    if hasattr(url_result, "report") and url_result.report:
+                        url_result.report.prescriptions = pf.filter(
+                            url_result.report.prescriptions
+                        )
 
         # Generate and write report
         output_path = options["output"]

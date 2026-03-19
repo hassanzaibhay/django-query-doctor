@@ -66,4 +66,4 @@ class TestPublicAPI:
         """__version__ should be available."""
         import query_doctor
 
-        assert query_doctor.__version__ == "1.0.3"
+        assert query_doctor.__version__ == "2.0.0"

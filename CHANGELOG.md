@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-03-20
+
+### Added
+- **QueryTurbo**: SQL compilation cache that skips redundant `as_sql()`
+  calls for recurring query patterns. Caches the compiled SQL template keyed
+  by a structural fingerprint (blake2b) of the Django ORM Query tree.
+  Thread-safe LRU cache with configurable max size.
+- **Prepared Statement Bridge**: Multi-database prepared statement support.
+  Automatic protocol-level preparation on PostgreSQL + psycopg3 after a
+  configurable hit-count threshold. Oracle implicit cursor caching. Graceful
+  fallback (TypeError → permanent disable) on unsupported backends.
+- **AST SerializerMethodField Analyzer**: Static analysis of DRF `get_<field>`
+  methods using `ast.parse()` to detect hidden N+1 queries at serialization
+  time. Detects four patterns: related manager access, Model.objects calls,
+  deep attribute chains, and for-loop queryset iteration.
+- **Per-File Analysis**: `--file` and `--module` flags on `check_queries`
+  and `diagnose_project` commands for focused diagnosis via substring matching.
+- **Benchmark Dashboard**: `query_doctor_report` management command generates
+  standalone HTML report with Chart.js graphs showing cache hit rates, top
+  optimized queries, and prepared statement statistics.
+- **`check_serializers` command**: Dedicated management command for AST-based
+  DRF serializer analysis with `--app`, `--file`, `--format`, and `--fail-on`
+  flags.
+- **`turbo_enabled()` / `turbo_disabled()` context managers**: Thread-local
+  overrides for QueryTurbo activation.
+- **Post-migrate cache invalidation**: Automatic cache clear on Django
+  `post_migrate` signal to prevent stale SQL after schema changes.
+
+### Changed
+- Minimum Python version remains 3.10
+- All existing v1.x APIs remain backward compatible
+- Version bumped to 2.0.0
+
 ## [1.0.3] - 2026-03-18
 
 ### Fixed

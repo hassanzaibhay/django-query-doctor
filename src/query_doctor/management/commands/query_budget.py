@@ -23,7 +23,8 @@ class Command(BaseCommand):
 
     help = (
         "Run a code block and enforce a maximum query count. "
-        "Exits with code 1 if the budget is exceeded."
+        "Exits with code 1 if the budget is exceeded. "
+        "WARNING: --execute uses exec() internally. Only run trusted code."
     )
 
     def add_arguments(self, parser: Any) -> None:

@@ -57,6 +57,26 @@ class Command(BaseCommand):
                 "(e.g., main, origin/develop, abc123)"
             ),
         )
+        parser.add_argument(
+            "--file",
+            action="append",
+            default=None,
+            dest="file_patterns",
+            help=(
+                "Only report issues in the given file (substring match). "
+                "Can be specified multiple times."
+            ),
+        )
+        parser.add_argument(
+            "--module",
+            action="append",
+            default=None,
+            dest="module_patterns",
+            help=(
+                "Only report issues in the given module (substring match). "
+                "Can be specified multiple times."
+            ),
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         """Execute the command."""
@@ -64,8 +84,20 @@ class Command(BaseCommand):
         output_format = options["format"]
         fail_on = options["fail_on"]
         diff_ref = options["diff"]
+        file_patterns = options.get("file_patterns")
+        module_patterns = options.get("module_patterns")
 
         report = self._run_analysis(url)
+
+        # Apply per-file/module filtering
+        if file_patterns or module_patterns:
+            from query_doctor.filters.file_filter import PrescriptionFilter
+
+            pf = PrescriptionFilter(
+                file_patterns=file_patterns,
+                module_patterns=module_patterns,
+            )
+            report.prescriptions = pf.filter(report.prescriptions)
 
         if diff_ref:
             from query_doctor.diff_filter import (

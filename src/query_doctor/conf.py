@@ -31,6 +31,15 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "QUERY_BUDGET": {"DEFAULT_MAX_QUERIES": None, "DEFAULT_MAX_TIME_MS": None},
     "ADMIN_DASHBOARD": {"enabled": False, "max_reports": 50},
     "QUERYIGNORE_PATH": None,
+    "TURBO": {
+        "ENABLED": False,
+        "MAX_SIZE": 1024,
+        "SKIP_RAW_SQL": True,
+        "SKIP_EXTRA": True,
+        "SKIP_SUBQUERIES": True,
+        "PREPARE_ENABLED": True,
+        "PREPARE_THRESHOLD": 5,
+    },
 }
 
 
