@@ -6,7 +6,12 @@ import pytest
 from django.db.models import Count, F, Q, Sum
 
 from query_doctor.turbo.context import turbo_disabled, turbo_enabled
-from query_doctor.turbo.patch import get_cache, install_patch, uninstall_patch
+from query_doctor.turbo.patch import (
+    _is_turbo_active,
+    get_cache,
+    install_patch,
+    uninstall_patch,
+)
 from tests.factories import AuthorFactory, BookFactory, CategoryFactory, ReviewFactory
 
 
@@ -348,3 +353,98 @@ class TestCacheHitMissTracking:
         stats = cache.stats()
         # First call = miss, second and third = hits
         assert stats.hits >= 2
+
+
+@pytest.mark.django_db
+class TestCollisionDetection:
+    """Cache validates SQL and evicts on fingerprint collision."""
+
+    def test_collision_evicts_stale_entry(self, sample_data):
+        """If cached SQL differs from fresh SQL, the entry is evicted."""
+        from tests.testapp.models import Book
+
+        cache = get_cache()
+        assert cache is not None
+        cache.clear()
+
+        # Manually inject a cache entry with wrong SQL for a known fingerprint
+        with turbo_enabled():
+            # First query: cache miss, stores real SQL
+            list(Book.objects.filter(price=10))
+
+        stats_before = cache.stats()
+        assert stats_before.size >= 1
+
+        # Corrupt the cached entry by replacing its SQL with garbage
+        with cache._lock:
+            for key in list(cache._cache.keys()):
+                entry = cache._cache[key]
+                cache._cache[key] = type(entry)(
+                    sql="SELECT CORRUPTED", params=(), hit_count=0
+                )
+
+        # Next query with same fingerprint: validates and detects mismatch
+        with turbo_enabled():
+            result = list(Book.objects.filter(price=20))
+
+        # Should still get correct results (fallback to fresh SQL)
+        assert len(result) == 1
+
+    def test_in_different_lengths_correct_results(self, sample_data):
+        """__in with different list lengths must not cause SQL/param mismatch."""
+        from tests.testapp.models import Book
+
+        cache = get_cache()
+        assert cache is not None
+        cache.clear()
+
+        books = sample_data["books"]
+
+        with turbo_enabled():
+            r1 = list(Book.objects.filter(id__in=[books[0].pk]))
+            r2 = list(
+                Book.objects.filter(id__in=[books[0].pk, books[1].pk])
+            )
+            r3 = list(
+                Book.objects.filter(
+                    id__in=[books[0].pk, books[1].pk, books[2].pk]
+                )
+            )
+
+        assert len(r1) == 1
+        assert len(r2) == 2
+        assert len(r3) == 3
+
+
+@pytest.mark.django_db
+class TestContextManagerNesting:
+    """Context managers properly restore the previous override on exit."""
+
+    def test_nested_disabled_inside_enabled(self, sample_data):
+        """turbo_disabled inside turbo_enabled restores enabled on exit."""
+        with turbo_enabled():
+            assert _is_turbo_active() is True
+            with turbo_disabled():
+                assert _is_turbo_active() is False
+            # Must be restored to True, not to global default
+            assert _is_turbo_active() is True
+
+    def test_nested_enabled_inside_disabled(self, sample_data):
+        """turbo_enabled inside turbo_disabled restores disabled on exit."""
+        with turbo_disabled():
+            assert _is_turbo_active() is False
+            with turbo_enabled():
+                assert _is_turbo_active() is True
+            # Must be restored to False, not to global default
+            assert _is_turbo_active() is False
+
+    def test_triple_nesting(self, sample_data):
+        """Three levels of nesting all restore correctly."""
+        with turbo_enabled():
+            assert _is_turbo_active() is True
+            with turbo_disabled():
+                assert _is_turbo_active() is False
+                with turbo_enabled():
+                    assert _is_turbo_active() is True
+                assert _is_turbo_active() is False
+            assert _is_turbo_active() is True

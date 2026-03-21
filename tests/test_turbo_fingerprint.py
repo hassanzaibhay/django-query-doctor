@@ -264,3 +264,102 @@ class TestFingerprintFormat:
         q2, c2 = _get_compiler(Book.objects.filter(price=10))
 
         assert compute_fingerprint(q1, c1) == compute_fingerprint(q2, c2)
+
+
+@pytest.mark.django_db
+class TestFingerprintInLookup:
+    """__in lookups with different list lengths must produce different fingerprints."""
+
+    def test_in_different_lengths_different_fingerprint(self):
+        """__in with 3 vs 4 values → different fingerprint (different SQL placeholders)."""
+        q1, c1 = _get_compiler(Book.objects.filter(id__in=[1, 2, 3]))
+        q2, c2 = _get_compiler(Book.objects.filter(id__in=[1, 2, 3, 4]))
+
+        fp1 = compute_fingerprint(q1, c1)
+        fp2 = compute_fingerprint(q2, c2)
+
+        assert fp1 != fp2
+
+    def test_in_same_length_same_fingerprint(self):
+        """__in with same number of values → same fingerprint."""
+        q1, c1 = _get_compiler(Book.objects.filter(id__in=[1, 2, 3]))
+        q2, c2 = _get_compiler(Book.objects.filter(id__in=[4, 5, 6]))
+
+        fp1 = compute_fingerprint(q1, c1)
+        fp2 = compute_fingerprint(q2, c2)
+
+        assert fp1 == fp2
+
+    def test_in_single_vs_multiple_different_fingerprint(self):
+        """__in with 1 vs 2 values → different fingerprint."""
+        q1, c1 = _get_compiler(Book.objects.filter(id__in=[1]))
+        q2, c2 = _get_compiler(Book.objects.filter(id__in=[1, 2]))
+
+        fp1 = compute_fingerprint(q1, c1)
+        fp2 = compute_fingerprint(q2, c2)
+
+        assert fp1 != fp2
+
+
+@pytest.mark.django_db
+class TestFingerprintSelectForUpdate:
+    """select_for_update must produce different fingerprints."""
+
+    def test_select_for_update_vs_normal(self):
+        """select_for_update() vs normal query → different fingerprint."""
+        q1, c1 = _get_compiler(Book.objects.filter(id=1))
+        q2, c2 = _get_compiler(
+            Book.objects.select_for_update().filter(id=1)
+        )
+
+        fp1 = compute_fingerprint(q1, c1)
+        fp2 = compute_fingerprint(q2, c2)
+
+        assert fp1 != fp2
+
+    def test_select_for_update_nowait_different(self):
+        """select_for_update(nowait=True) vs select_for_update() → different."""
+        q1, c1 = _get_compiler(
+            Book.objects.select_for_update().filter(id=1)
+        )
+        q2, c2 = _get_compiler(
+            Book.objects.select_for_update(nowait=True).filter(id=1)
+        )
+
+        fp1 = compute_fingerprint(q1, c1)
+        fp2 = compute_fingerprint(q2, c2)
+
+        assert fp1 != fp2
+
+
+@pytest.mark.django_db
+class TestFingerprintAnnotationTarget:
+    """Same annotation name with different targets must differ."""
+
+    def test_same_name_different_target(self):
+        """annotate(cnt=Count('books')) vs annotate(cnt=Count('name')) → different."""
+        q1, c1 = _get_compiler(
+            Author.objects.annotate(cnt=Count("books"))
+        )
+        q2, c2 = _get_compiler(
+            Author.objects.annotate(cnt=Count("name"))
+        )
+
+        fp1 = compute_fingerprint(q1, c1)
+        fp2 = compute_fingerprint(q2, c2)
+
+        assert fp1 != fp2
+
+    def test_same_annotation_same_target_stable(self):
+        """Same annotation name and target with different filter values → same."""
+        q1, c1 = _get_compiler(
+            Author.objects.annotate(cnt=Count("books")).filter(cnt__gt=1)
+        )
+        q2, c2 = _get_compiler(
+            Author.objects.annotate(cnt=Count("books")).filter(cnt__gt=5)
+        )
+
+        fp1 = compute_fingerprint(q1, c1)
+        fp2 = compute_fingerprint(q2, c2)
+
+        assert fp1 == fp2

@@ -4,12 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [2.0.0] - 2026-03-20
+## [2.0.0] - 2026-03-21
 
 ### Added
-- **QueryTurbo**: SQL compilation cache that skips redundant `as_sql()`
-  calls for recurring query patterns. Caches the compiled SQL template keyed
-  by a structural fingerprint (blake2b) of the Django ORM Query tree.
+- **QueryTurbo**: SQL template validation cache with fingerprint collision
+  detection. Caches the compiled SQL template keyed by a structural
+  fingerprint (blake2b) of the Django ORM Query tree. Validates cached SQL
+  against fresh compilation on every hit; evicts on mismatch. Enables
+  prepared statement reuse via consistent SQL string identity.
   Thread-safe LRU cache with configurable max size.
 - **Prepared Statement Bridge**: Multi-database prepared statement support.
   Automatic protocol-level preparation on PostgreSQL + psycopg3 after a
@@ -28,14 +30,24 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   DRF serializer analysis with `--app`, `--file`, `--format`, and `--fail-on`
   flags.
 - **`turbo_enabled()` / `turbo_disabled()` context managers**: Thread-local
-  overrides for QueryTurbo activation.
+  overrides for QueryTurbo activation. Supports proper nesting.
 - **Post-migrate cache invalidation**: Automatic cache clear on Django
   `post_migrate` signal to prevent stale SQL after schema changes.
+- **Fingerprint collision detection**: Cache hit path validates SQL matches
+  and evicts stale entries on mismatch.
+- **`__in` lookup length in fingerprint**: Different `__in` list sizes
+  produce different fingerprints, preventing SQL/param count mismatch.
+- **`select_for_update` in fingerprint**: Queries with `FOR UPDATE`,
+  `NOWAIT`, and `SKIP LOCKED` produce distinct fingerprints.
+- **Annotation source field fingerprinting**: Annotations with the same
+  name but different field targets produce different fingerprints.
 
 ### Changed
 - Minimum Python version remains 3.10
 - All existing v1.x APIs remain backward compatible
 - Version bumped to 2.0.0
+- Context managers now properly restore the previous override on exit
+  when nested
 
 ## [1.0.3] - 2026-03-18
 

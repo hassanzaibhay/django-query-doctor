@@ -17,6 +17,13 @@ htmlcov/
 benchmarks/report.html
 benchmarks/results.json
 PROJECT_AUDIT.md
+FINAL_AUDIT.md
+
+# Secrets / environments
+.env
+.secrets
+venv/
+.venv/
 
 # Claude Code
 CLAUDE.md

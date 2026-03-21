@@ -120,6 +120,25 @@ class SQLCompilationCache:
 
             self._cache[fingerprint] = CacheEntry(sql=sql, params=params)
 
+    def evict(self, fingerprint: str) -> bool:
+        """Remove a specific entry from the cache.
+
+        Used when a fingerprint collision is detected (cached SQL doesn't
+        match fresh SQL for the same fingerprint).
+
+        Args:
+            fingerprint: The blake2b hex digest to evict.
+
+        Returns:
+            True if the entry was found and removed, False otherwise.
+        """
+        with self._lock:
+            if fingerprint in self._cache:
+                del self._cache[fingerprint]
+                self._evictions += 1
+                return True
+            return False
+
     def clear(self) -> None:
         """Remove all entries from the cache.
 

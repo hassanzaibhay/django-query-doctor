@@ -13,9 +13,9 @@ optimizes the queries that are already correct.
 
 ## What's New in v2.0
 
-- 🚀 **QueryTurbo** — SQL compilation cache that skips redundant `as_sql()`
-  calls. Eliminates 150–500x of ORM compilation overhead (59–358 us saved
-  per query on compilation alone).
+- 🚀 **QueryTurbo** — SQL template validation cache with fingerprint
+  collision detection. Enables automatic prepared statements on PostgreSQL
+  via consistent SQL string reuse.
 - ⚡ **Prepared Statement Bridge** — Automatically enables database-level
   prepared statements on PostgreSQL (psycopg3). Skips query planner on
   repeat queries.
@@ -85,23 +85,29 @@ Django-supported databases.
 
 Every prescription includes: severity, file:line, and the exact code fix.
 
-### 🚀 QueryTurbo — SQL Compilation Cache (v2.0)
+### 🚀 QueryTurbo — SQL Template Validation Cache (v2.0)
 
-QueryTurbo caches the SQL compilation output for recurring query patterns. When
-your code runs `User.objects.filter(status='active')` and later
+QueryTurbo fingerprints each query's structure and validates that identical
+structures produce identical SQL. When your code runs
+`User.objects.filter(status='active')` and later
 `User.objects.filter(status='inactive')`, the SQL template is identical —
 only the parameter differs. QueryTurbo detects this, caches the template,
-and skips the full `as_sql()` tree traversal on subsequent calls.
+and validates subsequent compilations against the cache.
 
-**Performance:** Compilation-only benchmarks show 150–535x speedup on the
-`as_sql()` phase, saving 59–358 microseconds per cached query. End-to-end
-speedup depends on your database and query mix — the compilation savings
-are most impactful in apps with many repeated ORM patterns and fast DB I/O
-(e.g., connection pooling, read replicas, in-memory caches).
+**What QueryTurbo provides:**
 
-On PostgreSQL with psycopg3, this also enables automatic prepared
-statements at the protocol level — eliminating the query planner overhead
-for repeat patterns.
+1. **Prepared Statement Automation** — By ensuring the same SQL string is
+   reused for recurring query patterns, psycopg3 automatically prepares
+   queries at the protocol level after a configurable number of executions,
+   skipping PostgreSQL's query planner on repeat queries.
+2. **Collision Detection** — Validates that structurally fingerprinted
+   queries produce matching SQL. Detects and evicts mismatches, catching
+   edge cases where Django's ORM produces different SQL for similar
+   structures.
+
+On PostgreSQL with psycopg3, prepared statements can save 0.5–5ms of
+query planner time per repeat query, with the greatest benefit on
+complex queries involving multiple JOINs, annotations, or subqueries.
 
 **Multi-Database Support:**
 
@@ -314,6 +320,9 @@ QUERY_DOCTOR = {
         'MAX_SIZE': 1024,              # Max cached patterns
         'PREPARE_ENABLED': True,       # Prepared statements
         'PREPARE_THRESHOLD': 5,        # Hits before preparing
+        'SKIP_RAW_SQL': True,          # Skip caching for RawSQL queries
+        'SKIP_EXTRA': True,            # Skip caching for .extra() queries
+        'SKIP_SUBQUERIES': True,       # Skip caching for subqueries
     },
 }
 ```
@@ -378,6 +387,24 @@ file:myapp/migrations/*
 callsite:myapp/views.py:142
 ignore:nplusone:myapp/views.py:LegacyReportView
 ```
+
+### Known Limitations
+
+**Async / ASGI Deployments:** QueryTurbo's context managers
+(`turbo_enabled()`, `turbo_disabled()`) use `threading.local()`, which is
+per-thread, not per-coroutine. In ASGI deployments with concurrent async
+requests sharing the same thread, one request's context manager could
+affect another. **Recommendation:** avoid using `turbo_enabled()` /
+`turbo_disabled()` in async views. Control QueryTurbo globally via
+`QUERY_DOCTOR['TURBO']['ENABLED']` instead.
+
+**Process-local cache:** The SQL template cache is not shared across
+Gunicorn workers or multiple processes. Each process maintains its own
+cache.
+
+**Django internal API dependency:** QueryTurbo monkey-patches
+`SQLCompiler.execute_sql()`. This has been stable across Django 4.2–6.0
+but could change in future Django major releases.
 
 ## Requirements
 

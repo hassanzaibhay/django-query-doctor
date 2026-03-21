@@ -1,9 +1,9 @@
 """Monkey-patch for Django's SQLCompiler.execute_sql().
 
 Installs a wrapper around execute_sql that checks the compilation cache
-before calling as_sql(). On cache hit, replaces as_sql with a fast
-lambda returning cached SQL, then delegates to the original execute_sql.
-Optionally integrates prepared statement strategies for supported backends.
+before calling as_sql(). On cache hit, validates the cached SQL against
+fresh compilation, detects fingerprint collisions, and enables prepared
+statement reuse on supported backends.
 """
 
 from __future__ import annotations
@@ -117,13 +117,10 @@ def _patched_execute_sql(
 ) -> Any:
     """Patched execute_sql that checks the compilation cache.
 
-    On cache hit, replaces self.as_sql with a lambda returning the cached
-    SQL template, then delegates to the original execute_sql. This avoids
-    reimplementing cursor management and result handling.
-
-    When the prepare strategy indicates a query should be prepared (based
-    on hit_count exceeding the threshold), the strategy's execute method
-    is used on subsequent hits for backends that support it.
+    On cache hit, calls as_sql() for fresh SQL + params, then validates
+    the cached SQL matches. Mismatches indicate a fingerprint collision
+    and trigger cache eviction. Validated hits enable prepared statement
+    reuse by ensuring the same SQL string is consistently used.
 
     Args:
         self: The SQLCompiler instance.
@@ -158,15 +155,42 @@ def _patched_execute_sql(
     entry = _cache.get(fingerprint)
 
     if entry is not None:
-        # Cache HIT: replace as_sql with cached version
+        # Cache HIT: validate cached SQL against fresh compilation
         original_as_sql = self.as_sql
         try:
-            # Call as_sql just to get fresh params (but use cached SQL)
-            _fresh_sql, fresh_params = original_as_sql()
+            fresh_sql, fresh_params = original_as_sql()
 
-            # Check if we should use prepared statement execution
-            should_prepare = _should_use_prepare(self, entry.hit_count)
+            if fresh_sql != entry.sql:
+                # Fingerprint collision: different SQL for same fingerprint.
+                # Evict the stale entry and proceed with fresh SQL.
+                logger.warning(
+                    "QueryTurbo: fingerprint collision detected (%s). "
+                    "Evicting stale cache entry.",
+                    fingerprint[:16],
+                )
+                _cache.evict(fingerprint)
+                # Fall through — use fresh SQL/params via normal path
+                params_tuple = (
+                    fresh_params if isinstance(fresh_params, tuple)
+                    else tuple(fresh_params)
+                )
 
+                def _fresh_as_sql(
+                    _sql: str = fresh_sql,
+                    _params: tuple[Any, ...] = params_tuple,
+                ) -> tuple[str, tuple[Any, ...]]:
+                    return _sql, _params
+
+                self.as_sql = _fresh_as_sql  # type: ignore[method-assign,assignment]
+                try:
+                    return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
+                        self, result_type, chunked_fetch, chunk_size
+                    )
+                finally:
+                    self.as_sql = original_as_sql  # type: ignore[method-assign]
+
+            # Validated hit: cached SQL matches fresh SQL.
+            # Use cached SQL string for prepared statement reuse.
             params_tuple = (
                 fresh_params if isinstance(fresh_params, tuple)
                 else tuple(fresh_params)
@@ -179,20 +203,23 @@ def _patched_execute_sql(
             ) -> tuple[str, tuple[Any, ...]]:
                 return _sql, _params
 
-            if should_prepare:
-                # Use prepare strategy's execute for this cache hit
-                self.as_sql = _cached_as_sql  # type: ignore[method-assign,assignment]
-                return _execute_with_prepare(
-                    self, entry.sql, params_tuple,
-                    result_type, chunked_fetch, chunk_size,
-                )
-            else:
-                self.as_sql = _cached_as_sql  # type: ignore[method-assign,assignment]
+            should_prepare = _should_use_prepare(self, entry.hit_count)
+            self.as_sql = _cached_as_sql  # type: ignore[method-assign,assignment]
+            try:
+                if should_prepare:
+                    return _execute_with_prepare(
+                        self, cached_sql, params_tuple,
+                        result_type, chunked_fetch, chunk_size,
+                    )
                 return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
                     self, result_type, chunked_fetch, chunk_size
                 )
+            finally:
+                self.as_sql = original_as_sql  # type: ignore[method-assign]
         except Exception:
-            logger.debug("Cache hit execution failed, falling back", exc_info=True)
+            logger.debug(
+                "Cache hit execution failed, falling back", exc_info=True
+            )
             self.as_sql = original_as_sql  # type: ignore[method-assign]
             return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
                 self, result_type, chunked_fetch, chunk_size

@@ -54,6 +54,17 @@ def compute_fingerprint(query: Query, compiler: SQLCompiler) -> str:
         if query.distinct_fields:
             parts.append(f"distinct_fields:{','.join(query.distinct_fields)}")
 
+    # SELECT FOR UPDATE
+    if getattr(query, "select_for_update", False):
+        parts.append("for_update:true")
+        if getattr(query, "select_for_update_nowait", False):
+            parts.append("for_update_nowait:true")
+        if getattr(query, "select_for_update_skip_locked", False):
+            parts.append("for_update_skip_locked:true")
+        sfu_of = getattr(query, "select_for_update_of", ())
+        if sfu_of:
+            parts.append(f"for_update_of:{','.join(sorted(sfu_of))}")
+
     # SELECT columns
     _fingerprint_select(query, parts)
 
@@ -136,7 +147,12 @@ def _fingerprint_where(node: WhereNode, parts: list[str], depth: int = 0) -> Non
 
 
 def _fingerprint_lookup(lookup: Lookup, parts: list[str], depth: int) -> None:  # type: ignore[type-arg]
-    """Fingerprint a single Lookup node."""
+    """Fingerprint a single Lookup node.
+
+    For ``__in`` lookups the RHS length is included because different list
+    sizes produce different SQL templates (``IN (%s,%s)`` vs
+    ``IN (%s,%s,%s)``).
+    """
     prefix = f"where[{depth}]"
     lookup_name = lookup.lookup_name
 
@@ -144,6 +160,15 @@ def _fingerprint_lookup(lookup: Lookup, parts: list[str], depth: int) -> None:  
     lhs_path = _get_field_path(lookup.lhs)
 
     parts.append(f"{prefix}:lookup={lookup_name},lhs={lhs_path}")
+
+    # __in lookups: different list lengths produce different SQL placeholders
+    if lookup_name == "in":
+        rhs = lookup.rhs
+        if isinstance(rhs, (list, tuple)):
+            parts.append(f"{prefix}:in_count={len(rhs)}")
+        elif hasattr(rhs, "query"):
+            # Subquery — SQL structure depends on the inner query
+            parts.append(f"{prefix}:in_subquery")
 
 
 def _get_field_path(expression: Any) -> str:
@@ -189,12 +214,52 @@ def _fingerprint_order_by(query: Query, parts: list[str]) -> None:
 
 
 def _fingerprint_annotations(query: Query, parts: list[str]) -> None:
-    """Fingerprint annotation names and types (not values)."""
+    """Fingerprint annotation names, types, and source expressions.
+
+    Includes source field references so that annotations with the same name
+    and type but different targets (e.g. ``Count('orders')`` vs
+    ``Count('reviews')``) produce different fingerprints.
+    """
     if query.annotations:
         ann_parts: list[str] = []
         for name, annotation in sorted(query.annotations.items()):
-            ann_parts.append(f"{name}:{type(annotation).__name__}")
+            ann_desc = f"{name}:{type(annotation).__name__}"
+            # Include source expression field references
+            source_refs = _get_expression_refs(annotation)
+            if source_refs:
+                ann_desc += f"({','.join(source_refs)})"
+            ann_parts.append(ann_desc)
         parts.append(f"annotations:{','.join(ann_parts)}")
+
+
+def _get_expression_refs(expr: Any) -> list[str]:
+    """Collect field references from an expression tree.
+
+    Returns a list of stable identifiers for the expression's source fields
+    (e.g. column names or field attribute names) so that annotations
+    targeting different fields produce different fingerprints.
+    """
+    refs: list[str] = []
+    if hasattr(expr, "get_source_expressions"):
+        for source in expr.get_source_expressions():
+            if source is None:
+                continue
+            # Col-like: has a target with column name
+            target = getattr(source, "target", None)
+            if target is not None:
+                col_name = getattr(target, "column", None)
+                if col_name:
+                    refs.append(str(col_name))
+                    continue
+            # F-like or named reference
+            src_name = getattr(source, "name", None)
+            if src_name:
+                refs.append(str(src_name))
+                continue
+            # Recurse into nested expressions
+            nested = _get_expression_refs(source)
+            refs.extend(nested)
+    return refs
 
 
 def _sorted_dict_repr(d: dict[str, Any]) -> str:

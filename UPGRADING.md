@@ -26,10 +26,12 @@ QUERY_DOCTOR = {
 
 QueryTurbo is disabled by default. Enable it when you're ready.
 
-**What it does:** Caches the SQL compilation output for recurring query
-patterns. When your ORM generates the same SQL template with different
-parameters, the cached template is reused — skipping the full `as_sql()`
-tree traversal.
+**What it does:** Fingerprints each query's structure, caches the compiled
+SQL template, and validates that identical structures produce identical SQL.
+This enables automatic prepared statement reuse on PostgreSQL (psycopg3)
+by ensuring the same SQL string is consistently passed to the database
+driver. The cache also detects fingerprint collisions and evicts
+mismatched entries.
 
 **What changes at runtime:** A monkey-patch is installed on
 `SQLCompiler.execute_sql()` at Django startup (`AppConfig.ready()`). This

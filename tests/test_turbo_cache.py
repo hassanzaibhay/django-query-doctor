@@ -53,6 +53,42 @@ class TestCacheBasicOperations:
         assert cache.size == 1
 
 
+class TestCacheEvict:
+    """Targeted eviction of individual cache entries."""
+
+    def test_evict_existing_entry(self):
+        """Evicting an existing entry removes it and returns True."""
+        cache = SQLCompilationCache(max_size=10)
+        cache.put("fp1", "SELECT 1", ())
+        cache.put("fp2", "SELECT 2", ())
+
+        result = cache.evict("fp1")
+
+        assert result is True
+        assert cache.get("fp1") is None
+        assert cache.size == 1
+
+    def test_evict_missing_entry(self):
+        """Evicting a non-existent entry returns False."""
+        cache = SQLCompilationCache(max_size=10)
+        cache.put("fp1", "SELECT 1", ())
+
+        result = cache.evict("fp_missing")
+
+        assert result is False
+        assert cache.size == 1
+
+    def test_evict_increments_eviction_count(self):
+        """Eviction increments the eviction counter."""
+        cache = SQLCompilationCache(max_size=10)
+        cache.put("fp1", "SELECT 1", ())
+
+        cache.evict("fp1")
+        stats = cache.stats()
+
+        assert stats.evictions == 1
+
+
 class TestCacheStats:
     """Cache statistics tracking."""
 

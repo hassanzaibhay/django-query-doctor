@@ -23,7 +23,10 @@ class Command(BaseCommand):
     help = (
         "Generate a QueryTurbo benchmark dashboard. Shows cache hit/miss rates, "
         "top optimized queries, and Chart.js graphs. Data reflects the current "
-        "process cache — the cache resets on server restart."
+        "process cache — the cache resets on server restart. "
+        "NOTE: The report contains SQL query templates (without parameter values) "
+        "that may reveal database schema information. Do not share the report "
+        "publicly if your schema is confidential."
     )
 
     def add_arguments(self, parser: Any) -> None:
