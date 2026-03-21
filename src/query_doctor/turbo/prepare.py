@@ -152,8 +152,7 @@ class PsycopgPrepareStrategy:
                 return
             except TypeError:
                 logger.info(
-                    "psycopg cursor does not support prepare=True, "
-                    "disabling prepared statements"
+                    "psycopg cursor does not support prepare=True, disabling prepared statements"
                 )
                 self._prepare_disabled = True
             except Exception:
@@ -190,9 +189,7 @@ class OracleImplicitCacheStrategy:
         if not self._logged_once:
             with OracleImplicitCacheStrategy._log_lock:
                 if not OracleImplicitCacheStrategy._logged_once:
-                    logger.info(
-                        "Oracle implicit statement caching is active via SQL string reuse"
-                    )
+                    logger.info("Oracle implicit statement caching is active via SQL string reuse")
                     OracleImplicitCacheStrategy._logged_once = True
         return False
 

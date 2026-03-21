@@ -21,7 +21,7 @@ Every Django project eventually hits ORM performance problems — N+1 queries hi
 
 - **7 Analyzers** — N+1, duplicate, missing index, fat SELECT, queryset evaluation, DRF serializer N+1, query complexity
 - **5 Reporters** — Rich console, JSON, HTML dashboard, Python logging, OpenTelemetry
-- **4 Management Commands** — `check_queries`, `query_budget`, `fix_queries`, `diagnose_project`
+- **6 Management Commands** — `check_queries`, `query_budget`, `fix_queries`, `diagnose_project`, `check_serializers`, `query_doctor_report`
 - **Auto-Fix Mode** — Automatically apply suggested `select_related`/`prefetch_related` fixes
 - **Pytest Plugin** — Assert query counts and detect issues in your test suite
 - **Celery & Async Support** — Works with Celery tasks and async/ASGI views
@@ -51,9 +51,9 @@ That's it. Every request now gets analyzed automatically.
 |--------|-------|
 | Built-in analyzers | 7 |
 | Reporters | 5 |
-| Management commands | 4 |
-| Test cases | 434 |
-| Code coverage | 86%+ |
+| Management commands | 6 |
+| Test cases | 625+ |
+| Code coverage | 87%+ |
 | Python | 3.10 – 3.13 |
 | Django | 4.2 – 6.0 |
 | License | MIT |

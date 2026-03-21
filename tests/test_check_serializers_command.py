@@ -184,10 +184,13 @@ class TestCheckSerializersWithMocks:
         """--fail-on raises CommandError when issues at that severity exist."""
         bad_cls = self._make_bad_serializer()
 
-        with patch(
-            "query_doctor.analyzers.discovery.discover_serializers",
-            return_value=[bad_cls],
-        ), pytest.raises(CommandError, match="check_serializers found issues"):
+        with (
+            patch(
+                "query_doctor.analyzers.discovery.discover_serializers",
+                return_value=[bad_cls],
+            ),
+            pytest.raises(CommandError, match="check_serializers found issues"),
+        ):
             call_command(
                 "check_serializers",
                 "--fail-on=warning",
@@ -199,10 +202,13 @@ class TestCheckSerializersWithMocks:
         """--fail-on=info raises CommandError even for INFO-level issues."""
         bad_cls = self._make_bad_serializer()
 
-        with patch(
-            "query_doctor.analyzers.discovery.discover_serializers",
-            return_value=[bad_cls],
-        ), pytest.raises(CommandError, match="check_serializers found issues"):
+        with (
+            patch(
+                "query_doctor.analyzers.discovery.discover_serializers",
+                return_value=[bad_cls],
+            ),
+            pytest.raises(CommandError, match="check_serializers found issues"),
+        ):
             call_command(
                 "check_serializers",
                 "--fail-on=info",
@@ -240,12 +246,15 @@ class TestCheckSerializersWithMocks:
         def raise_error(cls):
             raise RuntimeError("Intentional test error")
 
-        with patch(
-            "query_doctor.analyzers.discovery.discover_serializers",
-            return_value=[BrokenSerializer],
-        ), patch(
-            "query_doctor.analyzers.serializer_method.SerializerMethodAnalyzer.analyze",
-            side_effect=RuntimeError("Intentional test error"),
+        with (
+            patch(
+                "query_doctor.analyzers.discovery.discover_serializers",
+                return_value=[BrokenSerializer],
+            ),
+            patch(
+                "query_doctor.analyzers.serializer_method.SerializerMethodAnalyzer.analyze",
+                side_effect=RuntimeError("Intentional test error"),
+            ),
         ):
             call_command("check_serializers", stdout=out, stderr=err)
 

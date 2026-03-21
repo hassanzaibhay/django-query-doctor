@@ -99,9 +99,7 @@ def compute_fingerprint(query: Query, compiler: SQLCompiler) -> str:
             parts.append("select_related:true")
 
     fingerprint_str = "|".join(parts)
-    return hashlib.blake2b(
-        fingerprint_str.encode("utf-8"), digest_size=16
-    ).hexdigest()
+    return hashlib.blake2b(fingerprint_str.encode("utf-8"), digest_size=16).hexdigest()
 
 
 def _fingerprint_select(query: Query, parts: list[str]) -> None:
@@ -112,9 +110,7 @@ def _fingerprint_select(query: Query, parts: list[str]) -> None:
             try:
                 target = getattr(col, "target", None)
                 if target is not None:
-                    col_names.append(
-                        f"{target.model._meta.label}.{target.column}"
-                    )
+                    col_names.append(f"{target.model._meta.label}.{target.column}")
                 elif hasattr(col, "output_field"):
                     col_names.append(str(col.output_field))
                 else:
@@ -194,9 +190,7 @@ def _fingerprint_joins(query: Query, parts: list[str]) -> None:
     join_parts: list[str] = []
     for alias, join in query.alias_map.items():
         try:
-            join_parts.append(
-                f"{join.table_name}:{join.join_type}"
-            )
+            join_parts.append(f"{join.table_name}:{join.join_type}")
         except AttributeError:
             join_parts.append(f"{alias}:{type(join).__name__}")
 

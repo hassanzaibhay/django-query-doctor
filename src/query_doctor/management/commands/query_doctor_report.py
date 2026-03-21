@@ -32,7 +32,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser: Any) -> None:
         """Add command arguments."""
         parser.add_argument(
-            "--output", "-o",
+            "--output",
+            "-o",
             default="query_doctor_report.html",
             help="Output file path (default: query_doctor_report.html)",
         )

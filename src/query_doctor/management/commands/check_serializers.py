@@ -113,9 +113,7 @@ class Command(BaseCommand):
                 all_prescriptions.extend(prescriptions)
             except Exception as e:
                 self.stderr.write(
-                    self.style.WARNING(
-                        f"Error analyzing {serializer_cls.__name__}: {e}"
-                    )
+                    self.style.WARNING(f"Error analyzing {serializer_cls.__name__}: {e}")
                 )
 
         # Apply per-file filtering
@@ -148,17 +146,13 @@ class Command(BaseCommand):
                 )
             )
         else:
-            self.stdout.write(
-                self.style.SUCCESS("\nNo SerializerMethodField N+1 issues found.")
-            )
+            self.stdout.write(self.style.SUCCESS("\nNo SerializerMethodField N+1 issues found."))
 
         # Fail-on check
         if fail_on and self._should_fail(report, fail_on):
             from django.core.management.base import CommandError
 
-            raise CommandError(
-                f"check_serializers found issues at severity '{fail_on}' or higher"
-            )
+            raise CommandError(f"check_serializers found issues at severity '{fail_on}' or higher")
 
     def _render_console(self, report: Any) -> None:
         """Render report to console output."""
@@ -180,7 +174,4 @@ class Command(BaseCommand):
             Severity.CRITICAL: 2,
         }
 
-        return any(
-            severity_map.get(p.severity, 0) >= fail_level
-            for p in report.prescriptions
-        )
+        return any(severity_map.get(p.severity, 0) >= fail_level for p in report.prescriptions)

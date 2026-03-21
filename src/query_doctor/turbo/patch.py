@@ -164,15 +164,13 @@ def _patched_execute_sql(
                 # Fingerprint collision: different SQL for same fingerprint.
                 # Evict the stale entry and proceed with fresh SQL.
                 logger.warning(
-                    "QueryTurbo: fingerprint collision detected (%s). "
-                    "Evicting stale cache entry.",
+                    "QueryTurbo: fingerprint collision detected (%s). Evicting stale cache entry.",
                     fingerprint[:16],
                 )
                 _cache.evict(fingerprint)
                 # Fall through — use fresh SQL/params via normal path
                 params_tuple = (
-                    fresh_params if isinstance(fresh_params, tuple)
-                    else tuple(fresh_params)
+                    fresh_params if isinstance(fresh_params, tuple) else tuple(fresh_params)
                 )
 
                 def _fresh_as_sql(
@@ -191,10 +189,7 @@ def _patched_execute_sql(
 
             # Validated hit: cached SQL matches fresh SQL.
             # Use cached SQL string for prepared statement reuse.
-            params_tuple = (
-                fresh_params if isinstance(fresh_params, tuple)
-                else tuple(fresh_params)
-            )
+            params_tuple = fresh_params if isinstance(fresh_params, tuple) else tuple(fresh_params)
             cached_sql: str = entry.sql
 
             def _cached_as_sql(
@@ -208,8 +203,12 @@ def _patched_execute_sql(
             try:
                 if should_prepare:
                     return _execute_with_prepare(
-                        self, cached_sql, params_tuple,
-                        result_type, chunked_fetch, chunk_size,
+                        self,
+                        cached_sql,
+                        params_tuple,
+                        result_type,
+                        chunked_fetch,
+                        chunk_size,
                     )
                 return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
                     self, result_type, chunked_fetch, chunk_size
@@ -217,9 +216,7 @@ def _patched_execute_sql(
             finally:
                 self.as_sql = original_as_sql  # type: ignore[method-assign]
         except Exception:
-            logger.debug(
-                "Cache hit execution failed, falling back", exc_info=True
-            )
+            logger.debug("Cache hit execution failed, falling back", exc_info=True)
             self.as_sql = original_as_sql  # type: ignore[method-assign]
             return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
                 self, result_type, chunked_fetch, chunk_size

@@ -26,24 +26,72 @@ from query_doctor.types import CallSite, IssueType, Prescription, Severity
 logger = logging.getLogger("query_doctor")
 
 # Known queryset methods that trigger database access
-_QUERYSET_METHODS = frozenset({
-    "filter", "exclude", "get", "count", "exists", "all",
-    "values", "values_list", "first", "last", "aggregate",
-    "annotate", "order_by", "distinct", "select_related",
-    "prefetch_related", "create", "update", "delete",
-    "bulk_create", "bulk_update",
-})
+_QUERYSET_METHODS = frozenset(
+    {
+        "filter",
+        "exclude",
+        "get",
+        "count",
+        "exists",
+        "all",
+        "values",
+        "values_list",
+        "first",
+        "last",
+        "aggregate",
+        "annotate",
+        "order_by",
+        "distinct",
+        "select_related",
+        "prefetch_related",
+        "create",
+        "update",
+        "delete",
+        "bulk_create",
+        "bulk_update",
+    }
+)
 
 # Known safe string/attribute methods that don't hit the DB
-_SAFE_METHODS = frozenset({
-    "upper", "lower", "strip", "lstrip", "rstrip", "replace",
-    "startswith", "endswith", "split", "join", "format",
-    "encode", "decode", "title", "capitalize", "swapcase",
-    "isnumeric", "isdigit", "isalpha", "isalnum",
-    "items", "keys", "values", "get", "pop", "update",
-    "append", "extend", "insert", "remove", "sort", "reverse",
-    "__str__", "__repr__", "__len__",
-})
+_SAFE_METHODS = frozenset(
+    {
+        "upper",
+        "lower",
+        "strip",
+        "lstrip",
+        "rstrip",
+        "replace",
+        "startswith",
+        "endswith",
+        "split",
+        "join",
+        "format",
+        "encode",
+        "decode",
+        "title",
+        "capitalize",
+        "swapcase",
+        "isnumeric",
+        "isdigit",
+        "isalpha",
+        "isalnum",
+        "items",
+        "keys",
+        "values",
+        "get",
+        "pop",
+        "update",
+        "append",
+        "extend",
+        "insert",
+        "remove",
+        "sort",
+        "reverse",
+        "__str__",
+        "__repr__",
+        "__len__",
+    }
+)
 
 
 class SerializerMethodAnalyzer:
@@ -89,7 +137,8 @@ class SerializerMethodAnalyzer:
             except (OSError, TypeError, SyntaxError):
                 logger.debug(
                     "Could not parse source for %s.%s",
-                    serializer_cls.__name__, method_name,
+                    serializer_cls.__name__,
+                    method_name,
                 )
                 continue
 
@@ -501,9 +550,7 @@ class SerializerMethodAnalyzer:
                 f"'{obj_param}.{accessed}' may trigger a query per object "
                 f"if '{related}' is not select_related"
             ),
-            "fix_suggestion": (
-                f"Add select_related('{related}') to the viewset queryset"
-            ),
+            "fix_suggestion": (f"Add select_related('{related}') to the viewset queryset"),
             "pattern": "deep_attribute_chain",
             "severity": Severity.INFO,
             "line_offset": getattr(node, "lineno", 1) - 1,

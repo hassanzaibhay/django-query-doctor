@@ -162,6 +162,7 @@ def _collect_serializers(
 
         try:
             from rest_framework import serializers as drf_serializers
+
             if obj in (
                 drf_serializers.Serializer,
                 drf_serializers.ModelSerializer,

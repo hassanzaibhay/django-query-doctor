@@ -135,9 +135,7 @@ class TestDashboardReporter:
 
     def test_prepare_chart_when_stats_present(self, tmp_path):
         """Prepare chart shows when prepare stats are present."""
-        stats = _make_stats(
-            prepare_stats={"prepared_count": 10, "unprepared_count": 40}
-        )
+        stats = _make_stats(prepare_stats={"prepared_count": 10, "unprepared_count": 40})
         reporter = DashboardReporter()
         output_path = str(tmp_path / "test_prepare.html")
 
@@ -150,9 +148,7 @@ class TestDashboardReporter:
 
     def test_no_prepare_chart_when_zero_stats(self, tmp_path):
         """Prepare chart is omitted when both counts are zero."""
-        stats = _make_stats(
-            prepare_stats={"prepared_count": 0, "unprepared_count": 0}
-        )
+        stats = _make_stats(prepare_stats={"prepared_count": 0, "unprepared_count": 0})
         reporter = DashboardReporter()
         output_path = str(tmp_path / "test_no_prepare.html")
 

@@ -90,9 +90,7 @@ class TestCorrectnessSimpleQueries:
         """filter(field=value) produces correct results with cache."""
         from tests.testapp.models import Book
 
-        disabled, miss, hit, _, _stats = _run_query_both_ways(
-            Book.objects.filter(price=10)
-        )
+        disabled, miss, hit, _, _stats = _run_query_both_ways(Book.objects.filter(price=10))
 
         assert [b.pk for b in disabled] == [b.pk for b in miss] == [b.pk for b in hit]
         assert len(disabled) == 1
@@ -112,9 +110,7 @@ class TestCorrectnessSimpleQueries:
         """exclude(field=value) produces correct results."""
         from tests.testapp.models import Book
 
-        disabled, miss, hit, _, _ = _run_query_both_ways(
-            Book.objects.exclude(price=10)
-        )
+        disabled, miss, hit, _, _ = _run_query_both_ways(Book.objects.exclude(price=10))
 
         assert [b.pk for b in disabled] == [b.pk for b in miss] == [b.pk for b in hit]
         assert len(disabled) == 2
@@ -123,9 +119,7 @@ class TestCorrectnessSimpleQueries:
         """order_by('-field') produces correct results and ordering."""
         from tests.testapp.models import Book
 
-        disabled, miss, hit, _, _ = _run_query_both_ways(
-            Book.objects.order_by("-price")
-        )
+        disabled, miss, hit, _, _ = _run_query_both_ways(Book.objects.order_by("-price"))
 
         assert [b.pk for b in disabled] == [b.pk for b in miss] == [b.pk for b in hit]
         assert disabled[0].price > disabled[-1].price
@@ -134,9 +128,7 @@ class TestCorrectnessSimpleQueries:
         """distinct() produces correct results."""
         from tests.testapp.models import Book
 
-        disabled, miss, hit, _, _ = _run_query_both_ways(
-            Book.objects.all().distinct()
-        )
+        disabled, miss, hit, _, _ = _run_query_both_ways(Book.objects.all().distinct())
 
         assert [b.pk for b in disabled] == [b.pk for b in miss] == [b.pk for b in hit]
 
@@ -379,9 +371,7 @@ class TestCollisionDetection:
         with cache._lock:
             for key in list(cache._cache.keys()):
                 entry = cache._cache[key]
-                cache._cache[key] = type(entry)(
-                    sql="SELECT CORRUPTED", params=(), hit_count=0
-                )
+                cache._cache[key] = type(entry)(sql="SELECT CORRUPTED", params=(), hit_count=0)
 
         # Next query with same fingerprint: validates and detects mismatch
         with turbo_enabled():
@@ -402,14 +392,8 @@ class TestCollisionDetection:
 
         with turbo_enabled():
             r1 = list(Book.objects.filter(id__in=[books[0].pk]))
-            r2 = list(
-                Book.objects.filter(id__in=[books[0].pk, books[1].pk])
-            )
-            r3 = list(
-                Book.objects.filter(
-                    id__in=[books[0].pk, books[1].pk, books[2].pk]
-                )
-            )
+            r2 = list(Book.objects.filter(id__in=[books[0].pk, books[1].pk]))
+            r3 = list(Book.objects.filter(id__in=[books[0].pk, books[1].pk, books[2].pk]))
 
         assert len(r1) == 1
         assert len(r2) == 2

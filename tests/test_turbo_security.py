@@ -45,9 +45,7 @@ class TestNoValueLeakage:
     def test_sql_injection_attempt_same_fingerprint(self):
         """SQL injection payloads in values don't affect fingerprint."""
         q1, c1 = _get_compiler(Book.objects.filter(title="normal"))
-        q2, c2 = _get_compiler(
-            Book.objects.filter(title="'; DROP TABLE books; --")
-        )
+        q2, c2 = _get_compiler(Book.objects.filter(title="'; DROP TABLE books; --"))
 
         fp1 = compute_fingerprint(q1, c1)
         fp2 = compute_fingerprint(q2, c2)
@@ -56,18 +54,14 @@ class TestNoValueLeakage:
 
     def test_injection_value_not_in_fingerprint(self):
         """SQL injection payload text must not appear in fingerprint."""
-        q, c = _get_compiler(
-            Book.objects.filter(title="'; DROP TABLE books; --")
-        )
+        q, c = _get_compiler(Book.objects.filter(title="'; DROP TABLE books; --"))
         fp = compute_fingerprint(q, c)
         assert "DROP" not in fp
         assert "TABLE" not in fp
 
     def test_q_object_values_not_in_fingerprint(self):
         """Values in Q objects must not leak into fingerprint."""
-        q, c = _get_compiler(
-            Book.objects.filter(Q(title="SECRET") | Q(isbn="HIDDEN"))
-        )
+        q, c = _get_compiler(Book.objects.filter(Q(title="SECRET") | Q(isbn="HIDDEN")))
         fp = compute_fingerprint(q, c)
         assert "SECRET" not in fp
         assert "HIDDEN" not in fp
@@ -89,9 +83,7 @@ class TestFingerprintOnlyStructural:
 
     def test_fingerprint_is_opaque_hash(self):
         """Fingerprint is an opaque blake2b hash, not readable text."""
-        q, c = _get_compiler(
-            Book.objects.filter(title="sensitive_data_here")
-        )
+        q, c = _get_compiler(Book.objects.filter(title="sensitive_data_here"))
         fp = compute_fingerprint(q, c)
 
         # The fingerprint should be a hex hash, not contain readable structural info

@@ -4,6 +4,11 @@ These examples demonstrate how django-query-doctor diagnoses and fixes query
 performance issues in production-like scenarios. Each example shows the original
 code, the prescription output, and the optimized solution.
 
+!!! note "Illustrative numbers"
+    The response times and improvement percentages in these examples are
+    illustrative estimates based on typical Django applications. Your actual
+    results will vary depending on database, dataset size, and hardware.
+
 ---
 
 ## E-Commerce: Order API with Nested Serializers

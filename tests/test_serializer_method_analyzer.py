@@ -141,8 +141,7 @@ class TestSerializerMethodAnalyzer:
         results = self.analyzer.analyze(BadCountSerializer)
         assert len(results) >= 1
         assert any(
-            "items" in r.description.lower() or "count" in r.description.lower()
-            for r in results
+            "items" in r.description.lower() or "count" in r.description.lower() for r in results
         )
         assert all(r.issue_type == IssueType.DRF_SERIALIZER for r in results)
 
@@ -224,8 +223,7 @@ class TestSerializerMethodAnalyzer:
         # Deep chain
         results = self.analyzer.analyze(BadChainSerializer)
         deep_chain_results = [
-            r for r in results
-            if r.extra.get("pattern") == "deep_attribute_chain"
+            r for r in results if r.extra.get("pattern") == "deep_attribute_chain"
         ]
         assert all(r.severity == Severity.INFO for r in deep_chain_results)
 

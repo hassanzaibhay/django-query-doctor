@@ -60,11 +60,11 @@ When you run `diagnose_project` periodically (e.g., nightly via a cron job or Ce
 - New issues introduced vs. issues resolved.
 - Health score history.
 
-> **Tip:** Set up a scheduled task to run `diagnose_project` nightly and store the results. This populates the trend charts and lets you see whether your codebase is getting better or worse over time.
+> **Tip:** Set up a scheduled task to run `diagnose_project` nightly and save the results to a file. This helps you track whether your codebase is getting better or worse over time.
 >
 > ```bash
 > # Cron example: run every night at 2 AM
-> 0 2 * * * cd /path/to/project && python manage.py diagnose_project --store
+> 0 2 * * * cd /path/to/project && python manage.py diagnose_project --format json --output reports/nightly.json
 > ```
 
 ---
@@ -77,7 +77,7 @@ The dashboard stores analysis results in Django's database using its own models.
 python manage.py migrate query_doctor
 ```
 
-Data is stored only when the middleware is active or when management commands are run with the `--store` flag. The dashboard does not add any database overhead to your application's normal operation.
+Data is stored only when the middleware is active. The dashboard does not add any database overhead to your application's normal operation.
 
 ### Data Retention
 
@@ -132,5 +132,5 @@ custom_admin_site.register_dashboard(QueryDoctorDashboard)
 ## Further Reading
 
 - [How It Works](how-it-works.md) -- The analysis pipeline that feeds the dashboard.
-- [Management Commands](management-commands.md) -- Using `diagnose_project --store` to populate trend data.
+- [Management Commands](management-commands.md) -- Using `diagnose_project` to analyze your codebase.
 - [CI Integration](ci-integration.md) -- Automated scanning for the dashboard.
