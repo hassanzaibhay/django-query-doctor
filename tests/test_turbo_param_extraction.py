@@ -340,7 +340,6 @@ class TestParamExtractionEdgeCases:
     def test_complex_query_param_count_matches(self):
         """Complex query with many features: param count matches as_sql."""
         from decimal import Decimal
-        from django.db.models import Case, IntegerField, When
 
         qs = (
             Book.objects.select_related("author", "publisher")

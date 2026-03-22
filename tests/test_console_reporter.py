@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from query_doctor.reporters.console import ConsoleReporter
 from query_doctor.types import (
     CallSite,
