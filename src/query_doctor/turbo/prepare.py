@@ -257,7 +257,7 @@ def _detect_strategy(vendor: str, config: dict[str, Any]) -> PrepareStrategy:
 
     if vendor == "postgresql":
         try:
-            import psycopg  # noqa: F401
+            import psycopg  # type: ignore[import-not-found]  # noqa: F401
 
             logger.info("PostgreSQL with psycopg3 detected, enabling prepared statements")
             return PsycopgPrepareStrategy(threshold=threshold)
