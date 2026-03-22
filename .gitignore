@@ -30,8 +30,8 @@ venv/
 
 # Claude Code
 CLAUDE.md
-docs/SPEC.md
-docs/v2-plan.md
+SPEC.md
+v2-plan.md
 .claude/
 .claudeignore
 site/

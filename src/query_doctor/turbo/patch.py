@@ -28,10 +28,6 @@ logger = logging.getLogger("query_doctor.turbo")
 _cache: SQLCompilationCache | None = None
 _cache_lock = threading.Lock()
 
-# Backward-compat alias — context.py now owns the override via contextvars
-# _local is kept only so existing test imports don't break at import-time.
-_local = threading.local()  # DEPRECATED: use context.get_turbo_override()
-
 
 def get_cache() -> SQLCompilationCache | None:
     """Return the global compilation cache instance, if initialized.
@@ -310,8 +306,9 @@ def _handle_untrusted_hit(
         fresh_sql, fresh_params = original_as_sql()
 
         if fresh_sql != entry.sql:
-            # COLLISION! Poison this fingerprint
-            entry.poisoned = True
+            # COLLISION! Poison this fingerprint permanently
+            assert _cache is not None
+            _cache.poison(fingerprint)
             logger.warning(
                 "QueryTurbo collision detected for fingerprint %s. SQL mismatch. Entry poisoned.",
                 fingerprint[:16],

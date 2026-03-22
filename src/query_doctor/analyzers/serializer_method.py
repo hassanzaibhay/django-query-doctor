@@ -100,7 +100,13 @@ class SerializerMethodAnalyzer:
     Detects methods that may cause N+1 queries.
     This is a STATIC analyzer — it reads source code, not runtime queries.
     It should be invoked separately from the runtime query interception pipeline.
+
+    Note: This does NOT inherit BaseAnalyzer because its analyze() method takes
+    a serializer class, not a list of CapturedQuery. It is accessed via the
+    check_serializers management command, not through the runtime plugin API.
     """
+
+    name = "serializer_method"
 
     def analyze(self, serializer_cls: Any) -> list[Prescription]:
         """Analyze a single serializer class for N+1 patterns.

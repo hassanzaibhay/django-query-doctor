@@ -349,3 +349,24 @@ class TestFingerprintAnnotationTarget:
         fp2 = compute_fingerprint(q2, c2)
 
         assert fp1 == fp2
+
+
+@pytest.mark.django_db
+class TestFingerprintEdgeCases:
+    """Edge-case fingerprint tests."""
+
+    def test_empty_in_list_fingerprints(self):
+        """filter(id__in=[]) must produce a valid fingerprint without crash."""
+        qs = Book.objects.filter(id__in=[])
+        q, c = _get_compiler(qs)
+        fp = compute_fingerprint(q, c)
+        assert isinstance(fp, str)
+        assert len(fp) > 0
+
+    def test_empty_in_vs_single_item_in_different_fingerprints(self):
+        """Empty __in and single-item __in have different fingerprints."""
+        q1, c1 = _get_compiler(Book.objects.filter(id__in=[]))
+        q2, c2 = _get_compiler(Book.objects.filter(id__in=[1]))
+        fp_empty = compute_fingerprint(q1, c1)
+        fp_one = compute_fingerprint(q2, c2)
+        assert fp_empty != fp_one

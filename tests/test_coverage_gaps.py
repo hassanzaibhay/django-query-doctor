@@ -267,7 +267,7 @@ class TestMiddlewareEdgeCases:
             is_select=True,
             tables=[],
         )
-        interceptor._get_query_list().append(query)
+        interceptor._queries_var.get().append(query)
 
         config = {
             "ANALYZERS": {"nplusone": {"enabled": True}, "duplicate": {"enabled": True}},

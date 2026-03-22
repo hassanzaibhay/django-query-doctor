@@ -206,6 +206,22 @@ def _collect_expression_params(expr: Any, compiler: Any, params: list[Any]) -> N
     if isinstance(expr, Col):
         return
 
+    # When node — condition is a Q object which needs special handling
+    from django.db.models.expressions import When
+
+    if isinstance(expr, When):
+        # Use as_sql() on the When node to get exact params
+        try:
+            _sql, when_params = expr.as_sql(compiler, compiler.connection)
+            if when_params:
+                params.extend(when_params)
+        except Exception:
+            # Fallback: recurse into source expressions
+            for source in expr.get_source_expressions():
+                if source is not None:
+                    _collect_expression_params(source, compiler, params)
+        return
+
     # For other expressions, recurse into source expressions
     if hasattr(expr, "get_source_expressions"):
         for source in expr.get_source_expressions():

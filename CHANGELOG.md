@@ -13,7 +13,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   and promotes to TRUSTED after `VALIDATION_THRESHOLD` (default 3)
   successful validations. On trusted hit, skips `as_sql()` entirely and
   extracts params directly from the Query tree via `turbo/params.py`.
-  On mismatch, poisons the entry permanently.
+  On mismatch, poisons the entry for the lifetime of the process (persists across cache clears triggered by migrations).
 - **True SQL Compilation Skipping**: `turbo/params.py` extracts params
   from the Django Query tree without calling `as_sql()`. Uses
   `lookup.as_sql(compiler, connection)` per WHERE node for exact param

@@ -3,6 +3,11 @@
 Stores compiled (sql_template, param_count) keyed by structural fingerprints.
 Uses threading.Lock for mutation safety and collections.OrderedDict for LRU eviction.
 Each entry tracks a hit_count and a trust lifecycle for compilation skipping.
+
+POISONED fingerprints are tracked in a separate set (_poisoned_fps) that
+is NOT cleared by clear() (only by hard_reset()). This guarantees that a
+fingerprint collision is remembered for the lifetime of the process, even
+across cache clears triggered by migrations.
 """
 
 from __future__ import annotations
@@ -70,6 +75,10 @@ class SQLCompilationCache:
     2. TRUSTED: Skips as_sql() entirely, extracts params from Query tree.
     3. POISONED: Fingerprint collision detected, cache permanently bypassed.
 
+    Poisoned fingerprints are tracked in a separate set that survives
+    clear() but not hard_reset(). This ensures collisions are remembered
+    for the lifetime of the process.
+
     The cache is shared across threads within a single process.
     All mutations are protected by a threading.Lock.
     """
@@ -88,10 +97,13 @@ class SQLCompilationCache:
         self._misses = 0
         self._evictions = 0
         self._trusted_hits = 0
+        # Poisoned fingerprints — never evicted by LRU, never cleared by clear().
+        self._poisoned_fps: set[str] = set()
 
     def get(self, fingerprint: str) -> CacheEntry | None:
         """Look up a cached SQL template by fingerprint.
 
+        Returns None immediately for poisoned fingerprints (permanent miss).
         On hit, moves the entry to the end (most recently used) and
         increments the entry's hit_count.
         Thread-safe for concurrent reads.
@@ -103,6 +115,11 @@ class SQLCompilationCache:
             The CacheEntry if found, None otherwise.
         """
         with self._lock:
+            # Poisoned fingerprints are a permanent miss
+            if fingerprint in self._poisoned_fps:
+                self._misses += 1
+                return None
+
             entry = self._cache.get(fingerprint)
             if entry is not None:
                 self._hits += 1
@@ -129,7 +146,9 @@ class SQLCompilationCache:
     ) -> None:
         """Store a compiled SQL template in the cache.
 
-        If the cache is at capacity, the least recently used entry is evicted.
+        Refuses to store entries for poisoned fingerprints.
+        If the cache is at capacity, the least recently used non-poisoned
+        entry is evicted.
         Thread-safe for concurrent writes.
 
         Args:
@@ -139,6 +158,10 @@ class SQLCompilationCache:
             model_label: The model label for diagnostics.
         """
         with self._lock:
+            # Never re-insert a poisoned fingerprint
+            if fingerprint in self._poisoned_fps:
+                return
+
             if fingerprint in self._cache:
                 existing = self._cache[fingerprint]
                 self._cache.move_to_end(fingerprint)
@@ -154,14 +177,29 @@ class SQLCompilationCache:
                 return
 
             if len(self._cache) >= self._max_size:
-                self._cache.popitem(last=False)
-                self._evictions += 1
+                self._evict_one()
 
             self._cache[fingerprint] = CacheEntry(
                 sql=sql,
                 param_count=param_count,
                 model_label=model_label,
             )
+
+    def _evict_one(self) -> None:
+        """Evict the oldest non-poisoned entry from the LRU.
+
+        Must be called while holding self._lock.
+        """
+        # Prefer evicting non-poisoned entries
+        for fp in self._cache:
+            if fp not in self._poisoned_fps:
+                del self._cache[fp]
+                self._evictions += 1
+                return
+        # All entries are poisoned (edge case) — evict oldest anyway
+        if self._cache:
+            self._cache.popitem(last=False)
+            self._evictions += 1
 
     def evict(self, fingerprint: str) -> bool:
         """Remove a specific entry from the cache.
@@ -185,24 +223,38 @@ class SQLCompilationCache:
     def poison(self, fingerprint: str) -> None:
         """Mark a fingerprint as poisoned (collision detected).
 
-        The entry stays in cache so we can identify it on future hits
-        and skip immediately without a cache miss.
+        Records the fingerprint in the permanent _poisoned_fps set and
+        removes the entry from the LRU cache. Future get() calls for this
+        fingerprint will return None immediately.
 
         Args:
             fingerprint: The blake2b hex digest to poison.
         """
         with self._lock:
-            entry = self._cache.get(fingerprint)
-            if entry is not None:
-                entry.poisoned = True
+            self._poisoned_fps.add(fingerprint)
+            if fingerprint in self._cache:
+                del self._cache[fingerprint]
+                self._evictions += 1
 
     def clear(self) -> None:
         """Remove all entries from the cache.
 
         Thread-safe. Resets hit/miss/eviction counters.
+        Preserves _poisoned_fps — poisoned fingerprints survive clear().
         """
         with self._lock:
             self._cache.clear()
+            self._hits = 0
+            self._misses = 0
+            self._evictions = 0
+            self._trusted_hits = 0
+            # _poisoned_fps intentionally preserved
+
+    def hard_reset(self) -> None:
+        """Full reset including poisoned fingerprints. For testing only."""
+        with self._lock:
+            self._cache.clear()
+            self._poisoned_fps.clear()
             self._hits = 0
             self._misses = 0
             self._evictions = 0
@@ -218,7 +270,7 @@ class SQLCompilationCache:
         """
         with self._lock:
             trusted_count = sum(1 for e in self._cache.values() if e.trusted)
-            poisoned_count = sum(1 for e in self._cache.values() if e.poisoned)
+            poisoned_count = len(self._poisoned_fps)
             return CacheStats(
                 hits=self._hits,
                 misses=self._misses,

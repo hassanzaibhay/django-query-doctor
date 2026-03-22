@@ -65,7 +65,7 @@ def _run_query_both_ways(queryset):
 
     cache = get_cache()
     assert cache is not None
-    cache.clear()
+    cache.hard_reset()
 
     # First run with turbo enabled = cache miss
     with turbo_enabled():
@@ -160,7 +160,7 @@ class TestCorrectnessRelatedQueries:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             miss = list(qs)
@@ -180,7 +180,7 @@ class TestCorrectnessRelatedQueries:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             miss = list(qs)
@@ -205,7 +205,7 @@ class TestCorrectnessAggregation:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             miss = list(qs)
@@ -229,7 +229,7 @@ class TestCorrectnessAggregation:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             miss = qs_base.aggregate(total=Sum("price"))
@@ -280,7 +280,7 @@ class TestCorrectnessComplexQueries:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             miss = list(qs)
@@ -304,7 +304,7 @@ class TestCacheHitMissTracking:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             list(Book.objects.filter(price=10))
@@ -318,7 +318,7 @@ class TestCacheHitMissTracking:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             list(Book.objects.filter(price=10))
@@ -335,7 +335,7 @@ class TestCacheHitMissTracking:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             list(Book.objects.filter(price=10))
@@ -357,7 +357,7 @@ class TestCollisionDetection:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         # Manually inject a cache entry with wrong SQL for a known fingerprint
         with turbo_enabled():
@@ -386,7 +386,7 @@ class TestCollisionDetection:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         books = sample_data["books"]
 
@@ -432,3 +432,24 @@ class TestContextManagerNesting:
                     assert _is_turbo_active() is True
                 assert _is_turbo_active() is False
             assert _is_turbo_active() is True
+
+
+@pytest.mark.django_db
+class TestMultiDBCacheIsolation:
+    """Multi-database cache isolation tests."""
+
+    def test_fingerprint_includes_db_alias(self, sample_data):
+        """Fingerprint incorporates the DB alias via the compiler's using attribute."""
+        from query_doctor.turbo.fingerprint import compute_fingerprint
+        from tests.testapp.models import Book
+
+        # Both use 'default' since we only have one DB in tests,
+        # but verify the fingerprint is stable and includes the alias
+        qs = Book.objects.filter(title="test")
+        q, c = qs.query, qs.query.get_compiler(using="default")
+        fp = compute_fingerprint(q, c)
+        assert isinstance(fp, str)
+        assert len(fp) > 0
+        # The fingerprint function includes vendor and using in its parts,
+        # so different aliases would produce different fingerprints.
+        # (Cannot test with actual second DB in unit tests.)

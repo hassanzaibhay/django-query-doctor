@@ -1,14 +1,14 @@
 """Query interceptor that wraps database execution to capture SQL queries.
 
 Uses Django's connection.execute_wrapper() mechanism to intercept all SQL
-queries without requiring DEBUG=True. Stores captured queries per-thread
-using threading.local() for thread safety.
+queries without requiring DEBUG=True. Stores captured queries per-context
+using contextvars.ContextVar for both thread and async safety.
 """
 
 from __future__ import annotations
 
+import contextvars
 import logging
-import threading
 import time
 from typing import Any
 
@@ -18,6 +18,9 @@ from query_doctor.types import CapturedQuery
 
 logger = logging.getLogger("query_doctor")
 
+# Global counter ensures each interceptor instance gets a unique ContextVar name.
+_interceptor_counter = 0
+
 
 class QueryInterceptor:
     """Callable that wraps database query execution to capture SQL queries.
@@ -25,6 +28,10 @@ class QueryInterceptor:
     Designed to be used with Django's connection.execute_wrapper() as a
     context manager. Captures query text, parameters, timing, fingerprint,
     and source code callsite for each executed query.
+
+    Each instance maintains its own isolated query list via a unique
+    contextvars.ContextVar, ensuring safety in both multi-threaded and
+    async (ASGI) deployments.
     """
 
     def __init__(self, capture_stack: bool = True) -> None:
@@ -33,8 +40,18 @@ class QueryInterceptor:
         Args:
             capture_stack: Whether to capture stack traces for callsite info.
         """
-        self._local = threading.local()
+        global _interceptor_counter
+        _interceptor_counter += 1
         self._capture_stack = capture_stack
+        # Each instance gets its own ContextVar for async isolation.
+        self._queries_var: contextvars.ContextVar[list[CapturedQuery] | None] = (
+            contextvars.ContextVar(
+                f"query_doctor_queries_{_interceptor_counter}",
+                default=None,
+            )
+        )
+        # Initialize with a fresh list for this context.
+        self._queries_var.set([])
 
     def __call__(
         self,
@@ -90,7 +107,9 @@ class QueryInterceptor:
                     tables=tables,
                 )
 
-                self._get_query_list().append(captured)
+                queries = self._queries_var.get()
+                if queries is not None:
+                    queries.append(captured)
             except Exception:
                 logger.warning(
                     "query_doctor: failed to capture query metadata",
@@ -99,16 +118,13 @@ class QueryInterceptor:
 
         return result
 
-    def _get_query_list(self) -> list[CapturedQuery]:
-        """Get the thread-local query list, initializing if needed."""
-        if not hasattr(self._local, "queries"):
-            self._local.queries = []
-        return self._local.queries  # type: ignore[no-any-return]
-
     def get_queries(self) -> list[CapturedQuery]:
-        """Return all captured queries for the current thread."""
-        return list(self._get_query_list())
+        """Return all captured queries for the current context."""
+        queries = self._queries_var.get()
+        if queries is None:
+            return []
+        return list(queries)
 
     def clear(self) -> None:
-        """Reset the captured query list for the current thread."""
-        self._local.queries = []
+        """Reset the captured query list for the current context."""
+        self._queries_var.set([])

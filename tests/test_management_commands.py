@@ -107,3 +107,54 @@ class TestQueryBudgetCommand:
         from query_doctor.management.commands.query_budget import Command
 
         assert Command.help
+
+
+@pytest.mark.django_db
+class TestCheckQueriesBaseline:
+    """Tests for check_queries baseline flags."""
+
+    def test_save_baseline_creates_file(self, tmp_path) -> None:
+        """--save-baseline writes a JSON file."""
+        import os
+
+        baseline_path = str(tmp_path / "baseline.json")
+        call_command("check_queries", "--url", "/test/", f"--save-baseline={baseline_path}")
+        assert os.path.exists(baseline_path)
+        with open(baseline_path) as f:
+            data = json.load(f)
+        assert isinstance(data, dict)
+
+    def test_baseline_no_regression_exits_zero(self, tmp_path) -> None:
+        """--fail-on-regression exits 0 when no new issues vs baseline."""
+        baseline_path = str(tmp_path / "baseline.json")
+        # Write an empty baseline
+        with open(baseline_path, "w") as f:
+            json.dump({"issues": {}, "version": "2.0.0"}, f)
+        # Should not raise CommandError
+        call_command(
+            "check_queries",
+            "--url",
+            "/test/",
+            f"--baseline={baseline_path}",
+            "--fail-on-regression",
+        )
+
+
+@pytest.mark.django_db
+class TestCheckQueriesGroupFlag:
+    """Tests for check_queries --group flag."""
+
+    def test_group_flag_does_not_crash(self) -> None:
+        """--group flag runs without error."""
+        call_command("check_queries", "--url", "/test/", "--group")
+
+
+class TestURLPatterns:
+    """Tests for query_doctor.urls."""
+
+    def test_urlpatterns_importable_and_nonempty(self) -> None:
+        """query_doctor.urls defines at least one URL pattern."""
+        from query_doctor.urls import urlpatterns
+
+        assert isinstance(urlpatterns, list)
+        assert len(urlpatterns) > 0

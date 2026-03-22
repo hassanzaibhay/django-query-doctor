@@ -53,7 +53,7 @@ MIDDLEWARE = [
 
 Under ASGI, the middleware:
 
-- Uses `asyncio`-compatible context tracking instead of `threading.local()`.
+- Uses `contextvars.ContextVar` for async safety, ensuring correct isolation across concurrent coroutines. Both QueryTurbo context managers and the query interceptor use `contextvars.ContextVar`, making the full capture pipeline safe for ASGI deployments with concurrent requests on the same thread.
 - Installs an async `execute_wrapper` on the database connection.
 - Awaits the response before running analyzers.
 - Works correctly with Django's async-to-sync and sync-to-async bridge functions.

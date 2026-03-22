@@ -57,7 +57,7 @@ class TestTrustLifecycle:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             list(Book.objects.filter(price=10))
@@ -71,7 +71,7 @@ class TestTrustLifecycle:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             # 1 miss + 3 validating hits = 4 total
@@ -87,7 +87,7 @@ class TestTrustLifecycle:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             # Build trust: 1 miss + 3 validations
@@ -119,7 +119,7 @@ class TestTrustedPathCorrectness:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         # Build trust
         with turbo_enabled():
@@ -144,7 +144,7 @@ class TestTrustedPathCorrectness:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             qs = Book.objects.filter(price__gte=10).values("title", "price").order_by("price")
@@ -165,7 +165,7 @@ class TestTrustedPathCorrectness:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             qs = Author.objects.annotate(bc=Count("books")).filter(bc__gt=0).order_by("name")
@@ -184,7 +184,7 @@ class TestTrustedPathCorrectness:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             qs = Book.objects.filter(Q(price=10) | Q(price=30))
@@ -205,7 +205,7 @@ class TestTrustedPathCorrectness:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             for _ in range(4):
@@ -223,7 +223,7 @@ class TestTrustedPathCorrectness:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             for price in [10, 20, 30, 40]:
@@ -241,7 +241,7 @@ class TestTrustedPathCorrectness:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             qs = Book.objects.select_related("author").filter(price=10)
@@ -263,7 +263,7 @@ class TestPoisonedEntries:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             list(Book.objects.filter(price=10))
@@ -290,7 +290,7 @@ class TestPoisonedEntries:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         with turbo_enabled():
             list(Book.objects.filter(price=10))
@@ -321,7 +321,7 @@ class TestParamCountDemotion:
 
         cache = get_cache()
         assert cache is not None
-        cache.clear()
+        cache.hard_reset()
 
         # These have different fingerprints due to in_count
         with turbo_enabled():
@@ -330,3 +330,39 @@ class TestParamCountDemotion:
 
         # At least 2 entries (different fingerprints)
         assert cache.stats().size >= 2
+
+
+class TestConcurrentUntrustedAccess:
+    """Tests for concurrent access to UNTRUSTED cache entries."""
+
+    def test_concurrent_hits_do_not_crash(self):
+        """N threads hitting same UNTRUSTED fingerprint simultaneously must not crash."""
+        import threading
+
+        from query_doctor.turbo.cache import SQLCompilationCache
+
+        cache = SQLCompilationCache(max_size=128)
+        fp = "concurrent_test_fp"
+        cache.put(fp, "SELECT 1", 0)
+
+        errors: list[Exception] = []
+
+        def hit_cache() -> None:
+            try:
+                entry = cache.get(fp)
+                if entry:
+                    entry.validated_count += 1
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=hit_cache) for _ in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        entry = cache.get(fp)
+        assert entry is not None
+        # validated_count must not be negative or absurd
+        assert 0 <= entry.validated_count <= 40  # 20 threads + 20 from get() + 1 above

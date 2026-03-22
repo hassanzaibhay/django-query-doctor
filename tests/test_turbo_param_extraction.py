@@ -289,9 +289,7 @@ class TestParamExtractionEdgeCases:
         extracted = extract_params(query, compiler)
         expected = _get_as_sql_params(qs)
 
-        # Case/When may include condition params from as_sql that are hard
-        # to extract without full compilation. Verify counts at minimum.
-        assert len(extracted) <= len(expected)
+        assert extracted == expected
 
     def test_coalesce_multiple_values(self):
         """Coalesce with multiple Value nodes extracts all."""
@@ -356,3 +354,10 @@ class TestParamExtractionEdgeCases:
 
         assert len(extracted) == len(expected)
         assert extracted == expected
+
+    def test_empty_in_list_extraction(self):
+        """Param extraction for filter(id__in=[]) must not crash."""
+        qs = Book.objects.filter(id__in=[])
+        query, compiler = _get_compiler(qs)
+        extracted = extract_params(query, compiler)
+        assert isinstance(extracted, tuple)

@@ -36,7 +36,10 @@ class QueryDoctorConfig(AppConfig):
 
                 from django.db.models.signals import post_migrate
 
-                post_migrate.connect(clear_cache_on_migrate)
+                post_migrate.connect(
+                    clear_cache_on_migrate,
+                    dispatch_uid="query_doctor_turbo_clear_cache",
+                )
                 logger.info("QueryTurbo enabled and patch installed")
         except Exception:
             logger.warning("Failed to initialize QueryTurbo", exc_info=True)

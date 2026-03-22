@@ -120,12 +120,12 @@ and validates subsequent compilations against the cache.
 
 | Query Pattern | Speedup | Saved per Query |
 |---|---|---|
-| Simple filter | 123x | 38.8 us |
-| Multi filter | 153x | 49.2 us |
-| select_related | 294x | 92.5 us |
-| Deep select_related | 374x | 121.1 us |
-| Annotate | 214x | 68.6 us |
-| Complex (JOINs + Q + annotate) | 1,050x | 337.9 us |
+| Simple filter | 123x | 38.8 μs |
+| Multi filter | 153x | 49.2 μs |
+| select_related | 294x | 92.5 μs |
+| Deep select_related | 374x | 121.1 μs |
+| Annotate | 214x | 68.6 μs |
+| Complex (JOINs + Q + annotate) | 1,050x | 337.9 μs |
 
 *Measured on SQLite (compilation-only, no DB I/O). Run `python benchmarks/run.py` to reproduce.*
 
@@ -345,6 +345,15 @@ QUERY_DOCTOR = {
     'REPORTERS': ['console'],
     'IGNORE_URLS': ['/admin/', '/health/'],
 
+    # --- Query Ignore ---
+    'QUERYIGNORE_PATH': '.queryignore',  # Path to .queryignore file
+
+    # --- Admin Dashboard ---
+    'ADMIN_DASHBOARD': {
+        'ENABLED': False,       # Enable the admin dashboard panel
+        'MAX_REPORTS': 100,     # Max stored reports
+    },
+
     # --- QueryTurbo (v2.0) ---
     'TURBO': {
         'ENABLED': False,              # Opt-in
@@ -375,7 +384,7 @@ def send_weekly_report():
 
 ## Async View Support
 
-The middleware is fully async-compatible:
+The middleware supports async views:
 
 ```python
 async def my_async_view(request):

@@ -99,9 +99,11 @@ class TestCachePoison:
 
         cache.poison("fp1")
 
+        # Poisoned fingerprints return None (permanent miss)
         entry = cache.get("fp1")
-        assert entry is not None
-        assert entry.poisoned is True
+        assert entry is None
+        # But the fingerprint is tracked in _poisoned_fps
+        assert "fp1" in cache._poisoned_fps
 
     def test_poison_missing_entry_is_noop(self):
         """Poisoning a non-existent entry does nothing."""

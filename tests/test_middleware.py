@@ -107,3 +107,38 @@ class TestQueryDoctorMiddleware:
 
         with pytest.raises(ValueError, match="View error"):
             middleware(request)
+
+
+@pytest.mark.django_db
+class TestSamplingRate:
+    """Tests for SAMPLE_RATE middleware behavior."""
+
+    @override_settings(QUERY_DOCTOR={"ENABLED": True, "SAMPLE_RATE": 0.0})
+    def test_zero_sample_rate_skips_analysis(self) -> None:
+        """SAMPLE_RATE=0.0 means no requests are analyzed."""
+        from query_doctor.conf import get_config
+
+        get_config.cache_clear()
+        try:
+            middleware = QueryDoctorMiddleware(_dummy_view)
+            factory = RequestFactory()
+            request = factory.get("/books/")
+            response = middleware(request)
+            assert response.status_code == 200
+        finally:
+            get_config.cache_clear()
+
+    @override_settings(QUERY_DOCTOR={"ENABLED": True, "SAMPLE_RATE": 1.0})
+    def test_full_sample_rate_always_analyzes(self) -> None:
+        """SAMPLE_RATE=1.0 means every request is analyzed."""
+        from query_doctor.conf import get_config
+
+        get_config.cache_clear()
+        try:
+            middleware = QueryDoctorMiddleware(_dummy_view)
+            factory = RequestFactory()
+            request = factory.get("/books/")
+            response = middleware(request)
+            assert response.status_code == 200
+        finally:
+            get_config.cache_clear()

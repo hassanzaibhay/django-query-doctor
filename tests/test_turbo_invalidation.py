@@ -34,7 +34,7 @@ class TestManualCacheClear:
         cache.put("fp2", "SELECT 2", ())
         assert cache.size == 2
 
-        cache.clear()
+        cache.hard_reset()
         assert cache.size == 0
 
     def test_clear_resets_stats(self):
@@ -46,7 +46,7 @@ class TestManualCacheClear:
         cache.get("fp1")  # hit
         cache.get("fp2")  # miss
 
-        cache.clear()
+        cache.hard_reset()
         stats = cache.stats()
         assert stats.hits == 0
         assert stats.misses == 0
@@ -58,7 +58,7 @@ class TestManualCacheClear:
         assert cache is not None
 
         cache.put("fp1", "SELECT 1", ())
-        cache.clear()
+        cache.hard_reset()
 
         cache.put("fp2", "SELECT 2", ())
         entry = cache.get("fp2")
