@@ -232,9 +232,7 @@ class TestConsoleReporterPlainText:
 
         reporter = ConsoleReporter()
         report = DiagnosisReport(
-            prescriptions=[
-                self._make_prescription(fix="Add .prefetch_related('tags')")
-            ],
+            prescriptions=[self._make_prescription(fix="Add .prefetch_related('tags')")],
             total_queries=5,
             total_time_ms=10.0,
         )
@@ -279,9 +277,7 @@ class TestConsoleReporterPlainText:
 
         reporter = ConsoleReporter()
         report = DiagnosisReport(
-            prescriptions=[
-                self._make_prescription(query_count=47, time_saved_ms=89.0)
-            ],
+            prescriptions=[self._make_prescription(query_count=47, time_saved_ms=89.0)],
             total_queries=53,
             total_time_ms=127.3,
         )
@@ -425,18 +421,14 @@ class TestConsoleReporterGrouped:
                     severity=Severity.CRITICAL,
                     description="N+1 for author",
                     fix_suggestion="select_related('author')",
-                    callsite=CallSite(
-                        filepath="views.py", line_number=10, function_name="get_qs"
-                    ),
+                    callsite=CallSite(filepath="views.py", line_number=10, function_name="get_qs"),
                 ),
                 Prescription(
                     issue_type=IssueType.N_PLUS_ONE,
                     severity=Severity.CRITICAL,
                     description="N+1 for publisher",
                     fix_suggestion="select_related('publisher')",
-                    callsite=CallSite(
-                        filepath="views.py", line_number=20, function_name="get_qs"
-                    ),
+                    callsite=CallSite(filepath="views.py", line_number=20, function_name="get_qs"),
                 ),
             ],
             total_queries=50,
