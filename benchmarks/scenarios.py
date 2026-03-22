@@ -56,13 +56,15 @@ def get_scenarios() -> dict[str, dict[str, Any]]:
         },
         "complex": {
             "description": "JOINs + annotation + Q objects + ordering",
-            "query": lambda: Book.objects.select_related("author", "publisher")
-            .annotate(
-                review_count=Count("reviews"),
-                avg_rating=Avg("reviews__rating"),
-            )
-            .filter(Q(is_active=True) | Q(price__gte=50))
-            .order_by("-avg_rating", "title"),
+            "query": lambda: (
+                Book.objects.select_related("author", "publisher")
+                .annotate(
+                    review_count=Count("reviews"),
+                    avg_rating=Avg("reviews__rating"),
+                )
+                .filter(Q(is_active=True) | Q(price__gte=50))
+                .order_by("-avg_rating", "title")
+            ),
             "iterations": 2000,
         },
     }

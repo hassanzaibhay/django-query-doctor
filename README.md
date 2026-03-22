@@ -13,18 +13,29 @@ optimizes the queries that are already correct.
 
 ## What's New in v2.0
 
-- 🚀 **QueryTurbo** — SQL template validation cache with fingerprint
-  collision detection. Enables automatic prepared statements on PostgreSQL
-  via consistent SQL string reuse.
-- ⚡ **Prepared Statement Bridge** — Automatically enables database-level
+- **QueryTurbo** — Three-phase SQL compilation cache with trust lifecycle
+  (UNTRUSTED -> TRUSTED -> POISONED). On trusted cache hits, skips
+  `as_sql()` entirely and extracts params directly from the Query tree.
+  Enables automatic prepared statements on PostgreSQL via consistent SQL
+  string reuse.
+- **Prepared Statement Bridge** — Automatically enables database-level
   prepared statements on PostgreSQL (psycopg3). Skips query planner on
   repeat queries.
-- 🔍 **AST SerializerMethodField Analyzer** — Static analysis of DRF
+- **AST SerializerMethodField Analyzer** — Static analysis of DRF
   `get_<field>` methods. Catches hidden N+1 queries that runtime tools miss.
-- 📂 **Per-File Analysis** — `--file` and `--module` flags to focus
+- **Per-File Analysis** — `--file` and `--module` flags to focus
   diagnosis on specific parts of your codebase.
-- 📊 **Benchmark Dashboard** — Interactive HTML report with Chart.js
+- **Benchmark Dashboard** — Interactive HTML report with Chart.js
   showing cache hit rates and top optimized queries.
+- **GitHub Actions CI Integration** — Inline PR annotations, Markdown
+  PR comments, and JSON reports for CI/CD pipelines.
+- **Baseline Snapshots** — Save current issues to a baseline file.
+  On subsequent runs, detect only new regressions. Fail CI on new issues.
+- **Smart Prescription Grouping** — Group related issues by file+analyzer,
+  root cause, or view for cleaner output.
+- **Async-Safe Context Managers** — `turbo_enabled()` / `turbo_disabled()`
+  now use `contextvars.ContextVar` instead of `threading.local()`, making
+  them safe for ASGI deployments with concurrent coroutines.
 
 ## Quick Start
 
@@ -105,9 +116,23 @@ and validates subsequent compilations against the cache.
    edge cases where Django's ORM produces different SQL for similar
    structures.
 
-On PostgreSQL with psycopg3, prepared statements can save 0.5–5ms of
-query planner time per repeat query, with the greatest benefit on
-complex queries involving multiple JOINs, annotations, or subqueries.
+**Compilation-Skip Benchmarks** (v2.0, trusted cache hits skip `as_sql()` entirely):
+
+| Query Pattern | Speedup | Saved per Query |
+|---|---|---|
+| Simple filter | 123x | 38.8 us |
+| Multi filter | 153x | 49.2 us |
+| select_related | 294x | 92.5 us |
+| Deep select_related | 374x | 121.1 us |
+| Annotate | 214x | 68.6 us |
+| Complex (JOINs + Q + annotate) | 1,050x | 337.9 us |
+
+*Measured on SQLite (compilation-only, no DB I/O). Run `python benchmarks/run.py` to reproduce.*
+
+On PostgreSQL with psycopg3, prepared statements provide additional savings
+of 0.5–5ms of query planner time per repeat query, with the greatest
+benefit on complex queries involving multiple JOINs, annotations, or
+subqueries.
 
 **Multi-Database Support:**
 
@@ -225,6 +250,9 @@ python manage.py check_queries --url /api/books/
 python manage.py check_queries --url /api/books/ --format json
 python manage.py check_queries --url /api/books/ --fail-on critical
 python manage.py check_queries --url /api/books/ --diff=main
+python manage.py check_queries --save-baseline=.query-baseline.json
+python manage.py check_queries --baseline=.query-baseline.json --fail-on-regression
+python manage.py check_queries --group=file_analyzer
 ```
 
 ### `check_serializers` — AST analysis of DRF serializers *(v2.0)*
@@ -248,6 +276,9 @@ python manage.py query_doctor_report --output=report.html
 python manage.py diagnose_project
 python manage.py diagnose_project --output health_report.html
 python manage.py diagnose_project --apps myapp accounts --format json
+python manage.py diagnose_project --save-baseline=.project-baseline.json
+python manage.py diagnose_project --baseline=.project-baseline.json --fail-on-regression
+python manage.py diagnose_project --group=root_cause
 ```
 
 ### `fix_queries` — Auto-apply diagnosed fixes
@@ -320,6 +351,7 @@ QUERY_DOCTOR = {
         'MAX_SIZE': 1024,              # Max cached patterns
         'PREPARE_ENABLED': True,       # Prepared statements
         'PREPARE_THRESHOLD': 5,        # Hits before preparing
+        'VALIDATION_THRESHOLD': 3,     # Validations before trusting (skip as_sql)
         'SKIP_RAW_SQL': True,          # Skip caching for RawSQL queries
         'SKIP_EXTRA': True,            # Skip caching for .extra() queries
         'SKIP_SUBQUERIES': True,       # Skip caching for subqueries
@@ -371,6 +403,56 @@ class MyCustomAnalyzer(BaseAnalyzer):
         return prescriptions
 ```
 
+## GitHub Actions CI Integration
+
+Add query doctor checks to your PR workflow with inline annotations:
+
+```yaml
+- name: Query Doctor CI
+  run: |
+    python manage.py check_queries --url /api/books/ \
+      --format json --output report.json \
+      --baseline .query-baseline.json \
+      --fail-on-regression
+```
+
+The `ci.github` module provides:
+- `format_github_annotations()` — inline `::error` / `::warning` annotations in PR diffs
+- `generate_pr_comment()` — Markdown summary for PR bot comments
+- `write_json_report()` — JSON output for downstream CI tools
+
+See `examples/github-actions/query-doctor.yml` for a complete workflow.
+
+## Baseline Snapshots
+
+Save a baseline of known issues and only fail CI on new regressions:
+
+```bash
+# Save current state as baseline
+python manage.py check_queries --save-baseline=.query-baseline.json
+
+# On CI: compare against baseline, fail only on new issues
+python manage.py check_queries --baseline=.query-baseline.json --fail-on-regression
+```
+
+The baseline uses SHA-256 hashing of issue identity (type + file + description),
+ignoring line numbers so that code movement doesn't trigger false regressions.
+
+## Prescription Grouping
+
+Group related issues for cleaner output:
+
+```bash
+# Group by file + analyzer type (default)
+python manage.py check_queries --group
+
+# Group by root cause (same fix suggestion)
+python manage.py check_queries --group=root_cause
+
+# Group by view
+python manage.py check_queries --group=view
+```
+
 ## Diff-Aware CI
 
 ```bash
@@ -389,14 +471,6 @@ ignore:nplusone:myapp/views.py:LegacyReportView
 ```
 
 ### Known Limitations
-
-**Async / ASGI Deployments:** QueryTurbo's context managers
-(`turbo_enabled()`, `turbo_disabled()`) use `threading.local()`, which is
-per-thread, not per-coroutine. In ASGI deployments with concurrent async
-requests sharing the same thread, one request's context manager could
-affect another. **Recommendation:** avoid using `turbo_enabled()` /
-`turbo_disabled()` in async views. Control QueryTurbo globally via
-`QUERY_DOCTOR['TURBO']['ENABLED']` instead.
 
 **Process-local cache:** The SQL template cache is not shared across
 Gunicorn workers or multiple processes. Each process maintains its own

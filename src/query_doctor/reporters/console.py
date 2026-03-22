@@ -22,16 +22,20 @@ class ConsoleReporter:
     """Formats and prints diagnosis reports to the console.
 
     Uses Rich for styled output if available, otherwise plain text.
+    Supports grouped output mode for related prescriptions.
     """
 
-    def __init__(self, stream: Any = None) -> None:
+    def __init__(self, stream: Any = None, group_by: str | None = None) -> None:
         """Initialize the console reporter.
 
         Args:
             stream: Output stream (file-like object). Defaults to sys.stderr.
                     Accepts TextIO, Django's OutputWrapper, or any writable stream.
+            group_by: If set, group prescriptions by this strategy
+                      ("file_analyzer", "root_cause", "view").
         """
         self._stream = stream or sys.stderr
+        self._group_by = group_by
 
     def render(self, report: DiagnosisReport) -> str:
         """Render a diagnosis report as a formatted string.
@@ -50,11 +54,44 @@ class ConsoleReporter:
     def report(self, report: DiagnosisReport) -> None:
         """Print the diagnosis report to the configured stream.
 
+        If group_by was set during init, groups related prescriptions.
+
         Args:
             report: The diagnosis report to print.
         """
-        output = self.render(report)
+        output = self._render_grouped(report) if self._group_by else self.render(report)
         print(output, file=self._stream)
+
+    def _render_grouped(self, report: DiagnosisReport) -> str:
+        """Render prescriptions grouped by the configured strategy."""
+        from query_doctor.grouping import group_prescriptions
+
+        assert self._group_by is not None
+        groups = group_prescriptions(report.prescriptions, group_by=self._group_by)
+        lines: list[str] = [
+            "=" * 60,
+            "Query Doctor Report (grouped)",
+            f"Total queries: {report.total_queries} | "
+            f"Groups: {len(groups)} | "
+            f"Issues: {report.issues}",
+            "=" * 60,
+        ]
+
+        for group in groups:
+            lines.append("")
+            severity = _SEVERITY_ICONS.get(group.severity, "INFO")
+            lines.append(f"{severity}: {group.summary}")
+            if group.count > 1:
+                for p in group.prescriptions:
+                    lines.append(f"  - {p.description}")
+                    lines.append(f"    Fix: {p.fix_suggestion}")
+
+        if not groups:
+            lines.append("")
+            lines.append("No issues detected.")
+
+        lines.append("")
+        return "\n".join(lines)
 
     def _render_rich(self, report: DiagnosisReport) -> str:
         """Render with Rich formatting."""

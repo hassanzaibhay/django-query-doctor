@@ -7,12 +7,18 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## [2.0.0] - 2026-03-21
 
 ### Added
-- **QueryTurbo**: SQL template validation cache with fingerprint collision
-  detection. Caches the compiled SQL template keyed by a structural
-  fingerprint (blake2b) of the Django ORM Query tree. Validates cached SQL
-  against fresh compilation on every hit; evicts on mismatch. Enables
-  prepared statement reuse via consistent SQL string identity.
-  Thread-safe LRU cache with configurable max size.
+- **QueryTurbo**: SQL compilation cache with three-phase trust lifecycle
+  (UNTRUSTED → TRUSTED → POISONED). On cache miss, compiles and caches.
+  On untrusted hit, validates cached SQL against fresh `as_sql()` output
+  and promotes to TRUSTED after `VALIDATION_THRESHOLD` (default 3)
+  successful validations. On trusted hit, skips `as_sql()` entirely and
+  extracts params directly from the Query tree via `turbo/params.py`.
+  On mismatch, poisons the entry permanently.
+- **True SQL Compilation Skipping**: `turbo/params.py` extracts params
+  from the Django Query tree without calling `as_sql()`. Uses
+  `lookup.as_sql(compiler, connection)` per WHERE node for exact param
+  transformations (handles `__contains` wrapping, `__isnull` discarding,
+  etc.) at a fraction of the cost of full SQL compilation.
 - **Prepared Statement Bridge**: Multi-database prepared statement support.
   Automatic protocol-level preparation on PostgreSQL + psycopg3 after a
   configurable hit-count threshold. Oracle implicit cursor caching. Graceful
@@ -26,15 +32,29 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - **Benchmark Dashboard**: `query_doctor_report` management command generates
   standalone HTML report with Chart.js graphs showing cache hit rates, top
   optimized queries, and prepared statement statistics.
+- **GitHub Actions CI Integration**: `ci.github` module with
+  `format_github_annotations()` for inline PR diff annotations,
+  `generate_pr_comment()` for Markdown PR summaries, and
+  `write_json_report()` for CI consumption. Example workflow in
+  `examples/github-actions/query-doctor.yml`.
+- **Baseline Snapshots**: `baseline.py` with `BaselineSnapshot` class for
+  saving/loading issue snapshots. SHA-256 hashing ignores line numbers for
+  stable identity across code movement. `--save-baseline`, `--baseline`,
+  and `--fail-on-regression` flags on `check_queries` and `diagnose_project`.
+- **Smart Prescription Grouping**: `grouping.py` with `group_prescriptions()`
+  supporting `file_analyzer`, `root_cause`, and `view` strategies. `--group`
+  flag on `check_queries` and `diagnose_project`. Console reporter supports
+  grouped output mode.
+- **Async-Safe Context Managers**: `turbo_enabled()` / `turbo_disabled()`
+  now use `contextvars.ContextVar` instead of `threading.local()`, making
+  them safe for ASGI deployments with concurrent coroutines.
 - **`check_serializers` command**: Dedicated management command for AST-based
   DRF serializer analysis with `--app`, `--file`, `--format`, and `--fail-on`
   flags.
-- **`turbo_enabled()` / `turbo_disabled()` context managers**: Thread-local
-  overrides for QueryTurbo activation. Supports proper nesting.
 - **Post-migrate cache invalidation**: Automatic cache clear on Django
   `post_migrate` signal to prevent stale SQL after schema changes.
 - **Fingerprint collision detection**: Cache hit path validates SQL matches
-  and evicts stale entries on mismatch.
+  and poisons mismatched entries permanently.
 - **`__in` lookup length in fingerprint**: Different `__in` list sizes
   produce different fingerprints, preventing SQL/param count mismatch.
 - **`select_for_update` in fingerprint**: Queries with `FOR UPDATE`,
@@ -46,8 +66,9 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Minimum Python version remains 3.10
 - All existing v1.x APIs remain backward compatible
 - Version bumped to 2.0.0
-- Context managers now properly restore the previous override on exit
-  when nested
+- Context managers switched from `threading.local()` to `contextvars.ContextVar`
+- Cache entries now track `validated_count`, `trusted`, `poisoned` state
+- New config key: `VALIDATION_THRESHOLD` (default 3) controls trust promotion
 
 ## [1.0.3] - 2026-03-18
 

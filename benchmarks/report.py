@@ -30,13 +30,13 @@ def generate_html_report(results: list[dict[str, Any]], output_path: str) -> str
     table_rows = ""
     for r in results:
         table_rows += f"""<tr>
-            <td>{html.escape(r['name'])}</td>
-            <td>{html.escape(r['description'])}</td>
-            <td>{r['iterations']:,}</td>
-            <td>{r['baseline_ms']:,.1f}</td>
-            <td>{r['turbo_ms']:,.1f}</td>
-            <td><strong>{r['speedup']:.2f}x</strong></td>
-            <td>{r['saved_per_query_us']:.1f}</td>
+            <td>{html.escape(r["name"])}</td>
+            <td>{html.escape(r["description"])}</td>
+            <td>{r["iterations"]:,}</td>
+            <td>{r["baseline_ms"]:,.1f}</td>
+            <td>{r["turbo_ms"]:,.1f}</td>
+            <td><strong>{r["speedup"]:.2f}x</strong></td>
+            <td>{r["saved_per_query_us"]:.1f}</td>
         </tr>\n"""
 
     html_content = f"""<!DOCTYPE html>

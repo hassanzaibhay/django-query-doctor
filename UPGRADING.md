@@ -97,6 +97,47 @@ Generates a standalone HTML file with Chart.js graphs showing cache
 performance. The report reflects the current process's cache state — it
 resets on server restart.
 
+#### GitHub Actions CI Integration
+
+The new `ci.github` module provides helpers for CI/CD:
+
+```python
+from query_doctor.ci.github import format_github_annotations, generate_pr_comment, write_json_report
+```
+
+See `examples/github-actions/query-doctor.yml` for a complete workflow.
+
+#### Baseline Snapshots
+
+Save current issues and detect regressions on subsequent runs:
+
+```bash
+# Save baseline
+python manage.py check_queries --save-baseline=.query-baseline.json
+
+# Compare against baseline on CI
+python manage.py check_queries --baseline=.query-baseline.json --fail-on-regression
+```
+
+Also available on `diagnose_project`.
+
+#### Smart Prescription Grouping
+
+Group related issues for cleaner output:
+
+```bash
+python manage.py check_queries --group=file_analyzer
+python manage.py check_queries --group=root_cause
+python manage.py diagnose_project --group=view
+```
+
+#### Async-Safe Context Managers
+
+`turbo_enabled()` and `turbo_disabled()` now use `contextvars.ContextVar`
+instead of `threading.local()`. This makes them safe for ASGI deployments
+where multiple coroutines share the same thread. No code changes needed —
+the API is identical.
+
 ### New Dependencies
 
 - No new required dependencies
@@ -122,6 +163,7 @@ QUERY_DOCTOR = {
         'SKIP_SUBQUERIES': True,       # Skip subqueries
         'PREPARE_ENABLED': True,       # Prepared statements
         'PREPARE_THRESHOLD': 5,        # Hits before preparing
+        'VALIDATION_THRESHOLD': 3,     # Validations before trusting (skip as_sql)
     },
 }
 ```

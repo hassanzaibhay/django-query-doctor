@@ -46,6 +46,9 @@ class TurboStats:
             "cache_size": stats.size,
             "max_size": stats.max_size,
             "evictions": stats.evictions,
+            "trusted_entries": stats.trusted_entries,
+            "poisoned_entries": stats.poisoned_entries,
+            "trusted_hits": stats.trusted_hits,
             "top_queries": top_queries,
             "prepare_stats": prepare_stats,
         }
@@ -65,7 +68,13 @@ class TurboStats:
         """
         entries = sorted(
             [
-                {"sql_preview": entry.sql[:200], "hit_count": entry.hit_count}
+                {
+                    "sql_preview": entry.sql[:200],
+                    "hit_count": entry.hit_count,
+                    "trusted": entry.trusted,
+                    "poisoned": entry.poisoned,
+                    "model_label": entry.model_label,
+                }
                 for entry in cache.get_entries_snapshot()
             ],
             key=lambda e: e["hit_count"] if isinstance(e["hit_count"], int) else 0,

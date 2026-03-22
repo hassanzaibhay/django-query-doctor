@@ -70,6 +70,13 @@ class Command(BaseCommand):
             default=None,
             help="Exit with code 1 if issues at this severity or higher are found",
         )
+        parser.add_argument(
+            "--output",
+            "-o",
+            type=str,
+            default=None,
+            help="Write output to a file instead of stdout",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         """Execute the command."""
@@ -90,6 +97,7 @@ class Command(BaseCommand):
         file_patterns = options.get("file_patterns")
         output_format = options["format"]
         fail_on = options["fail_on"]
+        output_path = options.get("output")
 
         # Discover serializers
         serializers = discover_serializers(
@@ -133,7 +141,14 @@ class Command(BaseCommand):
             from query_doctor.reporters.json_reporter import JSONReporter
 
             reporter = JSONReporter()
-            self.stdout.write(reporter.render(report))
+            output_text = reporter.render(report)
+            if output_path:
+                from pathlib import Path
+
+                Path(output_path).write_text(output_text, encoding="utf-8")
+                self.stdout.write(self.style.SUCCESS(f"Output written to {output_path}"))
+            else:
+                self.stdout.write(output_text)
         else:
             self._render_console(report)
 

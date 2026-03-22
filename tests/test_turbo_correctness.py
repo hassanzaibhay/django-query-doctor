@@ -371,7 +371,7 @@ class TestCollisionDetection:
         with cache._lock:
             for key in list(cache._cache.keys()):
                 entry = cache._cache[key]
-                cache._cache[key] = type(entry)(sql="SELECT CORRUPTED", params=(), hit_count=0)
+                cache._cache[key] = type(entry)(sql="SELECT CORRUPTED", param_count=0, hit_count=0)
 
         # Next query with same fingerprint: validates and detects mismatch
         with turbo_enabled():

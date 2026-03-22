@@ -1,0 +1,74 @@
+# Example GitHub Actions workflow for django-query-doctor
+#
+# Copy this file to your project's .github/workflows/ directory.
+# Customize the Python version, requirements, and settings as needed.
+#
+# This workflow:
+# 1. Runs check_queries and check_serializers on every PR
+# 2. Posts a summary comment on the PR with any issues found
+# 3. Adds inline annotations in the PR diff view
+
+name: Query Doctor
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  query-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install django-query-doctor
+          pip install -r requirements.txt
+
+      - name: Run Query Doctor
+        run: |
+          python manage.py check_queries --format=json --output=qd-report.json || true
+          python manage.py check_serializers --format=json --output=qd-serializers.json || true
+
+      - name: Post PR Comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let report = [];
+            try { report = JSON.parse(fs.readFileSync('qd-report.json', 'utf8')); } catch(e) {}
+            let serializers = [];
+            try { serializers = JSON.parse(fs.readFileSync('qd-serializers.json', 'utf8')); } catch(e) {}
+
+            const total = report.length + serializers.length;
+            if (total === 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '## Query Doctor\n\nNo query issues found. Clean bill of health!'
+              });
+              return;
+            }
+
+            let body = `## Query Doctor\n\nFound **${total}** query issue(s):\n\n`;
+            for (const issue of [...report, ...serializers]) {
+              body += `- **${issue.severity}**: ${issue.message} (${issue.file}:${issue.line})\n`;
+            }
+            body += `\n<details><summary>How to fix</summary>\n\n`;
+            for (const issue of [...report, ...serializers]) {
+              if (issue.suggestion) body += `- ${issue.suggestion}\n`;
+            }
+            body += `</details>`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });

@@ -13,12 +13,12 @@ class TestCacheBasicOperations:
     def test_put_and_get(self):
         """Cache stores and retrieves entries correctly."""
         cache = SQLCompilationCache(max_size=10)
-        cache.put("fp1", "SELECT * FROM books WHERE id = %s", (1,))
+        cache.put("fp1", "SELECT * FROM books WHERE id = %s", 1)
 
         entry = cache.get("fp1")
         assert entry is not None
         assert entry.sql == "SELECT * FROM books WHERE id = %s"
-        assert entry.params == (1,)
+        assert entry.param_count == 1
 
     def test_get_miss(self):
         """Cache returns None for missing entries."""
@@ -28,8 +28,8 @@ class TestCacheBasicOperations:
     def test_clear(self):
         """Clear removes all entries and resets stats."""
         cache = SQLCompilationCache(max_size=10)
-        cache.put("fp1", "SELECT 1", ())
-        cache.put("fp2", "SELECT 2", ())
+        cache.put("fp1", "SELECT 1", 0)
+        cache.put("fp2", "SELECT 2", 0)
         cache.get("fp1")  # hit
         cache.get("missing")  # miss
 
@@ -44,8 +44,8 @@ class TestCacheBasicOperations:
     def test_overwrite_existing_key(self):
         """Putting same key updates the entry."""
         cache = SQLCompilationCache(max_size=10)
-        cache.put("fp1", "SELECT 1", ())
-        cache.put("fp1", "SELECT 2", ())
+        cache.put("fp1", "SELECT 1", 0)
+        cache.put("fp1", "SELECT 2", 0)
 
         entry = cache.get("fp1")
         assert entry is not None
@@ -59,8 +59,8 @@ class TestCacheEvict:
     def test_evict_existing_entry(self):
         """Evicting an existing entry removes it and returns True."""
         cache = SQLCompilationCache(max_size=10)
-        cache.put("fp1", "SELECT 1", ())
-        cache.put("fp2", "SELECT 2", ())
+        cache.put("fp1", "SELECT 1", 0)
+        cache.put("fp2", "SELECT 2", 0)
 
         result = cache.evict("fp1")
 
@@ -71,7 +71,7 @@ class TestCacheEvict:
     def test_evict_missing_entry(self):
         """Evicting a non-existent entry returns False."""
         cache = SQLCompilationCache(max_size=10)
-        cache.put("fp1", "SELECT 1", ())
+        cache.put("fp1", "SELECT 1", 0)
 
         result = cache.evict("fp_missing")
 
@@ -81,12 +81,78 @@ class TestCacheEvict:
     def test_evict_increments_eviction_count(self):
         """Eviction increments the eviction counter."""
         cache = SQLCompilationCache(max_size=10)
-        cache.put("fp1", "SELECT 1", ())
+        cache.put("fp1", "SELECT 1", 0)
 
         cache.evict("fp1")
         stats = cache.stats()
 
         assert stats.evictions == 1
+
+
+class TestCachePoison:
+    """Poison lifecycle for collision detection."""
+
+    def test_poison_marks_entry(self):
+        """Poisoning an entry sets the poisoned flag."""
+        cache = SQLCompilationCache(max_size=10)
+        cache.put("fp1", "SELECT 1", 0)
+
+        cache.poison("fp1")
+
+        entry = cache.get("fp1")
+        assert entry is not None
+        assert entry.poisoned is True
+
+    def test_poison_missing_entry_is_noop(self):
+        """Poisoning a non-existent entry does nothing."""
+        cache = SQLCompilationCache(max_size=10)
+        cache.poison("fp_missing")  # should not raise
+
+    def test_poisoned_stats(self):
+        """Poisoned entries show in stats."""
+        cache = SQLCompilationCache(max_size=10)
+        cache.put("fp1", "SELECT 1", 0)
+        cache.put("fp2", "SELECT 2", 0)
+        cache.poison("fp1")
+
+        stats = cache.stats()
+        assert stats.poisoned_entries == 1
+
+
+class TestCacheTrustLifecycle:
+    """Trust lifecycle tracking in CacheEntry."""
+
+    def test_new_entry_is_untrusted(self):
+        """New entries start as untrusted."""
+        cache = SQLCompilationCache(max_size=10)
+        cache.put("fp1", "SELECT 1", 1)
+
+        entry = cache.get("fp1")
+        assert entry is not None
+        assert entry.trusted is False
+        assert entry.validated_count == 0
+        assert entry.poisoned is False
+
+    def test_trusted_stats(self):
+        """Trusted entries show in stats."""
+        cache = SQLCompilationCache(max_size=10)
+        cache.put("fp1", "SELECT 1", 1)
+        entry = cache.get("fp1")
+        assert entry is not None
+        entry.trusted = True
+
+        stats = cache.stats()
+        assert stats.trusted_entries == 1
+
+    def test_trusted_hit_counter(self):
+        """Trusted hit counter increments correctly."""
+        cache = SQLCompilationCache(max_size=10)
+        assert cache.stats().trusted_hits == 0
+
+        cache.record_trusted_hit()
+        cache.record_trusted_hit()
+
+        assert cache.stats().trusted_hits == 2
 
 
 class TestCacheStats:
@@ -95,7 +161,7 @@ class TestCacheStats:
     def test_hit_tracking(self):
         """Hits are counted correctly."""
         cache = SQLCompilationCache(max_size=10)
-        cache.put("fp1", "SELECT 1", ())
+        cache.put("fp1", "SELECT 1", 0)
 
         cache.get("fp1")
         cache.get("fp1")
@@ -118,8 +184,8 @@ class TestCacheStats:
     def test_size_tracking(self):
         """Size and max_size are reported correctly."""
         cache = SQLCompilationCache(max_size=5)
-        cache.put("fp1", "SELECT 1", ())
-        cache.put("fp2", "SELECT 2", ())
+        cache.put("fp1", "SELECT 1", 0)
+        cache.put("fp2", "SELECT 2", 0)
 
         stats = cache.stats()
         assert stats.size == 2
@@ -132,12 +198,12 @@ class TestCacheLRUEviction:
     def test_eviction_at_capacity(self):
         """Oldest entry is evicted when cache reaches max_size."""
         cache = SQLCompilationCache(max_size=3)
-        cache.put("fp1", "SELECT 1", ())
-        cache.put("fp2", "SELECT 2", ())
-        cache.put("fp3", "SELECT 3", ())
+        cache.put("fp1", "SELECT 1", 0)
+        cache.put("fp2", "SELECT 2", 0)
+        cache.put("fp3", "SELECT 3", 0)
 
         # This should evict fp1
-        cache.put("fp4", "SELECT 4", ())
+        cache.put("fp4", "SELECT 4", 0)
 
         assert cache.get("fp1") is None
         assert cache.get("fp2") is not None
@@ -147,10 +213,10 @@ class TestCacheLRUEviction:
     def test_eviction_count(self):
         """Eviction counter tracks correctly."""
         cache = SQLCompilationCache(max_size=2)
-        cache.put("fp1", "SELECT 1", ())
-        cache.put("fp2", "SELECT 2", ())
-        cache.put("fp3", "SELECT 3", ())  # evicts fp1
-        cache.put("fp4", "SELECT 4", ())  # evicts fp2
+        cache.put("fp1", "SELECT 1", 0)
+        cache.put("fp2", "SELECT 2", 0)
+        cache.put("fp3", "SELECT 3", 0)  # evicts fp1
+        cache.put("fp4", "SELECT 4", 0)  # evicts fp2
 
         stats = cache.stats()
         assert stats.evictions == 2
@@ -158,15 +224,15 @@ class TestCacheLRUEviction:
     def test_access_refreshes_lru(self):
         """Accessing an entry moves it to most-recently-used."""
         cache = SQLCompilationCache(max_size=3)
-        cache.put("fp1", "SELECT 1", ())
-        cache.put("fp2", "SELECT 2", ())
-        cache.put("fp3", "SELECT 3", ())
+        cache.put("fp1", "SELECT 1", 0)
+        cache.put("fp2", "SELECT 2", 0)
+        cache.put("fp3", "SELECT 3", 0)
 
         # Access fp1 to make it most recently used
         cache.get("fp1")
 
         # This should evict fp2 (oldest after fp1 was refreshed)
-        cache.put("fp4", "SELECT 4", ())
+        cache.put("fp4", "SELECT 4", 0)
 
         assert cache.get("fp1") is not None  # refreshed, should survive
         assert cache.get("fp2") is None  # should be evicted
@@ -176,8 +242,8 @@ class TestCacheLRUEviction:
     def test_max_size_one(self):
         """Cache with max_size=1 keeps only the latest entry."""
         cache = SQLCompilationCache(max_size=1)
-        cache.put("fp1", "SELECT 1", ())
-        cache.put("fp2", "SELECT 2", ())
+        cache.put("fp1", "SELECT 1", 0)
+        cache.put("fp2", "SELECT 2", 0)
 
         assert cache.get("fp1") is None
         assert cache.get("fp2") is not None
@@ -195,7 +261,7 @@ class TestCacheThreadSafety:
         def writer(thread_id: int) -> None:
             try:
                 for i in range(100):
-                    cache.put(f"fp_{thread_id}_{i}", f"SELECT {i}", (i,))
+                    cache.put(f"fp_{thread_id}_{i}", f"SELECT {i}", 1)
             except Exception as e:
                 errors.append(e)
 
@@ -215,7 +281,7 @@ class TestCacheThreadSafety:
 
         # Pre-populate
         for i in range(50):
-            cache.put(f"fp_{i}", f"SELECT {i}", (i,))
+            cache.put(f"fp_{i}", f"SELECT {i}", 1)
 
         def reader() -> None:
             try:
@@ -227,7 +293,7 @@ class TestCacheThreadSafety:
         def writer() -> None:
             try:
                 for i in range(100):
-                    cache.put(f"fp_new_{i}", f"SELECT new {i}", (i,))
+                    cache.put(f"fp_new_{i}", f"SELECT new {i}", 1)
             except Exception as e:
                 errors.append(e)
 
@@ -251,7 +317,7 @@ class TestCacheThreadSafety:
         def accessor() -> None:
             try:
                 for i in range(100):
-                    cache.put(f"fp_{i}", f"SELECT {i}", (i,))
+                    cache.put(f"fp_{i}", f"SELECT {i}", 1)
                     cache.get(f"fp_{i}")
             except Exception as e:
                 errors.append(e)

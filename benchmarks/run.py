@@ -70,7 +70,9 @@ def seed_data() -> None:
     if Author.objects.exists():
         return
 
-    authors = [Author.objects.create(name=f"Author {i}", email=f"author{i}@test.com") for i in range(10)]
+    authors = [
+        Author.objects.create(name=f"Author {i}", email=f"author{i}@test.com") for i in range(10)
+    ]
     publishers = [Publisher.objects.create(name=f"Publisher {i}") for i in range(5)]
     books = []
     for i in range(10):
@@ -108,7 +110,6 @@ def run_compilation_scenario(name: str, config: dict) -> dict:
     """
     from query_doctor.turbo.cache import SQLCompilationCache
     from query_doctor.turbo.fingerprint import compute_fingerprint
-    from query_doctor.turbo.patch import get_cache
 
     query_fn = config["query"]
     iterations = config["iterations"]
@@ -130,7 +131,7 @@ def run_compilation_scenario(name: str, config: dict) -> dict:
     cache = SQLCompilationCache(max_size=1024)
     fp = compute_fingerprint(compiler.query, compiler)
     sql, params = compiler.as_sql()
-    cache.put(fp, sql, params)
+    cache.put(fp, sql, len(params))
 
     t0 = time.perf_counter()
     for _ in range(iterations):

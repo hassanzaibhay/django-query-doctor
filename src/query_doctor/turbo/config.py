@@ -17,6 +17,7 @@ TURBO_DEFAULTS: dict[str, Any] = {
     "SKIP_SUBQUERIES": True,
     "PREPARE_ENABLED": True,
     "PREPARE_THRESHOLD": 5,
+    "VALIDATION_THRESHOLD": 3,
 }
 
 

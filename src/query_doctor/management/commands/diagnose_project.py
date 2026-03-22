@@ -96,11 +96,41 @@ class Command(BaseCommand):
                 "Can be specified multiple times."
             ),
         )
+        parser.add_argument(
+            "--save-baseline",
+            type=str,
+            default=None,
+            help="Save current issues as a baseline snapshot (JSON file)",
+        )
+        parser.add_argument(
+            "--baseline",
+            type=str,
+            default=None,
+            help="Compare against a baseline snapshot, show only regressions",
+        )
+        parser.add_argument(
+            "--fail-on-regression",
+            action="store_true",
+            default=False,
+            help="Exit with code 1 if new issues found vs baseline",
+        )
+        parser.add_argument(
+            "--group",
+            nargs="?",
+            const="file_analyzer",
+            default=None,
+            choices=["file_analyzer", "root_cause", "view"],
+            help="Group related prescriptions (default strategy: file_analyzer)",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         """Execute the command."""
         verbosity = options.get("verbosity", 1)
         output_format = options["format"]
+        save_baseline = options.get("save_baseline")
+        baseline_path = options.get("baseline")
+        fail_on_regression = options.get("fail_on_regression", False)
+        group_by = options.get("group")
 
         if verbosity >= 1:
             self.stdout.write("Discovering URLs...")
@@ -137,6 +167,22 @@ class Command(BaseCommand):
                             url_result.report.prescriptions
                         )
 
+        # Collect all prescriptions across all URLs for baseline/grouping
+        all_prescriptions = self._collect_all_prescriptions(result)
+
+        # Save baseline if requested
+        if save_baseline:
+            self._save_baseline(all_prescriptions, save_baseline)
+
+        # Compare against baseline if requested
+        regressions: list[dict[str, Any]] = []
+        if baseline_path:
+            regressions = self._compare_baseline(all_prescriptions, baseline_path)
+
+        # Grouped output if requested
+        if group_by:
+            self._render_grouped(all_prescriptions, group_by)
+
         # Generate and write report
         output_path = options["output"]
         if output_format == "json":
@@ -160,3 +206,83 @@ class Command(BaseCommand):
                 f"health: {result.overall_health_score:.0f}/100)"
             )
         )
+
+        # Fail on regression check
+        if fail_on_regression and regressions:
+            from django.core.management.base import CommandError
+
+            raise CommandError(f"Found {len(regressions)} regression(s) vs baseline")
+
+    def _collect_all_prescriptions(self, result: Any) -> list[Any]:
+        """Collect all prescriptions from all URL results."""
+        prescriptions: list[Any] = []
+        for app_result in result.app_results:
+            for url_result in app_result.url_results:
+                if hasattr(url_result, "report") and url_result.report:
+                    prescriptions.extend(url_result.report.prescriptions)
+        return prescriptions
+
+    def _save_baseline(self, prescriptions: list[Any], path: str) -> None:
+        """Save current issues as a baseline snapshot."""
+        from query_doctor.baseline import BaselineSnapshot
+
+        issues = self._prescriptions_to_dicts(prescriptions)
+        baseline = BaselineSnapshot(issues)
+        saved_path = baseline.save(path)
+        self.stdout.write(
+            self.style.SUCCESS(f"Baseline saved: {saved_path} ({len(issues)} issues)")
+        )
+
+    def _compare_baseline(
+        self, prescriptions: list[Any], baseline_path: str
+    ) -> list[dict[str, Any]]:
+        """Compare current issues against a baseline.
+
+        Returns the list of regressions (new issues not in baseline).
+        """
+        from query_doctor.baseline import BaselineSnapshot
+
+        baseline = BaselineSnapshot.load(baseline_path)
+        current = self._prescriptions_to_dicts(prescriptions)
+        regressions = baseline.find_regressions(current)
+        resolved = baseline.find_resolved(current)
+
+        if resolved:
+            self.stdout.write(
+                self.style.SUCCESS(f"Resolved since baseline: {len(resolved)} issue(s)")
+            )
+        if regressions:
+            self.stdout.write(self.style.WARNING(f"New regressions: {len(regressions)} issue(s)"))
+            for r in regressions:
+                self.stdout.write(f"  - {r.get('message', r.get('description', ''))}")
+        elif not resolved:
+            self.stdout.write("No changes from baseline.")
+
+        return regressions
+
+    def _render_grouped(self, prescriptions: list[Any], group_by: str) -> None:
+        """Render grouped prescriptions to console."""
+        from query_doctor.grouping import group_prescriptions
+
+        groups = group_prescriptions(prescriptions, group_by=group_by)
+        for group in groups:
+            self.stdout.write(f"\n{group.severity.value.upper()}: {group.summary}")
+            if group.count > 1:
+                for p in group.prescriptions[1:]:
+                    self.stdout.write(f"  - {p.description}")
+
+    def _prescriptions_to_dicts(self, prescriptions: list[Any]) -> list[dict[str, Any]]:
+        """Convert prescriptions to serializable dicts for baseline."""
+        issues: list[dict[str, Any]] = []
+        for p in prescriptions:
+            issues.append(
+                {
+                    "issue_type": p.issue_type.value,
+                    "severity": p.severity.value,
+                    "description": p.description,
+                    "file_path": p.callsite.filepath if p.callsite else "",
+                    "line": p.callsite.line_number if p.callsite else 0,
+                    "fix_suggestion": p.fix_suggestion,
+                }
+            )
+        return issues

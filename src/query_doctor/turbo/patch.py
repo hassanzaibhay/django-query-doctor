@@ -1,9 +1,13 @@
 """Monkey-patch for Django's SQLCompiler.execute_sql().
 
 Installs a wrapper around execute_sql that checks the compilation cache
-before calling as_sql(). On cache hit, validates the cached SQL against
-fresh compilation, detects fingerprint collisions, and enables prepared
-statement reuse on supported backends.
+before calling as_sql(). Implements a three-phase trust lifecycle:
+
+1. UNTRUSTED: Validates cached SQL against fresh as_sql() on each hit.
+2. TRUSTED: Skips as_sql() entirely, extracts params from Query tree.
+3. POISONED: Fingerprint collision detected, cache permanently bypassed.
+
+On cache miss, stores the SQL template for future reuse.
 """
 
 from __future__ import annotations
@@ -24,8 +28,9 @@ logger = logging.getLogger("query_doctor.turbo")
 _cache: SQLCompilationCache | None = None
 _cache_lock = threading.Lock()
 
-# Thread-local for turbo enable/disable overrides
-_local = threading.local()
+# Backward-compat alias — context.py now owns the override via contextvars
+# _local is kept only so existing test imports don't break at import-time.
+_local = threading.local()  # DEPRECATED: use context.get_turbo_override()
 
 
 def get_cache() -> SQLCompilationCache | None:
@@ -81,16 +86,17 @@ def _is_cacheable_query(compiler: SQLCompiler) -> bool:
 
 
 def _is_turbo_active() -> bool:
-    """Check if turbo is currently active for this thread.
+    """Check if turbo is currently active for this thread/coroutine.
 
-    Considers both the global setting and thread-local overrides
+    Considers both the global setting and contextvars overrides
     from turbo_enabled()/turbo_disabled() context managers.
 
     Returns:
         True if turbo should be used for the current operation.
     """
-    # Check thread-local override first
-    override = getattr(_local, "turbo_override", None)
+    from query_doctor.turbo.context import get_turbo_override
+
+    override = get_turbo_override()
     if override is not None:
         return bool(override)
 
@@ -98,15 +104,18 @@ def _is_turbo_active() -> bool:
 
 
 def set_thread_override(enabled: bool | None) -> None:
-    """Set thread-local turbo override.
+    """Set turbo override (deprecated — use context.set_turbo_override).
 
-    Used by context managers to temporarily enable/disable turbo.
+    Kept for backward compatibility. Delegates to contextvars-based
+    override in context.py.
 
     Args:
         enabled: True to force enable, False to force disable,
                  None to clear the override and use global setting.
     """
-    _local.turbo_override = enabled
+    from query_doctor.turbo.context import set_turbo_override
+
+    set_turbo_override(enabled)
 
 
 def _patched_execute_sql(
@@ -115,12 +124,11 @@ def _patched_execute_sql(
     chunked_fetch: bool = False,
     chunk_size: int = 2000,
 ) -> Any:
-    """Patched execute_sql that checks the compilation cache.
+    """Patched execute_sql with three-phase trust lifecycle.
 
-    On cache hit, calls as_sql() for fresh SQL + params, then validates
-    the cached SQL matches. Mismatches indicate a fingerprint collision
-    and trigger cache eviction. Validated hits enable prepared statement
-    reuse by ensuring the same SQL string is consistently used.
+    Phase 1 (UNTRUSTED): Calls as_sql() for validation.
+    Phase 2 (TRUSTED): Skips as_sql(), extracts params from Query tree.
+    Phase 3 (POISONED): Bypasses cache entirely.
 
     Args:
         self: The SQLCompiler instance.
@@ -155,95 +163,265 @@ def _patched_execute_sql(
     entry = _cache.get(fingerprint)
 
     if entry is not None:
-        # Cache HIT: validate cached SQL against fresh compilation
-        original_as_sql = self.as_sql
+        # --- POISONED: skip cache permanently ---
+        if entry.poisoned:
+            return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
+                self, result_type, chunked_fetch, chunk_size
+            )
+
+        # --- TRUSTED: skip as_sql() entirely ---
+        if entry.trusted:
+            return _handle_trusted_hit(
+                self, entry, fingerprint, result_type, chunked_fetch, chunk_size
+            )
+
+        # --- UNTRUSTED: validate by calling as_sql() ---
+        return _handle_untrusted_hit(
+            self, entry, fingerprint, result_type, chunked_fetch, chunk_size
+        )
+
+    # --- Cache MISS: call original, then cache the SQL template ---
+    return _handle_cache_miss(self, fingerprint, result_type, chunked_fetch, chunk_size)
+
+
+def _handle_trusted_hit(
+    compiler: SQLCompiler,
+    entry: Any,
+    fingerprint: str,
+    result_type: str,
+    chunked_fetch: bool,
+    chunk_size: int,
+) -> Any:
+    """Handle a TRUSTED cache hit — skip as_sql() entirely.
+
+    Extracts params from the Query tree without SQL compilation.
+    Validates param count matches the cached template. On mismatch,
+    demotes to UNTRUSTED and falls back to full as_sql().
+
+    Args:
+        compiler: The SQLCompiler instance.
+        entry: The CacheEntry.
+        fingerprint: The fingerprint key.
+        result_type: Django's result type constant.
+        chunked_fetch: Whether to use chunked fetching.
+        chunk_size: Size of chunks for chunked fetching.
+
+    Returns:
+        Whatever the original execute_sql returns.
+    """
+    from query_doctor.turbo.params import ParamExtractionError, extract_params
+
+    original_as_sql = compiler.as_sql
+    try:
+        extracted = extract_params(compiler.query, compiler)
+
+        if len(extracted) != entry.param_count:
+            # Param count mismatch — demote to untrusted
+            entry.trusted = False
+            entry.validated_count = 0
+            logger.warning(
+                "QueryTurbo param count mismatch for %s: expected %d, got %d. "
+                "Demoting to untrusted.",
+                fingerprint[:16],
+                entry.param_count,
+                len(extracted),
+            )
+            # Fall back to full as_sql()
+            return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
+                compiler, result_type, chunked_fetch, chunk_size
+            )
+
+        # SUCCESS — true compilation skip!
+        assert _cache is not None
+        _cache.record_trusted_hit()
+        cached_sql = entry.sql
+
+        def _cached_as_sql(
+            _sql: str = cached_sql,
+            _params: tuple[Any, ...] = extracted,
+        ) -> tuple[str, tuple[Any, ...]]:
+            return _sql, _params
+
+        compiler.as_sql = _cached_as_sql  # type: ignore[method-assign,assignment]
         try:
-            fresh_sql, fresh_params = original_as_sql()
-
-            if fresh_sql != entry.sql:
-                # Fingerprint collision: different SQL for same fingerprint.
-                # Evict the stale entry and proceed with fresh SQL.
-                logger.warning(
-                    "QueryTurbo: fingerprint collision detected (%s). Evicting stale cache entry.",
-                    fingerprint[:16],
+            should_prepare = _should_use_prepare(compiler, entry.hit_count)
+            if should_prepare:
+                return _execute_with_prepare(
+                    compiler,
+                    cached_sql,
+                    extracted,
+                    result_type,
+                    chunked_fetch,
+                    chunk_size,
                 )
-                _cache.evict(fingerprint)
-                # Fall through — use fresh SQL/params via normal path
-                params_tuple = (
-                    fresh_params if isinstance(fresh_params, tuple) else tuple(fresh_params)
-                )
+            return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
+                compiler, result_type, chunked_fetch, chunk_size
+            )
+        finally:
+            compiler.as_sql = original_as_sql  # type: ignore[method-assign]
 
-                def _fresh_as_sql(
-                    _sql: str = fresh_sql,
-                    _params: tuple[Any, ...] = params_tuple,
-                ) -> tuple[str, tuple[Any, ...]]:
-                    return _sql, _params
+    except ParamExtractionError:
+        # Extraction failed — demote and fall back
+        entry.trusted = False
+        entry.validated_count = 0
+        logger.debug("Param extraction failed, demoting %s", fingerprint[:16])
+        return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
+            compiler, result_type, chunked_fetch, chunk_size
+        )
+    except Exception:
+        logger.debug("Trusted hit execution failed, falling back", exc_info=True)
+        compiler.as_sql = original_as_sql  # type: ignore[method-assign]
+        return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
+            compiler, result_type, chunked_fetch, chunk_size
+        )
 
-                self.as_sql = _fresh_as_sql  # type: ignore[method-assign,assignment]
-                try:
-                    return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
-                        self, result_type, chunked_fetch, chunk_size
-                    )
-                finally:
-                    self.as_sql = original_as_sql  # type: ignore[method-assign]
 
-            # Validated hit: cached SQL matches fresh SQL.
-            # Use cached SQL string for prepared statement reuse.
+def _handle_untrusted_hit(
+    compiler: SQLCompiler,
+    entry: Any,
+    fingerprint: str,
+    result_type: str,
+    chunked_fetch: bool,
+    chunk_size: int,
+) -> Any:
+    """Handle an UNTRUSTED cache hit — validate via as_sql().
+
+    Calls as_sql() to get fresh (sql, params), validates that
+    fresh_sql == cached_sql. On match, increments validated_count
+    and promotes to TRUSTED after threshold. On mismatch, poisons
+    the entry.
+
+    Args:
+        compiler: The SQLCompiler instance.
+        entry: The CacheEntry.
+        fingerprint: The fingerprint key.
+        result_type: Django's result type constant.
+        chunked_fetch: Whether to use chunked fetching.
+        chunk_size: Size of chunks for chunked fetching.
+
+    Returns:
+        Whatever the original execute_sql returns.
+    """
+    config = get_turbo_config()
+    threshold = config.get("VALIDATION_THRESHOLD", 3)
+
+    original_as_sql = compiler.as_sql
+    try:
+        fresh_sql, fresh_params = original_as_sql()
+
+        if fresh_sql != entry.sql:
+            # COLLISION! Poison this fingerprint
+            entry.poisoned = True
+            logger.warning(
+                "QueryTurbo collision detected for fingerprint %s. SQL mismatch. Entry poisoned.",
+                fingerprint[:16],
+            )
+            # Use fresh SQL + params via normal path
             params_tuple = fresh_params if isinstance(fresh_params, tuple) else tuple(fresh_params)
-            cached_sql: str = entry.sql
 
-            def _cached_as_sql(
-                _sql: str = cached_sql,
+            def _fresh_as_sql(
+                _sql: str = fresh_sql,
                 _params: tuple[Any, ...] = params_tuple,
             ) -> tuple[str, tuple[Any, ...]]:
                 return _sql, _params
 
-            should_prepare = _should_use_prepare(self, entry.hit_count)
-            self.as_sql = _cached_as_sql  # type: ignore[method-assign,assignment]
+            compiler.as_sql = _fresh_as_sql  # type: ignore[method-assign,assignment]
             try:
-                if should_prepare:
-                    return _execute_with_prepare(
-                        self,
-                        cached_sql,
-                        params_tuple,
-                        result_type,
-                        chunked_fetch,
-                        chunk_size,
-                    )
                 return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
-                    self, result_type, chunked_fetch, chunk_size
+                    compiler, result_type, chunked_fetch, chunk_size
                 )
             finally:
-                self.as_sql = original_as_sql  # type: ignore[method-assign]
-        except Exception:
-            logger.debug("Cache hit execution failed, falling back", exc_info=True)
-            self.as_sql = original_as_sql  # type: ignore[method-assign]
-            return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
-                self, result_type, chunked_fetch, chunk_size
-            )
-    else:
-        # Cache MISS: call original, then cache the SQL template
-        original_as_sql = self.as_sql
-        captured_sql: str | None = None
+                compiler.as_sql = original_as_sql  # type: ignore[method-assign]
 
-        def caching_as_sql() -> tuple[str, tuple[Any, ...]]:
-            """Wrapper that caches the SQL template on first call."""
-            nonlocal captured_sql
-            sql, params = original_as_sql()
-            captured_sql = sql
-            return sql, tuple(params)
+        # Validation passed — increment validated_count
+        entry.validated_count += 1
+        if entry.validated_count >= threshold:
+            entry.trusted = True
+            logger.debug("Cache entry trusted: %s", fingerprint[:16])
 
-        self.as_sql = caching_as_sql  # type: ignore[method-assign,assignment]
+        # Use fresh SQL + params (validated correct)
+        params_tuple = fresh_params if isinstance(fresh_params, tuple) else tuple(fresh_params)
+        cached_sql = entry.sql
+
+        def _cached_as_sql(
+            _sql: str = cached_sql,
+            _params: tuple[Any, ...] = params_tuple,
+        ) -> tuple[str, tuple[Any, ...]]:
+            return _sql, _params
+
+        should_prepare = _should_use_prepare(compiler, entry.hit_count)
+        compiler.as_sql = _cached_as_sql  # type: ignore[method-assign,assignment]
         try:
-            result = SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
-                self, result_type, chunked_fetch, chunk_size
+            if should_prepare:
+                return _execute_with_prepare(
+                    compiler,
+                    cached_sql,
+                    params_tuple,
+                    result_type,
+                    chunked_fetch,
+                    chunk_size,
+                )
+            return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
+                compiler, result_type, chunked_fetch, chunk_size
             )
-            # Store in cache after successful execution
-            if captured_sql is not None:
-                _cache.put(fingerprint, captured_sql, ())
-            return result
         finally:
-            self.as_sql = original_as_sql  # type: ignore[method-assign]
+            compiler.as_sql = original_as_sql  # type: ignore[method-assign]
+
+    except Exception:
+        logger.debug("Cache hit execution failed, falling back", exc_info=True)
+        compiler.as_sql = original_as_sql  # type: ignore[method-assign]
+        return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
+            compiler, result_type, chunked_fetch, chunk_size
+        )
+
+
+def _handle_cache_miss(
+    compiler: SQLCompiler,
+    fingerprint: str,
+    result_type: str,
+    chunked_fetch: bool,
+    chunk_size: int,
+) -> Any:
+    """Handle a cache miss — execute normally, then cache the SQL template.
+
+    Args:
+        compiler: The SQLCompiler instance.
+        fingerprint: The fingerprint key.
+        result_type: Django's result type constant.
+        chunked_fetch: Whether to use chunked fetching.
+        chunk_size: Size of chunks for chunked fetching.
+
+    Returns:
+        Whatever the original execute_sql returns.
+    """
+    original_as_sql = compiler.as_sql
+    captured_sql: str | None = None
+    captured_param_count: int = 0
+
+    def caching_as_sql() -> tuple[str, tuple[Any, ...]]:
+        """Wrapper that captures the SQL template on first call."""
+        nonlocal captured_sql, captured_param_count
+        sql, params = original_as_sql()
+        captured_sql = sql
+        params_tuple = tuple(params)
+        captured_param_count = len(params_tuple)
+        return sql, params_tuple
+
+    compiler.as_sql = caching_as_sql  # type: ignore[method-assign,assignment]
+    try:
+        result = SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
+            compiler, result_type, chunked_fetch, chunk_size
+        )
+        # Store in cache after successful execution
+        if captured_sql is not None:
+            assert _cache is not None
+            model_label = ""
+            if compiler.query.model is not None:
+                model_label = compiler.query.model._meta.label
+            _cache.put(fingerprint, captured_sql, captured_param_count, model_label)
+        return result
+    finally:
+        compiler.as_sql = original_as_sql  # type: ignore[method-assign]
 
 
 def _should_use_prepare(compiler: SQLCompiler, hit_count: int) -> bool:
@@ -295,12 +473,6 @@ def _execute_with_prepare(
     Returns:
         Whatever the original execute_sql returns.
     """
-    # For Phase 2, we still delegate to original execute_sql which
-    # handles cursor management. The prepare strategy is advisory —
-    # it influences future executions. The actual prepare=True call
-    # happens at the cursor level within the original execution path.
-    # This simplified approach lets the original execute_sql handle
-    # all the complexity of result_type, chunking, etc.
     return SQLCompiler._original_execute_sql(  # type: ignore[attr-defined]
         compiler, result_type, chunked_fetch, chunk_size
     )
