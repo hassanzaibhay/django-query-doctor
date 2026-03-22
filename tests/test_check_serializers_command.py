@@ -77,7 +77,7 @@ class TestCheckSerializersCommandWithInlineSerializers:
                 return obj.items.count()
 
         analyzer = SerializerMethodAnalyzer()
-        results = analyzer.analyze(InlineBadSerializer)
+        results = analyzer.analyze_serializer(InlineBadSerializer)
         assert len(results) >= 1
 
     def test_no_issues_for_clean_serializer(self):
@@ -90,7 +90,7 @@ class TestCheckSerializersCommandWithInlineSerializers:
             name = serializers.CharField()
 
         analyzer = SerializerMethodAnalyzer()
-        results = analyzer.analyze(InlineGoodSerializer)
+        results = analyzer.analyze_serializer(InlineGoodSerializer)
         assert len(results) == 0
 
 
@@ -252,7 +252,7 @@ class TestCheckSerializersWithMocks:
                 return_value=[BrokenSerializer],
             ),
             patch(
-                "query_doctor.analyzers.serializer_method.SerializerMethodAnalyzer.analyze",
+                "query_doctor.analyzers.serializer_method.SerializerMethodAnalyzer.analyze_serializer",
                 side_effect=RuntimeError("Intentional test error"),
             ),
         ):

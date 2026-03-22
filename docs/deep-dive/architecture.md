@@ -7,7 +7,7 @@ django-query-doctor is built around a four-stage pipeline: **Intercept, Fingerpr
 ## High-Level Overview
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph Entry["Entry Points"]
         MW["Middleware"]
         CM["Context Manager"]
@@ -16,12 +16,35 @@ flowchart LR
         PP["Pytest Plugin"]
     end
 
-    subgraph Core["Core Pipeline"]
-        INT["Interceptor"]
-        FP["Fingerprinter"]
-        AR["Analyzer Registry"]
-        RR["Reporter Registry"]
-    end
+    Entry --> INT["Interceptor\n(execute_wrapper)"]
+    INT --> FP["Fingerprinter\n(normalize → SHA-256)"]
+
+    FP --> TURBO_CHECK{"QueryTurbo\nenabled?"}
+
+    TURBO_CHECK -- No --> AR
+    TURBO_CHECK -- Yes --> CACHE_LOOKUP["Cache Lookup\n(fingerprint key)"]
+
+    CACHE_LOOKUP --> MISS{"Cache\nResult?"}
+    MISS -- Miss --> COMPILE["Full as_sql()\ncompilation"]
+    COMPILE --> STORE["Store in LRU Cache\n(UNTRUSTED)"]
+    STORE --> AR
+
+    MISS -- "Hit (UNTRUSTED)" --> VALIDATE["Validate cached SQL\nvs fresh as_sql()"]
+    VALIDATE -- Match --> PROMOTE["Increment validated_count\n→ TRUSTED after threshold"]
+    VALIDATE -- Mismatch --> POISON["POISONED\n(permanent blacklist)"]
+    POISON --> COMPILE
+    PROMOTE --> AR
+
+    MISS -- "Hit (TRUSTED)" --> EXTRACT["Extract params\nfrom Query tree\n(skip as_sql)"]
+    EXTRACT --> PREP{"Prepared\nstatement?"}
+    PREP -- Yes --> PS["Execute with\nprepare=True"]
+    PREP -- No --> EXEC["Normal execute"]
+    PS --> AR
+    EXEC --> AR
+
+    MISS -- "Hit (POISONED)" --> COMPILE
+
+    AR["Analyzer Registry"] --> RR["Reporter Registry"]
 
     subgraph Output["Output Formats"]
         CON["Console (Rich)"]
@@ -31,10 +54,6 @@ flowchart LR
         OTEL["OpenTelemetry"]
     end
 
-    Entry --> INT
-    INT --> FP
-    FP --> AR
-    AR --> RR
     RR --> Output
 ```
 
@@ -321,28 +340,34 @@ src/query_doctor/
 
 ## Threading and Concurrency
 
-### Per-Connection Thread-Local Storage
+### Per-Instance ContextVar Storage
 
-django-query-doctor stores all per-request state in `threading.local()` instances. There is no module-level mutable state.
+django-query-doctor stores all per-request state in `contextvars.ContextVar` instances. Each `QueryInterceptor` instance gets its own unique `ContextVar`, ensuring isolation across both threads and concurrent async coroutines.
 
 ```python
 # interceptor.py
-import threading
+import contextvars
 
-_thread_locals = threading.local()
+_interceptor_counter = 0
 
-def get_query_list() -> list[CapturedQuery]:
-    """Get the query list for the current thread."""
-    if not hasattr(_thread_locals, "queries"):
-        _thread_locals.queries = []
-    return _thread_locals.queries
+class QueryInterceptor:
+    def __init__(self, capture_stack: bool = True) -> None:
+        global _interceptor_counter
+        _interceptor_counter += 1
+        self._queries_var: contextvars.ContextVar[list[CapturedQuery] | None] = (
+            contextvars.ContextVar(
+                f"query_doctor_queries_{_interceptor_counter}",
+                default=None,
+            )
+        )
+        self._queries_var.set([])
 ```
 
-This ensures that concurrent requests in a multi-threaded WSGI server (e.g., gunicorn with sync workers) do not interfere with each other.
+This ensures that concurrent requests in both multi-threaded WSGI servers (e.g., gunicorn with sync workers) and ASGI servers (e.g., uvicorn, daphne) do not interfere with each other.
 
 ### Async Django Support
 
-Django's `execute_wrapper()` is per-connection, and Django assigns one database connection per thread. In async Django (ASGI), database access still occurs in synchronous threads via `sync_to_async`. django-query-doctor follows the same model: the interceptor wraps the synchronous database calls within whatever thread Django uses.
+Both the query interceptor and QueryTurbo context managers use `contextvars.ContextVar`, making the full capture pipeline safe for ASGI deployments with concurrent coroutines on the same thread. Django's `execute_wrapper()` is per-connection, and the interceptor wraps the synchronous database calls within whatever thread Django uses.
 
 > **Warning:** If you use raw `asyncio` database drivers that bypass Django's ORM (e.g., direct `asyncpg` calls), django-query-doctor will not capture those queries. It only intercepts queries that go through Django's database backend.
 
@@ -350,7 +375,7 @@ Django's `execute_wrapper()` is per-connection, and Django assigns one database 
 
 The following guarantees hold:
 
-- No module-level mutable variables (lists, dicts, sets) are used for query storage.
+- No module-level mutable variables (lists, dicts, sets) are used for query storage. Per-request state uses `contextvars.ContextVar`.
 - Configuration is read once per request via `conf.get_config()`, which reads from Django settings (immutable at runtime).
 - Analyzers are stateless: they receive a query list as input and return prescriptions as output. No state is retained between invocations.
 - Reporters are stateless: they receive prescriptions and produce output.

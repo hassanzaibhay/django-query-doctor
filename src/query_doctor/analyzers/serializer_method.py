@@ -21,7 +21,8 @@ import logging
 import textwrap
 from typing import Any
 
-from query_doctor.types import CallSite, IssueType, Prescription, Severity
+from query_doctor.analyzers.base import BaseAnalyzer
+from query_doctor.types import CallSite, CapturedQuery, IssueType, Prescription, Severity
 
 logger = logging.getLogger("query_doctor")
 
@@ -94,21 +95,42 @@ _SAFE_METHODS = frozenset(
 )
 
 
-class SerializerMethodAnalyzer:
+class SerializerMethodAnalyzer(BaseAnalyzer):
     """Analyzes DRF serializer classes for SerializerMethodField methods.
 
     Detects methods that may cause N+1 queries.
     This is a STATIC analyzer — it reads source code, not runtime queries.
-    It should be invoked separately from the runtime query interception pipeline.
+    It should be invoked separately from the runtime query interception pipeline
+    via the ``analyze_serializer()`` method.
 
-    Note: This does NOT inherit BaseAnalyzer because its analyze() method takes
-    a serializer class, not a list of CapturedQuery. It is accessed via the
-    check_serializers management command, not through the runtime plugin API.
+    Inherits BaseAnalyzer for plugin API compatibility. The ``analyze()`` method
+    (required by BaseAnalyzer) returns an empty list since this analyzer operates
+    on serializer classes, not captured queries. Use ``analyze_serializer()``
+    for actual analysis.
     """
 
     name = "serializer_method"
 
-    def analyze(self, serializer_cls: Any) -> list[Prescription]:
+    def analyze(
+        self,
+        queries: list[CapturedQuery],
+        models_meta: dict[str, Any] | None = None,
+    ) -> list[Prescription]:
+        """Conform to BaseAnalyzer interface. Returns empty list.
+
+        This is a static analyzer that operates on serializer classes, not
+        runtime queries. Use ``analyze_serializer()`` instead.
+
+        Args:
+            queries: Ignored — this analyzer does not use captured queries.
+            models_meta: Ignored.
+
+        Returns:
+            Always an empty list.
+        """
+        return []
+
+    def analyze_serializer(self, serializer_cls: Any) -> list[Prescription]:
         """Analyze a single serializer class for N+1 patterns.
 
         Finds all SerializerMethodField declarations, locates the corresponding

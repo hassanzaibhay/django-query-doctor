@@ -128,17 +128,17 @@ class TestSerializerMethodAnalyzer:
 
     def test_no_method_fields(self):
         """Serializer without SerializerMethodField produces 0 prescriptions."""
-        results = self.analyzer.analyze(GoodSerializer)
+        results = self.analyzer.analyze_serializer(GoodSerializer)
         assert len(results) == 0
 
     def test_safe_method_no_warning(self):
         """Safe string operation should not trigger warning."""
-        results = self.analyzer.analyze(SafeSerializer)
+        results = self.analyzer.analyze_serializer(SafeSerializer)
         assert len(results) == 0
 
     def test_detects_related_manager_count(self):
         """Pattern 1: obj.items.count() should be detected."""
-        results = self.analyzer.analyze(BadCountSerializer)
+        results = self.analyzer.analyze_serializer(BadCountSerializer)
         assert len(results) >= 1
         assert any(
             "items" in r.description.lower() or "count" in r.description.lower() for r in results
@@ -147,7 +147,7 @@ class TestSerializerMethodAnalyzer:
 
     def test_detects_objects_filter(self):
         """Pattern 2: Model.objects.filter() should be detected."""
-        results = self.analyzer.analyze(BadFilterSerializer)
+        results = self.analyzer.analyze_serializer(BadFilterSerializer)
         assert len(results) >= 1
         assert any(
             "objects" in r.description.lower() or "filter" in r.description.lower()
@@ -156,7 +156,7 @@ class TestSerializerMethodAnalyzer:
 
     def test_detects_deep_chain(self):
         """Pattern 3: obj.author.name should be detected."""
-        results = self.analyzer.analyze(BadChainSerializer)
+        results = self.analyzer.analyze_serializer(BadChainSerializer)
         assert len(results) >= 1
         assert any(
             "author" in r.description.lower() or "select_related" in r.fix_suggestion.lower()
@@ -165,7 +165,7 @@ class TestSerializerMethodAnalyzer:
 
     def test_detects_loop_with_queryset(self):
         """Pattern 4: Loop over obj.related_set.all() should be detected."""
-        results = self.analyzer.analyze(LoopSerializer)
+        results = self.analyzer.analyze_serializer(LoopSerializer)
         assert len(results) >= 1
         assert any(
             "loop" in r.description.lower() or "related_set" in r.description.lower()
@@ -174,30 +174,30 @@ class TestSerializerMethodAnalyzer:
 
     def test_multiple_fields_mixed(self):
         """Only dangerous fields flagged, safe fields skipped."""
-        results = self.analyzer.analyze(MultipleIssuesSerializer)
+        results = self.analyzer.analyze_serializer(MultipleIssuesSerializer)
         # Only the dangerous field should produce prescriptions
         assert len(results) >= 1
         assert all(r.extra.get("field") == "dangerous" for r in results)
 
     def test_missing_get_method_skipped(self):
         """SerializerMethodField without get_<field> method is skipped gracefully."""
-        results = self.analyzer.analyze(NoGetMethodSerializer)
+        results = self.analyzer.analyze_serializer(NoGetMethodSerializer)
         assert len(results) == 0
 
     def test_detects_objects_get(self):
         """Pattern 2 variant: Model.objects.get() should be detected."""
-        results = self.analyzer.analyze(ObjectsGetSerializer)
+        results = self.analyzer.analyze_serializer(ObjectsGetSerializer)
         assert len(results) >= 1
         assert any("objects" in r.description.lower() for r in results)
 
     def test_detects_exists_check(self):
         """Pattern 1 variant: obj.items.exists() should be detected."""
-        results = self.analyzer.analyze(ExistsCheckSerializer)
+        results = self.analyzer.analyze_serializer(ExistsCheckSerializer)
         assert len(results) >= 1
 
     def test_prescription_has_callsite(self):
         """Prescriptions include callsite with file path and line number."""
-        results = self.analyzer.analyze(BadCountSerializer)
+        results = self.analyzer.analyze_serializer(BadCountSerializer)
         assert len(results) >= 1
         for r in results:
             assert r.callsite is not None
@@ -206,7 +206,7 @@ class TestSerializerMethodAnalyzer:
 
     def test_prescription_has_extra_metadata(self):
         """Prescriptions include extra metadata (field, pattern, serializer)."""
-        results = self.analyzer.analyze(BadCountSerializer)
+        results = self.analyzer.analyze_serializer(BadCountSerializer)
         assert len(results) >= 1
         for r in results:
             assert "field" in r.extra
@@ -217,11 +217,11 @@ class TestSerializerMethodAnalyzer:
     def test_severity_levels(self):
         """Related manager and queryset patterns are WARNING, deep chains are INFO."""
         # Related manager
-        results = self.analyzer.analyze(BadCountSerializer)
+        results = self.analyzer.analyze_serializer(BadCountSerializer)
         assert all(r.severity == Severity.WARNING for r in results)
 
         # Deep chain
-        results = self.analyzer.analyze(BadChainSerializer)
+        results = self.analyzer.analyze_serializer(BadChainSerializer)
         deep_chain_results = [
             r for r in results if r.extra.get("pattern") == "deep_attribute_chain"
         ]
@@ -230,7 +230,7 @@ class TestSerializerMethodAnalyzer:
     def test_fix_suggestion_present(self):
         """All prescriptions have non-empty fix suggestions."""
         for cls in [BadCountSerializer, BadFilterSerializer, BadChainSerializer, LoopSerializer]:
-            results = self.analyzer.analyze(cls)
+            results = self.analyzer.analyze_serializer(cls)
             for r in results:
                 assert r.fix_suggestion, f"Empty fix_suggestion for {cls.__name__}"
 
@@ -248,7 +248,7 @@ class TestSerializerMethodAnalyzerEdgeCases:
         class EmptySerializer(serializers.Serializer):
             pass
 
-        results = self.analyzer.analyze(EmptySerializer)
+        results = self.analyzer.analyze_serializer(EmptySerializer)
         assert len(results) == 0
 
     def test_non_serializer_class(self):
@@ -258,7 +258,7 @@ class TestSerializerMethodAnalyzerEdgeCases:
             pass
 
         # Should handle gracefully (no _declared_fields)
-        results = self.analyzer.analyze(NotASerializer)
+        results = self.analyzer.analyze_serializer(NotASerializer)
         assert len(results) == 0
 
     def test_method_on_parent_class(self):
@@ -273,7 +273,7 @@ class TestSerializerMethodAnalyzerEdgeCases:
         class ChildSerializer(ParentSerializer):
             pass
 
-        results = self.analyzer.analyze(ChildSerializer)
+        results = self.analyzer.analyze_serializer(ChildSerializer)
         assert len(results) >= 1
 
     def test_drf_not_installed_graceful(self):
@@ -285,7 +285,7 @@ class TestSerializerMethodAnalyzerEdgeCases:
         class FakeSerializer:
             _declared_fields = {"foo": "not a SerializerMethodField"}  # noqa: RUF012
 
-        results = analyzer.analyze(FakeSerializer)
+        results = analyzer.analyze_serializer(FakeSerializer)
         assert len(results) == 0
 
 
@@ -305,7 +305,7 @@ class TestComprehensionDetection:
             def get_names(self, obj):
                 return [item.name for item in obj.items.all()]
 
-        results = self.analyzer.analyze(ListCompSerializer)
+        results = self.analyzer.analyze_serializer(ListCompSerializer)
         comp_results = [r for r in results if r.extra.get("pattern") == "comprehension_queryset"]
         assert len(comp_results) >= 1
         assert "comprehension" in comp_results[0].description
@@ -319,7 +319,7 @@ class TestComprehensionDetection:
             def get_ids(self, obj):
                 return list(x.id for x in obj.items.filter())
 
-        results = self.analyzer.analyze(GenExpSerializer)
+        results = self.analyzer.analyze_serializer(GenExpSerializer)
         comp_results = [r for r in results if r.extra.get("pattern") == "comprehension_queryset"]
         assert len(comp_results) >= 1
 
@@ -332,7 +332,7 @@ class TestComprehensionDetection:
             def get_unique_names(self, obj):
                 return {item.name for item in obj.tags.all()}
 
-        results = self.analyzer.analyze(SetCompSerializer)
+        results = self.analyzer.analyze_serializer(SetCompSerializer)
         comp_results = [r for r in results if r.extra.get("pattern") == "comprehension_queryset"]
         assert len(comp_results) >= 1
 
@@ -345,7 +345,7 @@ class TestComprehensionDetection:
             def get_mapping(self, obj):
                 return {item.id: item.name for item in obj.items.all()}
 
-        results = self.analyzer.analyze(DictCompSerializer)
+        results = self.analyzer.analyze_serializer(DictCompSerializer)
         comp_results = [r for r in results if r.extra.get("pattern") == "comprehension_queryset"]
         assert len(comp_results) >= 1
 
@@ -358,7 +358,7 @@ class TestComprehensionDetection:
             def get_vals(self, obj):
                 return [x for x in obj.items]
 
-        results = self.analyzer.analyze(ImplicitCompSerializer)
+        results = self.analyzer.analyze_serializer(ImplicitCompSerializer)
         comp_results = [r for r in results if r.extra.get("pattern") == "comprehension_queryset"]
         assert len(comp_results) >= 1
 
@@ -372,7 +372,7 @@ class TestComprehensionDetection:
                 data = [1, 2, 3]
                 return [x * 2 for x in data]
 
-        results = self.analyzer.analyze(SafeCompSerializer)
+        results = self.analyzer.analyze_serializer(SafeCompSerializer)
         comp_results = [r for r in results if r.extra.get("pattern") == "comprehension_queryset"]
         assert len(comp_results) == 0
 
@@ -385,6 +385,6 @@ class TestComprehensionDetection:
             def get_names(self, obj):
                 return [item.name for item in obj.items.all()]
 
-        results = self.analyzer.analyze(SevCompSerializer)
+        results = self.analyzer.analyze_serializer(SevCompSerializer)
         comp_results = [r for r in results if r.extra.get("pattern") == "comprehension_queryset"]
         assert all(r.severity == Severity.WARNING for r in comp_results)

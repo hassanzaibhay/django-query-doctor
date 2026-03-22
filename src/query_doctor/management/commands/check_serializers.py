@@ -117,7 +117,7 @@ class Command(BaseCommand):
 
         for serializer_cls in serializers:
             try:
-                prescriptions = analyzer.analyze(serializer_cls)
+                prescriptions = analyzer.analyze_serializer(serializer_cls)
                 all_prescriptions.extend(prescriptions)
             except Exception as e:
                 self.stderr.write(

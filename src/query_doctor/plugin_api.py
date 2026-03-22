@@ -74,6 +74,13 @@ def get_builtin_analyzers() -> list[BaseAnalyzer]:
     except Exception:
         pass
 
+    try:
+        from query_doctor.analyzers.serializer_method import SerializerMethodAnalyzer
+
+        analyzers.append(SerializerMethodAnalyzer())
+    except Exception:
+        pass
+
     return analyzers
 
 
