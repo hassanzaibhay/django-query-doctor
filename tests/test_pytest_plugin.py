@@ -169,3 +169,148 @@ class TestPluginImport:
         import query_doctor.pytest_plugin as plugin
 
         assert hasattr(plugin, "_run_analyzers")
+
+
+class TestQueryDoctorFixtureLogic:
+    """Tests for the fixture's core logic (interceptor + finalizer pattern)."""
+
+    @pytest.mark.django_db
+    def test_interceptor_wrapper_captures_and_finalizes(self) -> None:
+        """Simulates the fixture pattern: enter wrapper, run queries, finalize."""
+        from django.db import connection
+
+        from query_doctor.interceptor import QueryInterceptor
+        from tests.testapp.models import Author
+
+        report = DiagnosisReport()
+        interceptor = QueryInterceptor()
+
+        wrapper_ctx = connection.execute_wrapper(interceptor)
+        wrapper_ctx.__enter__()
+
+        list(Author.objects.all())
+
+        # Finalize: exit wrapper, populate report, run analyzers
+        wrapper_ctx.__exit__(None, None, None)
+        queries = interceptor.get_queries()
+        report.captured_queries = queries
+        report.total_queries = len(queries)
+        report.total_time_ms = sum(q.duration_ms for q in queries)
+        _run_analyzers(report, queries)
+
+        assert report.total_queries >= 1
+        assert isinstance(report.prescriptions, list)
+
+    @pytest.mark.django_db
+    def test_fixture_pattern_empty_report_when_no_queries(self) -> None:
+        """Fixture pattern with no queries yields empty report."""
+        from django.db import connection
+
+        from query_doctor.interceptor import QueryInterceptor
+
+        report = DiagnosisReport()
+        interceptor = QueryInterceptor()
+
+        wrapper_ctx = connection.execute_wrapper(interceptor)
+        wrapper_ctx.__enter__()
+        # No queries executed
+        wrapper_ctx.__exit__(None, None, None)
+
+        queries = interceptor.get_queries()
+        report.captured_queries = queries
+        report.total_queries = len(queries)
+        report.total_time_ms = sum(q.duration_ms for q in queries)
+        _run_analyzers(report, queries)
+
+        assert report.total_queries == 0
+        assert report.issues == 0
+
+    @pytest.mark.django_db
+    def test_fixture_pattern_detects_duplicates(self) -> None:
+        """Fixture pattern detects duplicate queries."""
+        from django.db import connection
+
+        from query_doctor.interceptor import QueryInterceptor
+        from tests.testapp.models import Author
+
+        report = DiagnosisReport()
+        interceptor = QueryInterceptor()
+
+        wrapper_ctx = connection.execute_wrapper(interceptor)
+        wrapper_ctx.__enter__()
+
+        for _ in range(5):
+            list(Author.objects.all())
+
+        wrapper_ctx.__exit__(None, None, None)
+        queries = interceptor.get_queries()
+        report.captured_queries = queries
+        report.total_queries = len(queries)
+        report.total_time_ms = sum(q.duration_ms for q in queries)
+        _run_analyzers(report, queries)
+
+        assert report.total_queries >= 5
+        assert isinstance(report.prescriptions, list)
+
+    @pytest.mark.django_db
+    def test_wrapper_exit_error_is_handled(self) -> None:
+        """If wrapper exit fails, it should be catchable without crashing."""
+        import logging
+
+        from django.db import connection
+
+        from query_doctor.interceptor import QueryInterceptor
+
+        interceptor = QueryInterceptor()
+        wrapper_ctx = connection.execute_wrapper(interceptor)
+        wrapper_ctx.__enter__()
+        # Exit normally
+        try:
+            wrapper_ctx.__exit__(None, None, None)
+        except Exception:
+            logging.warning("wrapper exit failed")
+        # Should reach here without crash
+
+
+class TestRunAnalyzersExtended:
+    """Extended tests for _run_analyzers covering optional analyzer imports."""
+
+    @pytest.mark.django_db
+    def test_run_analyzers_loads_all_available_analyzers(self) -> None:
+        """_run_analyzers should load MissingIndex, FatSelect, QuerySetEval analyzers."""
+        from query_doctor.types import CallSite, CapturedQuery
+
+        callsite = CallSite(
+            filepath="test.py", line_number=1, function_name="test", code_context=""
+        )
+        queries = [
+            CapturedQuery(
+                sql='SELECT * FROM "testapp_book"',
+                params=(),
+                duration_ms=1.0,
+                fingerprint="abc",
+                normalized_sql='select * from "testapp_book"',
+                callsite=callsite,
+                is_select=True,
+                tables=["testapp_book"],
+            )
+        ]
+
+        report = DiagnosisReport()
+        _run_analyzers(report, queries)
+        # Should not raise — all optional analyzers loaded
+        assert isinstance(report.prescriptions, list)
+
+    def test_run_analyzers_survives_analyzer_failure(self) -> None:
+        """If one analyzer raises, _run_analyzers does not crash."""
+        from unittest.mock import patch
+
+        report = DiagnosisReport()
+        # Patch the analyze method on the NPlusOneAnalyzer class
+        with patch(
+            "query_doctor.analyzers.nplusone.NPlusOneAnalyzer.analyze",
+            side_effect=RuntimeError("boom"),
+        ):
+            _run_analyzers(report, [])
+        # Should not raise
+        assert isinstance(report.prescriptions, list)

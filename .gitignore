@@ -11,7 +11,10 @@ build/
 .ruff_cache/
 htmlcov/
 .coverage
+coverage.xml
 *.sqlite3
+*.bak
+query_doctor_report.html
 
 # Generated artifacts
 benchmarks/report.html
