@@ -57,11 +57,11 @@
          <lastmod>2026-03-23</lastmod>
     </url>
     <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/deep-dive/comparison/</loc>
+         <loc>https://hassanzaibhay.github.io/django-query-doctor/deep-dive/background/</loc>
          <lastmod>2026-03-23</lastmod>
     </url>
     <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/deep-dive/design-decisions/</loc>
+         <loc>https://hassanzaibhay.github.io/django-query-doctor/deep-dive/comparison/</loc>
          <lastmod>2026-03-23</lastmod>
     </url>
     <url>
@@ -69,19 +69,7 @@
          <lastmod>2026-03-23</lastmod>
     </url>
     <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/deep-dive/why-this-tool/</loc>
-         <lastmod>2026-03-23</lastmod>
-    </url>
-    <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/examples/drf-viewsets/</loc>
-         <lastmod>2026-03-23</lastmod>
-    </url>
-    <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/examples/large-codebases/</loc>
-         <lastmod>2026-03-23</lastmod>
-    </url>
-    <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/examples/real-world/</loc>
+         <loc>https://hassanzaibhay.github.io/django-query-doctor/examples/</loc>
          <lastmod>2026-03-23</lastmod>
     </url>
     <url>
@@ -157,27 +145,7 @@
          <lastmod>2026-03-23</lastmod>
     </url>
     <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/reporters/console/</loc>
-         <lastmod>2026-03-23</lastmod>
-    </url>
-    <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/reporters/html/</loc>
-         <lastmod>2026-03-23</lastmod>
-    </url>
-    <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/reporters/json/</loc>
-         <lastmod>2026-03-23</lastmod>
-    </url>
-    <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/reporters/log/</loc>
-         <lastmod>2026-03-23</lastmod>
-    </url>
-    <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/reporters/opentelemetry/</loc>
-         <lastmod>2026-03-23</lastmod>
-    </url>
-    <url>
-         <loc>https://hassanzaibhay.github.io/django-query-doctor/reporters/overview/</loc>
+         <loc>https://hassanzaibhay.github.io/django-query-doctor/reporters/</loc>
          <lastmod>2026-03-23</lastmod>
     </url>
 </urlset>
