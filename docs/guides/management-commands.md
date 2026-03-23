@@ -1,12 +1,12 @@
 # Management Commands
 
-django-query-doctor ships four management commands for on-demand analysis, budget enforcement, auto-fixing, and full project health scans. These commands work independently of the middleware and are ideal for CI/CD pipelines and one-off investigations.
+django-query-doctor ships six management commands for on-demand analysis, budget enforcement, auto-fixing, static serializer analysis, project health scans, and benchmark reporting. These commands work independently of the middleware and are ideal for CI/CD pipelines and one-off investigations.
 
 ---
 
 ## `check_queries`
 
-Analyze queries for specific URLs or URL patterns and report issues.
+Analyze queries for a URL and report optimization issues.
 
 ### Basic Usage
 
@@ -14,249 +14,235 @@ Analyze queries for specific URLs or URL patterns and report issues.
 # Analyze a single URL
 python manage.py check_queries --url /api/books/
 
-# Analyze multiple URLs
-python manage.py check_queries --url /api/books/ --url /api/authors/ --url /dashboard/
+# JSON output
+python manage.py check_queries --format json
 
-# Analyze all URLs matching a pattern
-python manage.py check_queries --url-pattern "^/api/"
+# Write output to a file
+python manage.py check_queries --output report.json --format json
 ```
 
-### Filter by Severity
+### All Flags
 
-Only report issues at or above a given severity level:
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--url` | `str` | `/` | URL path to analyze |
+| `--format` | `str` | `console` | Output format: `console` or `json` |
+| `--fail-on` | `str` | — | Exit with code 1 if issues at this severity or higher are found: `critical`, `warning`, or `info` |
+| `--diff` | `str` | — | Only report issues in files changed vs this git ref (e.g., `main`, `origin/develop`, `abc123`) |
+| `--file` | `str` | — | Only report issues in files matching this substring. Can be specified multiple times. |
+| `--module` | `str` | — | Only report issues in modules matching this substring. Can be specified multiple times. |
+| `--output`, `-o` | `str` | — | Write output to a file instead of stdout |
+| `--save-baseline` | `str` | — | Save current issues as a baseline snapshot (JSON file) |
+| `--baseline` | `str` | — | Compare against a baseline snapshot, show only regressions |
+| `--fail-on-regression` | flag | — | Exit with code 1 if new issues found vs baseline |
+| `--group` | `str` | `file_analyzer` | Group related prescriptions. Strategies: `file_analyzer`, `root_cause`, `view` |
+
+### Examples
 
 ```bash
-# Only show WARNINGs and CRITICALs (skip INFO)
-python manage.py check_queries --url /api/books/ --severity WARNING
+# Filter to a specific file
+python manage.py check_queries --file myapp/views.py
 
-# Only show CRITICALs
-python manage.py check_queries --url /api/books/ --severity CRITICAL
+# Only report issues in changed files vs main
+python manage.py check_queries --diff main
+
+# Baseline regression workflow
+python manage.py check_queries --save-baseline=.query-baseline.json
+python manage.py check_queries --baseline=.query-baseline.json --fail-on-regression
+
+# Group prescriptions by root cause
+python manage.py check_queries --group root_cause
 ```
 
-### JSON Output
-
-Output structured JSON for consumption by CI tools or dashboards:
-
-```bash
-python manage.py check_queries --url /api/books/ --format json
-```
-
-```json
-{
-  "url": "/api/books/",
-  "total_queries": 53,
-  "total_time_ms": 127.3,
-  "prescriptions": [
-    {
-      "severity": "CRITICAL",
-      "analyzer": "nplusone",
-      "issue": "N+1 detected: 47 queries for table \"myapp_author\"",
-      "location": "myapp/views.py:83",
-      "fix": "Add .select_related('author') to your queryset"
-    }
-  ]
-}
-```
-
-### Exit Codes for CI
-
-Use `--fail` to make the command exit with a non-zero code if issues are found:
-
-```bash
-# Fail CI if any WARNING or CRITICAL is found
-python manage.py check_queries --url /api/books/ --severity WARNING --fail
-```
-
-Exit codes:
+### Exit Codes
 
 | Code | Meaning |
 |------|---------|
-| `0` | No issues found at the specified severity level |
-| `1` | One or more issues found |
-| `2` | Command error (invalid URL, configuration issue) |
+| `0` | No issues found (or no regressions when using `--baseline`) |
+| `1` | Issues found at the specified `--fail-on` severity, or regressions detected |
+
+---
+
+## `check_serializers` *(v2.0)*
+
+Statically analyze DRF serializer `SerializerMethodField` methods for N+1 patterns using AST inspection. Does not execute any code.
+
+### Basic Usage
+
+```bash
+# Scan all installed apps
+python manage.py check_serializers
+
+# Scan specific apps
+python manage.py check_serializers --app=myapp --app=otherapp
+```
+
+### All Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--app` | `str` | — | Only scan serializers in the given app. Can be repeated. |
+| `--module` | `str` | — | Only scan the given module path. Can be repeated. |
+| `--file` | `str` | — | Only report issues in files matching this substring. Can be repeated. |
+| `--format` | `str` | `console` | Output format: `console` or `json` |
+| `--fail-on` | `str` | — | Exit with code 1 if issues at this severity or higher: `critical`, `warning`, `info` |
+| `--output`, `-o` | `str` | — | Write output to a file instead of stdout |
+
+### Examples
+
+```bash
+# Scan specific module
+python manage.py check_serializers --module=myapp.serializers
+
+# JSON output for CI
+python manage.py check_serializers --format=json --fail-on=warning
+
+# Filter by file
+python manage.py check_serializers --file=myapp/serializers.py
+```
+
+!!! note "Requires DRF"
+    This command requires `djangorestframework` to be installed. If DRF is not present, the command reports no issues.
 
 ---
 
 ## `query_budget`
 
-Enforce hard limits on the number of queries an endpoint is allowed to execute.
+Enforce hard limits on the number of queries a code block executes.
 
-### Basic Usage
+### All Flags
 
-```bash
-# Enforce a budget of 10 queries for a URL
-python manage.py query_budget --url /api/books/ --max-queries 10
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--max-queries` | `int` | **required** | Maximum number of queries allowed |
+| `--max-time-ms` | `float` | — | Maximum total query time in milliseconds |
+| `--execute` | `str` | — | Python code to execute and measure |
 
-# Enforce budgets across multiple URLs
-python manage.py query_budget --url /api/books/ --url /api/authors/ --max-queries 20
-```
-
-### CI Integration with `--fail`
+### Examples
 
 ```bash
-# Fail the build if any URL exceeds its budget
-python manage.py query_budget --url /api/books/ --max-queries 10 --fail
+# Enforce a query budget on a code block
+python manage.py query_budget --max-queries 10 --execute "list(Book.objects.all())"
+
+# With time budget
+python manage.py query_budget --max-queries 10 --max-time-ms 100 --execute "list(Book.objects.all())"
 ```
 
-Output when the budget is exceeded:
-
-```
-BUDGET EXCEEDED: /api/books/
-  Executed: 53 queries
-  Budget:   10 queries
-  Over by:  43 queries
-
-Top consumers:
-  1. myapp/views.py:83  — 47 queries (N+1 on myapp_author)
-  2. myapp/views.py:91  — 6 queries (duplicate)
-```
-
-### Budget File
-
-For projects with many endpoints, define budgets in a YAML file:
-
-```yaml title="query_budgets.yml"
-/api/books/: 10
-/api/authors/: 5
-/api/books/{id}/: 8
-/dashboard/: 25
-```
-
-```bash
-python manage.py query_budget --budget-file query_budgets.yml --fail
-```
+!!! warning "Security"
+    `--execute` uses `exec()` internally. Only run trusted code.
 
 ---
 
 ## `fix_queries`
 
-Automatically apply suggested fixes to your source code. This command modifies your Python files.
+Automatically apply suggested fixes to your source code.
 
-### Dry Run (Default)
+### All Flags
 
-By default, `fix_queries` performs a **dry run**. It shows you what changes would be made without modifying any files:
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--dry-run` | flag | **default** | Show diff without applying changes |
+| `--apply` | flag | — | Apply fixes to source files |
+| `--issue-type` | `str` | — | Only fix specific issue types (e.g., `n_plus_one`, `duplicate`). Can be repeated. |
+| `--file` | `str` | — | Only fix specific files. Can be repeated. |
+| `--no-backup` | flag | — | Do not create `.bak` files when applying |
+| `--url` | `str` | `/` | URL path to analyze |
 
-```bash
-python manage.py fix_queries --url /api/books/
-```
-
-Output:
-
-```diff
---- myapp/views.py (original)
-+++ myapp/views.py (fixed)
-@@ -83,7 +83,7 @@
-     def get_queryset(self):
--        return Book.objects.all()
-+        return Book.objects.select_related('author').all()
-```
-
-### Apply Fixes
-
-To actually modify your source files, pass `--apply`:
+### Examples
 
 ```bash
-python manage.py fix_queries --url /api/books/ --apply
+# Dry run (default) — see what would change
+python manage.py fix_queries
+
+# Apply fixes
+python manage.py fix_queries --apply
+
+# Only fix N+1 issues
+python manage.py fix_queries --issue-type n_plus_one --apply
+
+# Only fix specific files
+python manage.py fix_queries --file myapp/views.py --apply
 ```
 
-> **Warning:** Always review the dry-run output before using `--apply`. While django-query-doctor generates correct fixes in most cases, complex querysets with chained calls or dynamic construction may need manual adjustment. Make sure your code is committed to version control before applying fixes.
-
-### Target Specific Fix Types
-
-Only apply certain categories of fixes:
-
-```bash
-# Only apply select_related fixes
-python manage.py fix_queries --url /api/books/ --fix-type select_related --apply
-
-# Only apply prefetch_related fixes
-python manage.py fix_queries --url /api/books/ --fix-type prefetch_related --apply
-
-# Apply both select_related and prefetch_related
-python manage.py fix_queries --url /api/books/ --fix-type select_related --fix-type prefetch_related --apply
-```
-
-See [Auto-Fix](auto-fix.md) for the full list of supported fix types.
+!!! warning
+    Always review the dry-run output before using `--apply`. Make sure your code is committed to version control before applying fixes.
 
 ---
 
 ## `diagnose_project`
 
-Run a comprehensive health scan across your entire project.
+Run a comprehensive health scan across your entire project by discovering URL patterns and analyzing each endpoint.
 
-### Basic Usage
+### All Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--output`, `-o` | `str` | `query_doctor_report.html` | Output file path |
+| `--format` | `str` | `html` | Report format: `html` or `json` |
+| `--apps` | `str` | — | Only diagnose specific apps (space-separated) |
+| `--timeout` | `int` | `30` | Timeout per URL in seconds |
+| `--exclude-urls` | `str` | — | URL prefixes to exclude (space-separated) |
+| `--methods` | `str` | `GET` | HTTP methods to test (space-separated) |
+| `--file` | `str` | — | Only report issues in files matching this substring. Can be repeated. |
+| `--module` | `str` | — | Only report issues in modules matching this substring. Can be repeated. |
+| `--save-baseline` | `str` | — | Save current issues as a baseline snapshot (JSON file) |
+| `--baseline` | `str` | — | Compare against a baseline snapshot, show only regressions |
+| `--fail-on-regression` | flag | — | Exit with code 1 if new issues found vs baseline |
+| `--group` | `str` | `file_analyzer` | Group related prescriptions. Strategies: `file_analyzer`, `root_cause`, `view` |
+
+### Examples
 
 ```bash
+# Full project scan with HTML report
 python manage.py diagnose_project
-```
 
-This command:
-
-1. Discovers all URL patterns in your project.
-2. Makes test requests to each endpoint.
-3. Runs all analyzers on the captured queries.
-4. Produces a summary report.
-
-### HTML Report
-
-Generate a self-contained HTML report:
-
-```bash
-python manage.py diagnose_project --format html --output report.html
-```
-
-The HTML report includes:
-
-- Overall project health score.
-- Per-endpoint breakdown of issues.
-- Top 10 most impactful prescriptions.
-- Query count trends (if previous reports exist).
-
-### Per-App Analysis
-
-Scope the scan to specific Django apps:
-
-```bash
-# Only scan the "books" and "authors" apps
-python manage.py diagnose_project --app books --app authors
-```
-
-### JSON Output for CI
-
-```bash
+# JSON output for CI
 python manage.py diagnose_project --format json --output report.json
-```
 
-### Full Example
+# Only scan specific apps
+python manage.py diagnose_project --apps myapp otherapp
 
-```bash
-# Full project scan with HTML report, limited to WARNING and above
-python manage.py diagnose_project \
-    --format html \
-    --output query-report.html \
-    --severity WARNING \
-    --fail
+# Exclude admin URLs
+python manage.py diagnose_project --exclude-urls /admin/
+
+# With baseline regression detection
+python manage.py diagnose_project --baseline=.query-baseline.json --fail-on-regression
+
+# Group by view endpoint
+python manage.py diagnose_project --group view
 ```
 
 ---
 
-## Common Options
+## `query_doctor_report` *(v2.0)*
 
-These options are shared across all commands:
+Generate a QueryTurbo benchmark dashboard as a self-contained HTML file.
 
-| Option | Description |
-|---|---|
-| `--severity` | Minimum severity to report: `INFO`, `WARNING`, `CRITICAL` |
-| `--format` | Output format: `console` (default), `json`, `html` |
-| `--output` | Write output to a file instead of stdout |
-| `--fail` | Exit with code 1 if issues are found (useful for CI) |
-| `--analyzers` | Comma-separated list of analyzers to run (e.g., `nplusone,duplicate`) |
-| `--exclude` | Paths to exclude from analysis |
+### All Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--output`, `-o` | `str` | `query_doctor_report.html` | Output file path |
+
+### Examples
+
+```bash
+python manage.py query_doctor_report
+python manage.py query_doctor_report --output=reports/turbo-dashboard.html
+```
+
+The dashboard shows cache hit rates, top optimized queries, and Chart.js graphs. Data reflects the current process cache — the cache resets on server restart. See [Benchmark Dashboard](benchmark-dashboard.md) for details on what the report contains.
+
+!!! warning "Schema Information"
+    The report contains SQL query templates (without parameter values) that may reveal database schema information. Do not share the report publicly if your schema is confidential.
 
 ---
 
 ## Further Reading
 
-- [CI Integration](ci-integration.md) -- Using management commands in CI pipelines.
-- [Auto-Fix](auto-fix.md) -- Details on the auto-fix system.
-- [Middleware](middleware.md) -- Alternative: analyze every request automatically.
+- [CI/CD Integration](ci-integration.md) — Using management commands in CI pipelines
+- [Auto-Fix Mode](auto-fix.md) — Details on the auto-fix system
+- [Baseline Regression](baseline.md) — Baseline regression detection guide
+- [Prescription Grouping](grouping.md) — How grouping works
+- [Benchmark Dashboard](benchmark-dashboard.md) — Interactive HTML report
+- [Middleware](middleware.md) — Alternative: analyze every request automatically

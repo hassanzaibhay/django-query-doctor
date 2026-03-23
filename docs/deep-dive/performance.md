@@ -85,7 +85,7 @@ A rough estimate of **~800 bytes per query** is useful for capacity planning.
 | Complex report | 150 | ~120 KB |
 | Unoptimized N+1 page | 500 | ~400 KB |
 
-All captured query data is released at the end of the request when the thread-local storage is cleared. There is no accumulation across requests.
+All captured query data is released at the end of the request when the context variable is cleared. There is no accumulation across requests.
 
 > **Tip:** If memory is a concern for requests with very high query counts (500+), consider fixing the underlying query issues first --- that is exactly what django-query-doctor is for. A request with 500 queries has far bigger problems than 400 KB of diagnostic memory.
 
@@ -291,5 +291,48 @@ print(f"Without: {avg_without:.2f}ms")
 print(f"With:    {avg_with:.2f}ms")
 print(f"Overhead: {overhead:.2f}ms ({overhead / avg_without * 100:.1f}%)")
 ```
+
+---
+
+## QueryTurbo Compilation-Skip Benchmarks *(v2.0)*
+
+When [QueryTurbo](../guides/queryturbo.md) is enabled and a query reaches TRUSTED state, the `as_sql()` call is skipped entirely. Parameters are extracted directly from the Django Query tree.
+
+### Compilation-Skip Speedups
+
+Measured on SQLite (compilation-only, no DB I/O). Run `python benchmarks/run.py` to reproduce.
+
+| Query Pattern | Speedup | Saved per Query |
+|---|---|---|
+| Simple filter | 123x | 38.8 μs |
+| Multi filter | 153x | 49.2 μs |
+| select_related | 294x | 92.5 μs |
+| Deep select_related | 374x | 121.1 μs |
+| Annotate | 214x | 68.6 μs |
+| Complex (JOINs + Q + annotate) | 1,050x | 337.9 μs |
+
+### Prepared Statement Savings (PostgreSQL + psycopg3)
+
+On PostgreSQL with psycopg3, prepared statements provide additional savings of 0.5--5ms of query planner time per repeat query, with the greatest benefit on complex queries with multiple JOINs.
+
+### Database Backend Support
+
+| Backend | Compilation Cache | Prepared Statements | Notes |
+|---------|:-:|:-:|---|
+| PostgreSQL (psycopg3) | Yes | Yes | Full support |
+| PostgreSQL (psycopg2) | Yes | No | Cache only |
+| MySQL | Yes | No | Cache only |
+| SQLite | Yes | No | Good for dev/test |
+| Oracle | Yes | Implicit | Via cx_Oracle cursor cache |
+
+### QueryTurbo Memory Overhead
+
+The compilation cache stores SQL templates and metadata. Each cache entry uses approximately 500-2000 bytes depending on SQL length. With the default `MAX_SIZE` of 1024 entries, the cache uses at most ~2 MB of memory.
+
+The cache is process-local. In multi-process deployments (e.g., gunicorn with 4 workers), each worker maintains its own cache, so total memory usage is `~2 MB × worker_count`.
+
+See [QueryTurbo](../guides/queryturbo.md) for configuration details and the [Benchmark Dashboard](../guides/benchmark-dashboard.md) for monitoring cache performance.
+
+---
 
 For a detailed comparison of how this overhead compares to other tools, see [Comparison](./comparison.md). For the architectural reasons behind these performance characteristics, see [Design Decisions](./design-decisions.md).

@@ -122,9 +122,13 @@ nav:
   - Guides:
     - How It Works: guides/how-it-works.md
     - Middleware Usage: guides/middleware.md
+    - QueryTurbo: guides/queryturbo.md
     - Management Commands: guides/management-commands.md
     - Pytest Plugin: guides/pytest-plugin.md
     - Auto-Fix Mode: guides/auto-fix.md
+    - Baseline Regression: guides/baseline.md
+    - Prescription Grouping: guides/grouping.md
+    - Benchmark Dashboard: guides/benchmark-dashboard.md
     - CI/CD Integration: guides/ci-integration.md
     - Celery Support: guides/celery.md
     - Async & ASGI: guides/async-support.md

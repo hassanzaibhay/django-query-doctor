@@ -209,3 +209,67 @@ def get_queryset(self):
     This analyzer only activates when `rest_framework` is installed. If DRF is
     not present, the analyzer silently skips itself. The general N+1 analyzer
     will still catch relation-access patterns regardless of whether DRF is used.
+
+---
+
+## Static Analysis: SerializerMethodField *(v2.0)*
+
+In addition to runtime detection, django-query-doctor includes a **static analyzer** that inspects `SerializerMethodField` `get_<field>` methods using Python's `ast` module without executing the code. This catches N+1 patterns that are invisible to runtime analysis when test coverage is incomplete.
+
+### Running Static Analysis
+
+```bash
+# Scan all installed apps
+python manage.py check_serializers
+
+# Scan specific apps
+python manage.py check_serializers --app=myapp --app=otherapp
+
+# Scan specific modules
+python manage.py check_serializers --module=myapp.serializers
+
+# Scan specific files
+python manage.py check_serializers --file=myapp/serializers.py
+
+# JSON output for CI
+python manage.py check_serializers --format=json
+
+# Fail CI on warnings or above
+python manage.py check_serializers --fail-on=warning
+```
+
+### What It Detects
+
+The static analyzer walks the AST of each `get_<field>` method and detects four patterns:
+
+| Pattern | Example | Detection |
+|---------|---------|-----------|
+| **Related manager access** | `obj.items.count()` | Calls to queryset methods (`.filter()`, `.count()`, `.all()`, etc.) on the serialized object's related managers |
+| **Direct QuerySet call** | `Model.objects.filter(...)` | Any `Model.objects.<method>()` call inside a `get_<field>` method |
+| **Deep attribute chain** | `obj.author.name` | Two or more levels of attribute access on the serialized object, suggesting a missing `select_related()` |
+| **Loop/comprehension over queryset** | `for item in obj.items.all()` | `for` loops, list comprehensions, set comprehensions, generator expressions, and dict comprehensions iterating over related managers |
+
+### What It Does Not Detect
+
+- **Indirect queryset access** — If a `get_<field>` method calls a helper function that internally runs a query, the static analyzer cannot follow that call chain.
+- **Dynamic attribute access** — `getattr(obj, field_name)` is not analyzed.
+- **Cached properties** — If `obj.author` is a `@cached_property`, the static analyzer still flags it as a potential N+1 since it cannot determine caching at the AST level.
+- **Methods with no source** — C extensions or dynamically generated methods where `inspect.getsource()` fails are silently skipped.
+- **Queries in exception handlers** — Queries inside `try`/`except` blocks are detected, but the analyzer does not account for whether the code path is actually reached.
+
+### Prescription Output
+
+```
+WARNING  N+1 risk in BookSerializer.get_total(): 'obj.items.count()' triggers a query per object
+  Location: myapp/serializers.py:45 (get_total)
+  Fix:      Use queryset.annotate() or prefetch_related('items') instead of
+            accessing 'items' in the serializer method
+
+INFO     Possible N+1 in BookSerializer.get_author_name(): 'obj.author.name' may
+         trigger a query per object if 'author' is not select_related
+  Location: myapp/serializers.py:52 (get_author_name)
+  Fix:      Add select_related('author') to the viewset queryset
+```
+
+!!! info "Static vs Runtime"
+    The static analyzer (`check_serializers` command) and the runtime DRF analyzer (middleware) are complementary. The static analyzer finds patterns in source code regardless of test coverage. The runtime analyzer detects actual N+1 queries during request processing. Use both for comprehensive coverage.
