@@ -276,4 +276,4 @@ MIDDLEWARE = [
 | Comprehensive development setup | django-debug-toolbar + django-query-doctor |
 | Comprehensive production setup | django-auto-prefetch + django-query-doctor (sampled) |
 
-For details on django-query-doctor's architecture, see [Architecture](./architecture.md). For performance characteristics, see [Performance](./performance.md). For the reasoning behind these design choices, see [Design Decisions](./design-decisions.md).
+For details on django-query-doctor's architecture, see [Architecture](./architecture.md). For performance characteristics, see [Performance](./performance.md). For the reasoning behind these design choices, see [Background & Design](./background.md).

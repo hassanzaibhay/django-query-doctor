@@ -22,7 +22,7 @@ QUERY_DOCTOR = {
     While the package works without `DEBUG=True`, we recommend running it
     primarily in development and CI. Use management commands like
     `check_queries` in CI rather than the middleware in production. See
-    [Large Codebase Strategies](examples/large-codebases.md) for production
+    [Examples](examples/index.md) for production
     patterns.
 
 ### What is the performance overhead?
@@ -268,6 +268,6 @@ the first frame in your application code. If the reported location seems wrong:
 
 ### Too many prescriptions in a large project
 
-See [Large Codebase Strategies](examples/large-codebases.md) for techniques
+See [Examples](examples/index.md) for techniques
 including diff-aware mode, `.queryignore`, per-app scanning, and gradual
 rollout.

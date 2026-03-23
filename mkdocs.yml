@@ -113,19 +113,13 @@ nav:
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quickstart.md
     - Configuration: getting-started/configuration.md
-  - Deep Dive:
-    - Why This Tool Exists: deep-dive/why-this-tool.md
-    - Architecture: deep-dive/architecture.md
-    - Design Decisions: deep-dive/design-decisions.md
-    - Performance & Benchmarks: deep-dive/performance.md
-    - Comparison with Alternatives: deep-dive/comparison.md
   - Guides:
     - How It Works: guides/how-it-works.md
-    - Middleware Usage: guides/middleware.md
-    - QueryTurbo: guides/queryturbo.md
+    - Middleware: guides/middleware.md
     - Management Commands: guides/management-commands.md
     - Pytest Plugin: guides/pytest-plugin.md
-    - Auto-Fix Mode: guides/auto-fix.md
+    - QueryTurbo: guides/queryturbo.md
+    - Auto-Fix: guides/auto-fix.md
     - Baseline Regression: guides/baseline.md
     - Prescription Grouping: guides/grouping.md
     - Benchmark Dashboard: guides/benchmark-dashboard.md
@@ -144,17 +138,13 @@ nav:
     - QuerySet Evaluation: analyzers/queryset-eval.md
     - DRF Serializer: analyzers/drf-serializer.md
     - Query Complexity: analyzers/query-complexity.md
-  - Reporters:
-    - Overview: reporters/overview.md
-    - Console (Rich): reporters/console.md
-    - JSON: reporters/json.md
-    - HTML Dashboard: reporters/html.md
-    - Log File: reporters/log.md
-    - OpenTelemetry: reporters/opentelemetry.md
-  - Examples:
-    - Real-World Scenarios: examples/real-world.md
-    - DRF ViewSets: examples/drf-viewsets.md
-    - Large Codebases: examples/large-codebases.md
+  - Reporters: reporters/index.md
+  - Examples: examples/index.md
+  - Deep Dive:
+    - Architecture: deep-dive/architecture.md
+    - Background & Design: deep-dive/background.md
+    - Performance & Benchmarks: deep-dive/performance.md
+    - Comparison with Alternatives: deep-dive/comparison.md
   - API Reference: api/reference.md
   - Contributing: contributing.md
   - Changelog: changelog.md

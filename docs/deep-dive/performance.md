@@ -335,4 +335,4 @@ See [QueryTurbo](../guides/queryturbo.md) for configuration details and the [Ben
 
 ---
 
-For a detailed comparison of how this overhead compares to other tools, see [Comparison](./comparison.md). For the architectural reasons behind these performance characteristics, see [Design Decisions](./design-decisions.md).
+For a detailed comparison of how this overhead compares to other tools, see [Comparison](./comparison.md). For the architectural reasons behind these performance characteristics, see [Background & Design](./background.md).

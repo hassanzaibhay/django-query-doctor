@@ -80,4 +80,4 @@ QUERY_DOCTOR = {
 }
 ```
 
-See [Reporters](../reporters/overview.md) for full configuration options.
+See [Reporters](../reporters/index.md) for full configuration options.

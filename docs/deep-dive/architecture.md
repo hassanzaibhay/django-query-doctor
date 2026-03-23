@@ -82,7 +82,7 @@ Django provides `connection.execute_wrapper()` as a public, stable API for wrapp
 - Composes cleanly with other wrappers (e.g., Sentry, OpenTelemetry)
 - Does not modify global state
 
-See [Design Decisions](./design-decisions.md) for a detailed comparison of approaches.
+See [Background & Design](./background.md) for a detailed comparison of approaches.
 
 ### What Gets Captured
 
@@ -423,4 +423,4 @@ class DeprecatedTableAnalyzer(BaseAnalyzer):
         return prescriptions
 ```
 
-For more on the design rationale behind these choices, see [Design Decisions](./design-decisions.md). For performance characteristics, see [Performance](./performance.md).
+For more on the design rationale behind these choices, see [Background & Design](./background.md). For performance characteristics, see [Performance](./performance.md).
