@@ -47,6 +47,30 @@ stateDiagram-v2
 
 ---
 
+## When to Enable QueryTurbo
+
+Enable QueryTurbo if your application meets these conditions:
+
+- **PostgreSQL with psycopg3** — gives the full benefit: compilation skip +
+  protocol-level prepared statements
+- **High-frequency identical-structure queries** — the same ORM pattern executes
+  100+ times per process lifetime (pagination, list views, API endpoints
+  with consistent filters)
+- **Complex queries** — JOINs, annotations, Q objects benefit most from skipping
+  compilation (up to 337 μs saved per query)
+- **Long-lived processes** — gunicorn workers, Celery workers, or Django dev server
+  sessions where the TRUSTED state (reached after 3 validations) is maintained
+
+**Do not enable on:**
+
+- SQLite databases (development or testing) — fingerprinting overhead exceeds
+  compilation savings; end-to-end performance is worse
+- Short-lived processes (serverless, AWS Lambda) — cache never warms up to TRUSTED
+- If you use `RawQuerySet` or `Manager.raw()` exclusively — these bypass QueryTurbo
+  entirely (`SKIP_RAW_SQL = True` by default)
+
+---
+
 ## Enabling QueryTurbo
 
 Add the `TURBO` section to your `QUERY_DOCTOR` settings:
@@ -150,6 +174,16 @@ QueryTurbo works with all Django-supported database backends:
 
 The compilation cache is per-process and shared across all database aliases within a process. Each query fingerprint includes the database alias, so queries against different databases do not collide.
 
+!!! note "CI verification status"
+    All 749 tests run against SQLite. Backend-specific strategies for PostgreSQL
+    (psycopg3 prepared statements), MySQL (SQL-template cache), and Oracle
+    (implicit cursor caching) are code-complete and unit-tested for strategy
+    selection logic. End-to-end integration tests against live PostgreSQL, MySQL,
+    and Oracle databases are not yet in CI.
+
+    If you encounter unexpected behavior on a non-SQLite backend, please
+    [open an issue](https://github.com/hassanzaibhay/django-query-doctor/issues).
+
 ---
 
 ## Monitoring QueryTurbo
@@ -229,6 +263,26 @@ with turbo_disabled():
 
 When a query reaches TRUSTED state, the `as_sql()` call is skipped entirely. Measured on SQLite (compilation-only, no DB I/O):
 
+!!! important "What these numbers measure"
+    The speedup figures below measure **SQL compilation overhead only** —
+    the time Django spends in `SQLCompiler.as_sql()` constructing the SQL
+    template before executing it against the database.
+
+    They do **not** measure total query time including database round-trip.
+
+    **When QueryTurbo helps most:** high-frequency endpoints where the same
+    query structure executes repeatedly (pagination, list views, API endpoints
+    with consistent filters). The benefit grows with query complexity — complex
+    queries with JOINs, annotations, and Q objects save the most compilation time.
+
+    **When QueryTurbo adds overhead:** low-latency backends (SQLite, in-memory
+    databases) where query execution is faster than the fingerprinting cost.
+    On SQLite in-memory, end-to-end benchmarks show QueryTurbo adds ~35%
+    overhead. On PostgreSQL with real network latency (1–5ms per query), the
+    compilation saving is meaningful.
+
+    Run `python benchmarks/run.py` to reproduce these numbers on your hardware.
+
 | Query Pattern | Speedup | Saved per Query |
 |---|---|---|
 | Simple filter | 123x | 38.8 μs |
@@ -238,9 +292,13 @@ When a query reaches TRUSTED state, the `as_sql()` call is skipped entirely. Mea
 | Annotate | 214x | 68.6 μs |
 | Complex (JOINs + Q + annotate) | 1,050x | 337.9 μs |
 
-Run `python benchmarks/run.py` to reproduce these numbers on your hardware.
+!!! note "Hardware variance"
+    Compilation speedup numbers are hardware-dependent. The "complex" scenario
+    shows the most variance (727x–1,050x across different machines) because
+    complex query compilation is more sensitive to CPU cache state and Python
+    interpreter warmup.
 
-On PostgreSQL with psycopg3, prepared statements provide additional savings of 0.5--5ms of query planner time per repeat query.
+On PostgreSQL with psycopg3, prepared statements provide additional savings of 0.5–5ms of query planner time per repeat query.
 
 ---
 
