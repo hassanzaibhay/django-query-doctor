@@ -142,7 +142,7 @@ def _fingerprint_where(node: WhereNode, parts: list[str], depth: int = 0) -> Non
             parts.append(f"{prefix}:unknown={type(child).__name__}")
 
 
-def _fingerprint_lookup(lookup: Lookup, parts: list[str], depth: int) -> None:  # type: ignore[type-arg]
+def _fingerprint_lookup(lookup: Lookup[Any], parts: list[str], depth: int) -> None:
     """Fingerprint a single Lookup node.
 
     For ``__in`` lookups the RHS length is included because different list
