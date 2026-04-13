@@ -2,150 +2,150 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/changelog/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/contributing/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/faq/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/analyzers/drf-serializer/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/analyzers/duplicate/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/analyzers/fat-select/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/analyzers/missing-index/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/analyzers/nplusone/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/analyzers/overview/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/analyzers/query-complexity/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/analyzers/queryset-eval/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/api/reference/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/deep-dive/architecture/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/deep-dive/background/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/deep-dive/comparison/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/deep-dive/performance/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/examples/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/getting-started/configuration/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/getting-started/installation/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/getting-started/quickstart/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/admin-dashboard/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/async-support/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/auto-fix/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/baseline/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/benchmark-dashboard/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/celery/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/ci-integration/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/custom-plugins/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/grouping/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/how-it-works/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/management-commands/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/middleware/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/pytest-plugin/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/query-ignore/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/guides/queryturbo/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
     <url>
          <loc>https://hassanzaibhay.github.io/django-query-doctor/reporters/</loc>
-         <lastmod>2026-03-23</lastmod>
+         <lastmod>2026-04-13</lastmod>
     </url>
 </urlset>
