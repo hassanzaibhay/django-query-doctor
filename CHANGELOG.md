@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-13
+
 ### Added
 - `.github/pull_request_template.md` — PR template (summary, type, changelog
   entry, testing, checklist).
@@ -18,6 +20,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `CHANGELOG.md` adopts [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
   format with an `[Unreleased]` section at the top. Every PR adds its entry
   here; on release, `[Unreleased]` is promoted to the version heading.
+- `.github/pull_request_template.md`: replaced the changelog-entry example
+  (previously tied to this very fix, before it shipped) with a generic
+  placeholder; split `breaking` out of the mutually-exclusive `## Type` list
+  into its own `Breaking change?` question; dropped the redundant
+  no-direct-to-main checkbox now that the branch ruleset enforces it.
+- `docs/getting-started/configuration.md`: full rewrite. The previous
+  example used dotted class paths for `ANALYZERS` and dotted-path
+  `REPORTERS`, neither of which the code accepts; documented fictional keys
+  (`MIN_SEVERITY`, `QUERY_DOCTOR_ENABLED`, `EXCLUDE_PATHS`,
+  `JSON_OUTPUT_DIR`/`HTML_OUTPUT_DIR`); and implied `HTMLReporter` works via
+  `REPORTERS`, which it doesn't. Rewritten against the real
+  `DEFAULT_CONFIG` and each key's call site, including three keys
+  (`STACK_TRACE_EXCLUDE`, `IGNORE_PATTERNS`, `QUERYIGNORE_PATH`) that exist
+  in defaults but aren't read by any code path yet.
+- `docs/guides/auto-fix.md`: updated to describe the new safe/unsafe split
+  and the `ast.parse()` validation floor.
+
+### Fixed
+- **`fix_queries --apply` could write broken code into your source files.**
+  The fixer edits the query's *callsite* line, but for `n_plus_one` and
+  `fat_select` prescriptions that's frequently the in-loop attribute-access
+  line, not the queryset definition — appending `.select_related(...)` or
+  `.only(...)` there produced invalid or silently-wrong Python. This shipped
+  in 2.0.0. **If you ran `fix_queries --apply` on 2.0.0, check your diffs
+  (`git diff` or the `.bak` files it created) for corrupted lines before
+  trusting them.**
+
+  As of 2.0.1, `--apply` only writes fixes for issue types verified safe
+  (`queryset_eval`, `duplicate_query`, `missing_index`) via a fixed
+  allowlist (`fixer.AUTO_APPLIABLE_ISSUE_TYPES`). `n_plus_one`, `fat_select`,
+  and `drf_serializer` are shown in the diff tagged `[MANUAL FIX ONLY]` and
+  refused at write time — apply those by hand. Before writing anything, the
+  candidate file content is also validated with `ast.parse()`; a fix that
+  would produce syntactically invalid Python is rejected instead of written
+  (this catches syntax errors only, not semantic correctness). `fix_queries
+  --apply` now exits nonzero if any fixes were skipped as unsafe or failed
+  validation, even when other fixes in the same run succeeded.
+
+  Post-patch, `--apply` performs exactly one real code transform
+  (`queryset_eval`) plus two `# TODO`-comment insertions (`duplicate_query`,
+  `missing_index`). `n_plus_one` and `fat_select` are dry-run only.
+  `drf_serializer` is never emitted by the runtime pipeline `fix_queries`
+  uses, so it never reaches the fixer at all.
 
 ## [2.0.0] - 2026-03-21
 
