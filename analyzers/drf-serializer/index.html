@@ -29,7 +29,7 @@
     
     
       
-        <title>DRF Serializer - django-query-doctor</title>
+        <title>SerializerMethodField - django-query-doctor</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#drf-serializer-analyzer" class="md-skip">
+        <a href="#serializermethodfield-analysis" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +118,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              DRF Serializer
+              SerializerMethodField
             
           </span>
         </div>
@@ -1391,7 +1391,7 @@
   <span class="md-ellipsis">
     
   
-    DRF Serializer
+    SerializerMethodField
   
 
     
@@ -1409,7 +1409,7 @@
   <span class="md-ellipsis">
     
   
-    DRF Serializer
+    SerializerMethodField
   
 
     
@@ -1446,10 +1446,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#problem-code" class="md-nav__link">
+  <a href="#running-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Problem Code
+        Running It
       
     </span>
   </a>
@@ -1457,10 +1457,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fix-code" class="md-nav__link">
+  <a href="#what-it-detects_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Fix Code
+        What It Detects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-does-not-detect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What It Does Not Detect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#problem-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem Code
       
     </span>
   </a>
@@ -1490,124 +1512,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#common-scenarios" class="md-nav__link">
+  <a href="#requires-drf" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Common Scenarios
+        Requires DRF
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Common Scenarios">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#serializermethodfield-with-queryset-access" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        SerializerMethodField with QuerySet Access
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#deeply-nested-serializers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deeply Nested Serializers
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#conditional-serializer-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Conditional Serializer Fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#prefetching-with-custom-querysets" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prefetching with Custom QuerySets
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#static-analysis-serializermethodfield-v20" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Static Analysis: SerializerMethodField (v2.0)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Static Analysis: SerializerMethodField (v2.0)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#running-static-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Running Static Analysis
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#what-it-detects_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What It Detects
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#what-it-does-not-detect" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What It Does Not Detect
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#prescription-output_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prescription Output
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -2028,10 +1939,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#problem-code" class="md-nav__link">
+  <a href="#running-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Problem Code
+        Running It
       
     </span>
   </a>
@@ -2039,10 +1950,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fix-code" class="md-nav__link">
+  <a href="#what-it-detects_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Fix Code
+        What It Detects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-does-not-detect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What It Does Not Detect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#problem-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem Code
       
     </span>
   </a>
@@ -2072,124 +2005,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#common-scenarios" class="md-nav__link">
+  <a href="#requires-drf" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Common Scenarios
+        Requires DRF
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Common Scenarios">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#serializermethodfield-with-queryset-access" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        SerializerMethodField with QuerySet Access
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#deeply-nested-serializers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deeply Nested Serializers
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#conditional-serializer-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Conditional Serializer Fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#prefetching-with-custom-querysets" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prefetching with Custom QuerySets
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#static-analysis-serializermethodfield-v20" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Static Analysis: SerializerMethodField (v2.0)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Static Analysis: SerializerMethodField (v2.0)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#running-static-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Running Static Analysis
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#what-it-detects_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What It Detects
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#what-it-does-not-detect" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What It Does Not Detect
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#prescription-output_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prescription Output
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -2213,211 +2035,36 @@
   
 
 
-<h1 id="drf-serializer-analyzer">DRF Serializer Analyzer<a class="headerlink" href="#drf-serializer-analyzer" title="Permanent link">&para;</a></h1>
+<h1 id="serializermethodfield-analysis">SerializerMethodField Analysis<a class="headerlink" href="#serializermethodfield-analysis" title="Permanent link">&para;</a></h1>
 <h2 id="what-it-detects">What It Detects<a class="headerlink" href="#what-it-detects" title="Permanent link">&para;</a></h2>
-<p>The DRF serializer analyzer detects N+1 queries that originate specifically
-from Django REST Framework serializer nesting. When a serializer declares a
-nested serializer or a <code>SerializerMethodField</code> that accesses related objects,
-each item in the response triggers additional queries unless the viewset's
-<code>get_queryset()</code> includes the appropriate <code>select_related()</code> or
-<code>prefetch_related()</code> calls.</p>
-<p>This analyzer traces the captured SQL back through the DRF serialization stack
-to identify the responsible viewset and provide a targeted fix pointing at
-<code>get_queryset()</code>.</p>
-<h2 id="problem-code">Problem Code<a class="headerlink" href="#problem-code" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># serializers.py</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">AuthorSerializer</span><span class="p">(</span><span class="n">serializers</span><span class="o">.</span><span class="n">ModelSerializer</span><span class="p">):</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="n">model</span> <span class="o">=</span> <span class="n">Author</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">]</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookSerializer</span><span class="p">(</span><span class="n">serializers</span><span class="o">.</span><span class="n">ModelSerializer</span><span class="p">):</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">author</span> <span class="o">=</span> <span class="n">AuthorSerializer</span><span class="p">()</span>  <span class="c1"># nested serializer -- triggers N+1</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">model</span> <span class="o">=</span> <span class="n">Book</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;author&quot;</span><span class="p">]</span>
+<p>django-query-doctor statically analyzes DRF <code>SerializerMethodField</code>
+<code>get_&lt;field&gt;</code> methods using Python's <code>ast</code> module, without executing the
+code. This catches the #1 hidden N+1 source in DRF apps: a <code>get_&lt;field&gt;</code>
+method that triggers a database query per serialized object.</p>
+<p>This is a <strong>static</strong> analyzer only — it reads source code, not runtime
+queries. Run it explicitly via the <code>check_serializers</code> management command;
+it does not run automatically in the middleware/request pipeline.</p>
+<h2 id="running-it">Running It<a class="headerlink" href="#running-it" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Scan all installed apps</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Scan specific apps</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--app<span class="o">=</span>myapp<span class="w"> </span>--app<span class="o">=</span>otherapp
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Scan specific modules</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--module<span class="o">=</span>myapp.serializers
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Scan specific files</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--file<span class="o">=</span>myapp/serializers.py
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># JSON output for CI</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--format<span class="o">=</span>json
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># Fail CI on warnings or above</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--fail-on<span class="o">=</span>warning
 </span></code></pre></div>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># views.py</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookViewSet</span><span class="p">(</span><span class="n">viewsets</span><span class="o">.</span><span class="n">ModelViewSet</span><span class="p">):</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">queryset</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>  <span class="c1"># no select_related</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">serializer_class</span> <span class="o">=</span> <span class="n">BookSerializer</span>
-</span></code></pre></div>
-<p>When the list endpoint returns 50 books, this fires 1 query for books plus
-50 queries to fetch each author individually.</p>
-<h2 id="fix-code">Fix Code<a class="headerlink" href="#fix-code" title="Permanent link">&para;</a></h2>
-<p>Override <code>get_queryset()</code> to eagerly load the related objects:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># views.py</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookViewSet</span><span class="p">(</span><span class="n">viewsets</span><span class="o">.</span><span class="n">ModelViewSet</span><span class="p">):</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">serializer_class</span> <span class="o">=</span> <span class="n">BookSerializer</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="k">return</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span>
-</span></code></pre></div>
-<p>For many-to-many or reverse relations, use <code>prefetch_related()</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookViewSet</span><span class="p">(</span><span class="n">viewsets</span><span class="o">.</span><span class="n">ModelViewSet</span><span class="p">):</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">serializer_class</span> <span class="o">=</span> <span class="n">BookDetailSerializer</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="k">return</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>            <span class="s2">&quot;categories&quot;</span><span class="p">,</span> <span class="s2">&quot;tags&quot;</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="p">)</span>
-</span></code></pre></div>
-<h2 id="prescription-output">Prescription Output<a class="headerlink" href="#prescription-output" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[HIGH] DRF Serializer N+1 Detected
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  Location: serializers.py:10 (BookSerializer.author)
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  Issue:    Nested `AuthorSerializer` on `BookSerializer` causes 50 extra
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>            queries. The viewset `BookViewSet` does not prefetch `author`.
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>  Fix:      Override `get_queryset()` in views.py to add `select_related`:
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>            class BookViewSet(viewsets.ModelViewSet):
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>                serializer_class = BookSerializer
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>                def get_queryset(self):
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>            -       return Book.objects.all()
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>            +       return Book.objects.select_related(&quot;author&quot;)
-</span></code></pre></div>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Setting</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>DRF_ANALYZER_ENABLED</code></td>
-<td><code>True</code></td>
-<td>Set to <code>False</code> to disable DRF-specific analysis. The general N+1 analyzer will still catch some of these patterns.</td>
-</tr>
-<tr>
-<td><code>DRF_ANALYZER_THRESHOLD</code></td>
-<td><code>3</code></td>
-<td>Minimum number of serializer-triggered queries before reporting.</td>
-</tr>
-</tbody>
-</table>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># settings.py</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">&quot;DRF_ANALYZER_THRESHOLD&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="p">}</span>
-</span></code></pre></div>
-<h2 id="common-scenarios">Common Scenarios<a class="headerlink" href="#common-scenarios" title="Permanent link">&para;</a></h2>
-<h3 id="serializermethodfield-with-queryset-access">SerializerMethodField with QuerySet Access<a class="headerlink" href="#serializermethodfield-with-queryset-access" title="Permanent link">&para;</a></h3>
-<p>A <code>SerializerMethodField</code> that traverses a relation or runs a query for each
-instance is a frequent N+1 source:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookSerializer</span><span class="p">(</span><span class="n">serializers</span><span class="o">.</span><span class="n">ModelSerializer</span><span class="p">):</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">review_count</span> <span class="o">=</span> <span class="n">serializers</span><span class="o">.</span><span class="n">SerializerMethodField</span><span class="p">()</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="n">model</span> <span class="o">=</span> <span class="n">Book</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;review_count&quot;</span><span class="p">]</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_review_count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">reviews</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>  <span class="c1"># N+1: one COUNT per book</span>
-</span></code></pre></div>
-<p><strong>Fix:</strong> Annotate the count on the queryset:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Count</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookViewSet</span><span class="p">(</span><span class="n">viewsets</span><span class="o">.</span><span class="n">ModelViewSet</span><span class="p">):</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">serializer_class</span> <span class="o">=</span> <span class="n">BookSerializer</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        <span class="k">return</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">review_count</span><span class="o">=</span><span class="n">Count</span><span class="p">(</span><span class="s2">&quot;reviews&quot;</span><span class="p">))</span>
-</span></code></pre></div>
-<p>Then reference the annotation in the serializer:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_review_count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">review_count</span>  <span class="c1"># no extra query -- uses annotation</span>
-</span></code></pre></div>
-<h3 id="deeply-nested-serializers">Deeply Nested Serializers<a class="headerlink" href="#deeply-nested-serializers" title="Permanent link">&para;</a></h3>
-<p>When serializers nest multiple levels deep, each level compounds the N+1:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">PublisherSerializer</span><span class="p">(</span><span class="n">serializers</span><span class="o">.</span><span class="n">ModelSerializer</span><span class="p">):</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>        <span class="n">model</span> <span class="o">=</span> <span class="n">Publisher</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">]</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">AuthorSerializer</span><span class="p">(</span><span class="n">serializers</span><span class="o">.</span><span class="n">ModelSerializer</span><span class="p">):</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">publisher</span> <span class="o">=</span> <span class="n">PublisherSerializer</span><span class="p">()</span>  <span class="c1"># level 2 nesting</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookSerializer</span><span class="p">(</span><span class="n">serializers</span><span class="o">.</span><span class="n">ModelSerializer</span><span class="p">):</span>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">author</span> <span class="o">=</span> <span class="n">AuthorSerializer</span><span class="p">()</span>  <span class="c1"># level 1 nesting</span>
-</span></code></pre></div>
-<p><strong>Fix:</strong> Chain <code>select_related</code> with double-underscore lookups:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="k">return</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author__publisher&quot;</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="conditional-serializer-fields">Conditional Serializer Fields<a class="headerlink" href="#conditional-serializer-fields" title="Permanent link">&para;</a></h3>
-<p>Serializers that include different nested serializers depending on the action
-need matching queryset optimization:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookViewSet</span><span class="p">(</span><span class="n">viewsets</span><span class="o">.</span><span class="n">ModelViewSet</span><span class="p">):</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_serializer_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;list&quot;</span><span class="p">:</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>            <span class="k">return</span> <span class="n">BookListSerializer</span>   <span class="c1"># no nested author</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>        <span class="k">return</span> <span class="n">BookDetailSerializer</span>      <span class="c1"># includes nested author</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>        <span class="n">qs</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">!=</span> <span class="s2">&quot;list&quot;</span><span class="p">:</span>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>            <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span>
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>        <span class="k">return</span> <span class="n">qs</span>
-</span></code></pre></div>
-<h3 id="prefetching-with-custom-querysets">Prefetching with Custom QuerySets<a class="headerlink" href="#prefetching-with-custom-querysets" title="Permanent link">&para;</a></h3>
-<p>For complex prefetch scenarios, use <code>Prefetch</code> objects to control the queryset
-used for prefetching:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prefetch</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="k">return</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        <span class="n">Prefetch</span><span class="p">(</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>            <span class="s2">&quot;reviews&quot;</span><span class="p">,</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            <span class="n">queryset</span><span class="o">=</span><span class="n">Review</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;user&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;-created_at&quot;</span><span class="p">)[:</span><span class="mi">5</span><span class="p">],</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>        <span class="p">)</span>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="p">)</span>
-</span></code></pre></div>
-<div class="admonition info">
-<p class="admonition-title">How It Traces Back to ViewSets</p>
-<p>The analyzer inspects the Python stack trace captured alongside each SQL
-query. When it finds DRF serialization frames (e.g., <code>to_representation</code>,
-<code>SerializerMethodField.to_representation</code>), it walks up the stack to locate
-the originating viewset class and its <code>get_queryset()</code> method. This allows
-the prescription to point directly at the viewset that needs to be updated.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Requires DRF</p>
-<p>This analyzer only activates when <code>rest_framework</code> is installed. If DRF is
-not present, the analyzer silently skips itself. The general N+1 analyzer
-will still catch relation-access patterns regardless of whether DRF is used.</p>
-</div>
-<hr />
-<h2 id="static-analysis-serializermethodfield-v20">Static Analysis: SerializerMethodField <em>(v2.0)</em><a class="headerlink" href="#static-analysis-serializermethodfield-v20" title="Permanent link">&para;</a></h2>
-<p>In addition to runtime detection, django-query-doctor includes a <strong>static analyzer</strong> that inspects <code>SerializerMethodField</code> <code>get_&lt;field&gt;</code> methods using Python's <code>ast</code> module without executing the code. This catches N+1 patterns that are invisible to runtime analysis when test coverage is incomplete.</p>
-<h3 id="running-static-analysis">Running Static Analysis<a class="headerlink" href="#running-static-analysis" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Scan all installed apps</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># Scan specific apps</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--app<span class="o">=</span>myapp<span class="w"> </span>--app<span class="o">=</span>otherapp
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="c1"># Scan specific modules</span>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--module<span class="o">=</span>myapp.serializers
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
-</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="c1"># Scan specific files</span>
-</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--file<span class="o">=</span>myapp/serializers.py
-</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>
-</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="c1"># JSON output for CI</span>
-</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--format<span class="o">=</span>json
-</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>
-</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="c1"># Fail CI on warnings or above</span>
-</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--fail-on<span class="o">=</span>warning
-</span></code></pre></div>
-<h3 id="what-it-detects_1">What It Detects<a class="headerlink" href="#what-it-detects_1" title="Permanent link">&para;</a></h3>
-<p>The static analyzer walks the AST of each <code>get_&lt;field&gt;</code> method and detects four patterns:</p>
+<h2 id="what-it-detects_1">What It Detects<a class="headerlink" href="#what-it-detects_1" title="Permanent link">&para;</a></h2>
+<p>The analyzer walks the AST of each <code>get_&lt;field&gt;</code> method and detects four patterns:</p>
 <table>
 <thead>
 <tr>
@@ -2449,29 +2096,77 @@ will still catch relation-access patterns regardless of whether DRF is used.</p>
 </tr>
 </tbody>
 </table>
-<h3 id="what-it-does-not-detect">What It Does Not Detect<a class="headerlink" href="#what-it-does-not-detect" title="Permanent link">&para;</a></h3>
+<h2 id="what-it-does-not-detect">What It Does Not Detect<a class="headerlink" href="#what-it-does-not-detect" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Indirect queryset access</strong> — If a <code>get_&lt;field&gt;</code> method calls a helper function that internally runs a query, the static analyzer cannot follow that call chain.</li>
+<li><strong>Indirect queryset access</strong> — If a <code>get_&lt;field&gt;</code> method calls a helper function that internally runs a query, the analyzer cannot follow that call chain.</li>
 <li><strong>Dynamic attribute access</strong> — <code>getattr(obj, field_name)</code> is not analyzed.</li>
-<li><strong>Cached properties</strong> — If <code>obj.author</code> is a <code>@cached_property</code>, the static analyzer still flags it as a potential N+1 since it cannot determine caching at the AST level.</li>
+<li><strong>Cached properties</strong> — If <code>obj.author</code> is a <code>@cached_property</code>, the analyzer still flags it as a potential N+1 since it cannot determine caching at the AST level.</li>
 <li><strong>Methods with no source</strong> — C extensions or dynamically generated methods where <code>inspect.getsource()</code> fails are silently skipped.</li>
 <li><strong>Queries in exception handlers</strong> — Queries inside <code>try</code>/<code>except</code> blocks are detected, but the analyzer does not account for whether the code path is actually reached.</li>
 </ul>
-<h3 id="prescription-output_1">Prescription Output<a class="headerlink" href="#prescription-output_1" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>WARNING  N+1 risk in BookSerializer.get_total(): &#39;obj.items.count()&#39; triggers a query per object
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>  Location: myapp/serializers.py:45 (get_total)
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>  Fix:      Use queryset.annotate() or prefetch_related(&#39;items&#39;) instead of
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>            accessing &#39;items&#39; in the serializer method
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>INFO     Possible N+1 in BookSerializer.get_author_name(): &#39;obj.author.name&#39; may
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>         trigger a query per object if &#39;author&#39; is not select_related
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>  Location: myapp/serializers.py:52 (get_author_name)
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>  Fix:      Add select_related(&#39;author&#39;) to the viewset queryset
+<h2 id="problem-code">Problem Code<a class="headerlink" href="#problem-code" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookSerializer</span><span class="p">(</span><span class="n">serializers</span><span class="o">.</span><span class="n">ModelSerializer</span><span class="p">):</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">review_count</span> <span class="o">=</span> <span class="n">serializers</span><span class="o">.</span><span class="n">SerializerMethodField</span><span class="p">()</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="n">model</span> <span class="o">=</span> <span class="n">Book</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;review_count&quot;</span><span class="p">]</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_review_count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">reviews</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>  <span class="c1"># N+1: one COUNT per book</span>
 </span></code></pre></div>
-<div class="admonition info">
-<p class="admonition-title">Static vs Runtime</p>
-<p>The static analyzer (<code>check_serializers</code> command) and the runtime DRF analyzer (middleware) are complementary. The static analyzer finds patterns in source code regardless of test coverage. The runtime analyzer detects actual N+1 queries during request processing. Use both for comprehensive coverage.</p>
-</div>
+<p><strong>Fix:</strong> Annotate the count on the queryset:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Count</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookViewSet</span><span class="p">(</span><span class="n">viewsets</span><span class="o">.</span><span class="n">ModelViewSet</span><span class="p">):</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">serializer_class</span> <span class="o">=</span> <span class="n">BookSerializer</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="k">return</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">review_count</span><span class="o">=</span><span class="n">Count</span><span class="p">(</span><span class="s2">&quot;reviews&quot;</span><span class="p">))</span>
+</span></code></pre></div>
+<p>Then reference the annotation in the serializer:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_review_count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">review_count</span>  <span class="c1"># no extra query -- uses annotation</span>
+</span></code></pre></div>
+<h2 id="prescription-output">Prescription Output<a class="headerlink" href="#prescription-output" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>WARNING  N+1 risk in BookSerializer.get_total(): &#39;obj.items.count()&#39; triggers a query per object
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  Location: myapp/serializers.py:45 (get_total)
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  Fix:      Use queryset.annotate() or prefetch_related(&#39;items&#39;) instead of
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>            accessing &#39;items&#39; in the serializer method
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>INFO     Possible N+1 in BookSerializer.get_author_name(): &#39;obj.author.name&#39; may
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>         trigger a query per object if &#39;author&#39; is not select_related
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>  Location: myapp/serializers.py:52 (get_author_name)
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>  Fix:      Add select_related(&#39;author&#39;) to the viewset queryset
+</span></code></pre></div>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ANALYZERS.serializer_method.enabled</code></td>
+<td><code>True</code></td>
+<td>Set to <code>False</code> to disable this analyzer.</td>
+</tr>
+</tbody>
+</table>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># settings.py</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">&quot;ANALYZERS&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="s2">&quot;serializer_method&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="p">},</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<h2 id="requires-drf">Requires DRF<a class="headerlink" href="#requires-drf" title="Permanent link">&para;</a></h2>
+<p>This analyzer only activates when <code>rest_framework</code> is installed. If DRF is
+not present, <code>check_serializers</code> reports that DRF is not installed and exits
+without error.</p>
 
 
 
@@ -2494,7 +2189,7 @@ will still catch relation-access patterns regardless of whether DRF is used.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 23, 2026 19:25:55 UTC">March 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 19:43:08 UTC">July 13, 2026</span>
   </span>
 
     

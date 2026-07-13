@@ -1379,7 +1379,7 @@
   <span class="md-ellipsis">
     
   
-    DRF Serializer
+    SerializerMethodField
   
 
     
@@ -2635,7 +2635,6 @@
     QList --&gt; MI["Missing Index Analyzer"]
     QList --&gt; FS["Fat SELECT Analyzer"]
     QList --&gt; CX["Complexity Analyzer"]
-    QList --&gt; DRF["DRF Serializer Analyzer"]
     QList --&gt; QE["QuerySet Eval Analyzer"]
 
     NP --&gt; P1["Prescriptions"]
@@ -2643,7 +2642,6 @@
     MI --&gt; P3["Prescriptions"]
     FS --&gt; P4["Prescriptions"]
     CX --&gt; P5["Prescriptions"]
-    DRF --&gt; P6["Prescriptions"]
     QE --&gt; P7["Prescriptions"]
 
     P1 --&gt; AGG["Aggregated Results"]
@@ -2651,7 +2649,6 @@
     P3 --&gt; AGG
     P4 --&gt; AGG
     P5 --&gt; AGG
-    P6 --&gt; AGG
     P7 --&gt; AGG</code></pre>
 <p>Each analyzer implements the <code>BaseAnalyzer</code> abstract class:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">BaseAnalyzer</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
@@ -2731,8 +2728,8 @@
 <p><strong>Missing Index Analyzer</strong> (<code>missing_index.py</code>): Examines WHERE and JOIN clauses for column references, then checks Django model meta information to determine if those columns are indexed. Suggests <code>Meta.indexes</code> with <code>models.Index()</code> for missing indexes.</p>
 <p><strong>Fat SELECT Analyzer</strong> (<code>fat_select.py</code>): Detects <code>SELECT *</code> patterns (or selecting all model fields) when the code only accesses a subset of fields. Suggests <code>.only()</code> or <code>.values()</code> calls.</p>
 <p><strong>Complexity Analyzer</strong> (<code>complexity.py</code>): Scores query complexity based on the number of JOINs, subqueries, CASE expressions, and aggregate functions. Flags queries above a configurable threshold.</p>
-<p><strong>DRF Serializer Analyzer</strong> (<code>drf_serializer.py</code>): Specialized N+1 detection that understands Django REST Framework serializer field access patterns. Identifies when serializer fields trigger lazy-loaded relationship access.</p>
 <p><strong>QuerySet Eval Analyzer</strong> (<code>queryset_eval.py</code>): Detects unnecessary queryset evaluations such as calling <code>.count()</code> on an already-evaluated queryset, or iterating over a queryset multiple times.</p>
+<p><strong>SerializerMethodField Analyzer</strong> (<code>serializer_method.py</code>): A separate, static-only analyzer — it does not participate in the runtime pipeline above. It statically parses DRF <code>SerializerMethodField</code> <code>get_&lt;field&gt;</code> methods with Python's <code>ast</code> module and flags N+1-prone access patterns, invoked explicitly via the <code>check_serializers</code> management command rather than through <code>analyze(queries)</code>.</p>
 <hr />
 <h2 id="stage-4-report">Stage 4: Report<a class="headerlink" href="#stage-4-report" title="Permanent link">&para;</a></h2>
 <p>The reporter stage takes the aggregated prescriptions and formats them for output. Multiple reporters can be active simultaneously.</p>
@@ -2952,7 +2949,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 05:34:48 UTC">July 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 19:43:08 UTC">July 13, 2026</span>
   </span>
 
     

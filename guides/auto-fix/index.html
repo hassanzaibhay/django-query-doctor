@@ -1578,7 +1578,7 @@
   <span class="md-ellipsis">
     
   
-    DRF Serializer
+    SerializerMethodField
   
 
     
@@ -2274,7 +2274,7 @@
 </span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span>--issue-type<span class="w"> </span>n_plus_one<span class="w"> </span>fat_select<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span>--apply
 </span></code></pre></div>
-<p>Values that actually produce fixes through <code>fix_queries</code>: <code>n_plus_one</code>, <code>duplicate_query</code>, <code>fat_select</code>, <code>queryset_eval</code>, <code>missing_index</code>. <code>complexity</code> is detected but has no fix handler. <code>drf_serializer</code> findings are produced by the separate <code>check_serializers</code> static analyzer (see <a href="../../analyzers/drf-serializer/">DRF Serializer Analyzer</a>), not by the runtime pipeline <code>fix_queries</code> uses, so this value currently has nothing to filter.</p>
+<p><code>--issue-type</code> only accepts the five values that actually produce fixes through <code>fix_queries</code>: <code>n_plus_one</code>, <code>duplicate_query</code>, <code>fat_select</code>, <code>queryset_eval</code>, <code>missing_index</code>. <code>complexity</code> is detected but has no fix handler. <code>SerializerMethodField</code> findings are produced by the separate <code>check_serializers</code> static analyzer (see <a href="../../analyzers/drf-serializer/">SerializerMethodField Analysis</a>), not by the runtime pipeline <code>fix_queries</code> uses, so it isn't a valid <code>--issue-type</code> value.</p>
 <hr />
 <h2 id="fix-details">Fix Details<a class="headerlink" href="#fix-details" title="Permanent link">&para;</a></h2>
 <h3 id="n_plus_one-dry-run-only-never-auto-applied"><code>n_plus_one</code> — dry-run only, never auto-applied<a class="headerlink" href="#n_plus_one-dry-run-only-never-auto-applied" title="Permanent link">&para;</a></h3>
@@ -2360,7 +2360,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 11:16:21 UTC">July 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 19:43:08 UTC">July 13, 2026</span>
   </span>
 
     

@@ -1379,7 +1379,7 @@
   <span class="md-ellipsis">
     
   
-    DRF Serializer
+    SerializerMethodField
   
 
     
@@ -1823,8 +1823,62 @@ and rendered here automatically by MkDocs.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
-<h2 id="201-2026-07-13">[2.0.1] - 2026-07-13<a class="headerlink" href="#201-2026-07-13" title="Permanent link">&para;</a></h2>
+<h2 id="upgrading-to-210">Upgrading to 2.1.0<a class="headerlink" href="#upgrading-to-210" title="Permanent link">&para;</a></h2>
+<p><code>nplusone</code>, <code>duplicate</code>, and <code>missing_index</code> now respect their
+<code>ANALYZERS.&lt;name&gt;.enabled</code> config setting, and every dispatch path
+(middleware, pytest plugin, Celery integration, context manager,
+<code>check_queries</code>/<code>diagnose_project</code>) now runs the full set of discovered
+analyzers instead of a hardcoded subset. If you use <code>check_queries
+--baseline</code>, <strong>regenerate your baseline</strong> after upgrading — the widened
+analyzer coverage means an old baseline will report newly-covered findings as
+regressions until it's refreshed. Comparing against a baseline saved with a
+different query-doctor version now prints a non-blocking warning rather than
+failing the check.</p>
+<h2 id="210-2026-07-14">[2.1.0] - 2026-07-14<a class="headerlink" href="#210-2026-07-14" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>IssueType.SERIALIZER_METHOD_FIELD</code> — findings from <code>SerializerMethodAnalyzer</code>
+  (the <code>check_serializers</code> static analyzer) now carry their own issue type
+  instead of sharing <code>IssueType.DRF_SERIALIZER</code> with the deleted runtime
+  analyzer. <code>DRF_SERIALIZER</code> remains in the enum for plugin/fixer compatibility.</li>
+</ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>nplusone</code>, <code>duplicate</code>, and <code>missing_index</code> analyzers now respect their
+  <code>ANALYZERS.&lt;name&gt;.enabled</code> config setting. Previously, disabling these
+  three analyzers had no effect outside <code>fix_queries</code> — they still ran and
+  reported issues through the middleware, pytest plugin, Celery integration,
+  context manager, and <code>check_queries</code>/<code>diagnose_project</code> commands.</li>
+<li>Middleware, context manager, <code>check_queries</code>, Celery integration, and the
+  pytest plugin now dispatch through <code>discover_analyzers()</code> instead of five
+  separate hardcoded, inconsistent analyzer lists (3-5 of the built-ins each).
+  Every analyzer's own <code>is_enabled()</code> gate (above) is what keeps config
+  toggles honored now that dispatch is no longer hand-filtered per site.</li>
+<li><code>serializer_method</code> now has a <code>DEFAULT_CONFIG</code> entry, so
+  <code>ANALYZERS.serializer_method.enabled = False</code> actually disables it.
+  Previously there was no config key to set, so the analyzer always ran.</li>
+<li><code>fat_select</code>'s column-count threshold is now configurable via
+  <code>ANALYZERS.fat_select.threshold</code> (previously only overridable by
+  constructing the analyzer directly; the config key didn't exist).</li>
+<li><code>fix_queries --issue-type</code> now validates against the five fixer-backed
+  issue types instead of silently accepting any string and producing zero
+  fixes on a typo.</li>
+<li><code>check_queries --baseline</code> now tracks the query-doctor version the baseline
+  was saved with (previously hardcoded to a stale <code>"2.0.0"</code> literal) and
+  prints a non-blocking warning — not a failure — when comparing against a
+  baseline saved with a different version.</li>
+</ul>
+<h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Removed <code>DRFSerializerAnalyzer</code>, a builtin analyzer that always returned no
+  results through any code path reachable from <code>fix_queries</code>, the middleware,
+  or any management command. DRF serializer N+1 detection is unaffected —
+  it's covered by the static <code>SerializerMethodAnalyzer</code> (<code>check_serializers</code>
+  command), which is unchanged aside from its issue type (see Added). The
+  built-in analyzer count is now 7.</li>
+</ul>
+<h2 id="201-2026-07-13">[2.0.1] - 2026-07-13<a class="headerlink" href="#201-2026-07-13" title="Permanent link">&para;</a></h2>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>.github/pull_request_template.md</code> — PR template (summary, type, changelog
   entry, testing, checklist).</li>
@@ -1854,7 +1908,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <li><code>docs/guides/auto-fix.md</code>: updated to describe the new safe/unsafe split
   and the <code>ast.parse()</code> validation floor.</li>
 </ul>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>fix_queries --apply</code> could write broken code into your source files.</strong>
   The fixer edits the query's <em>callsite</em> line, but for <code>n_plus_one</code> and
@@ -1881,7 +1935,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   <code>drf_serializer</code> is never emitted by the runtime pipeline <code>fix_queries</code>
   uses, so it never reaches the fixer at all.</p>
 <h2 id="200-2026-03-21">[2.0.0] - 2026-03-21<a class="headerlink" href="#200-2026-03-21" title="Permanent link">&para;</a></h2>
-<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>QueryTurbo</strong>: SQL compilation cache with three-phase trust lifecycle
   (UNTRUSTED → TRUSTED → POISONED). On cache miss, compiles and caches.
@@ -1948,7 +2002,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <li>New config key: <code>VALIDATION_THRESHOLD</code> (default 3) controls trust promotion</li>
 </ul>
 <h2 id="103-2026-03-18">[1.0.3] - 2026-03-18<a class="headerlink" href="#103-2026-03-18" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Missing Index analyzer now recommends <code>Meta.indexes</code> with <code>models.Index()</code> instead of <code>db_index=True</code>, following Django's official recommendation since 4.2 (fixes #1)</li>
 <li>Auto-fix for missing indexes now generates <code>Meta.indexes</code> suggestion instead of <code>db_index=True</code></li>
@@ -1963,7 +2017,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <li>Updated docs, README, and all affected tests to reflect new recommendation text</li>
 </ul>
 <h2 id="102-2026-03-16">[1.0.2] - 2026-03-16<a class="headerlink" href="#102-2026-03-16" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fixed SVG terminal renders not displaying on GitHub (switched to absolute URLs)</li>
 <li>Removed Google Fonts @import from SVGs blocked by GitHub CSP</li>
@@ -1977,7 +2031,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <li>Updated .gitignore with additional exclusions</li>
 </ul>
 <h2 id="100-2026-03-13">[1.0.0] - 2026-03-13<a class="headerlink" href="#100-2026-03-13" title="Permanent link">&para;</a></h2>
-<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
+<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
 <h4 id="core-pipeline">Core Pipeline<a class="headerlink" href="#core-pipeline" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Query interception via <code>connection.execute_wrapper()</code> — works without <code>DEBUG=True</code></li>
