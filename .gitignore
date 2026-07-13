@@ -19,8 +19,9 @@ query_doctor_report.html
 # Generated artifacts
 benchmarks/report.html
 benchmarks/results.json
-PROJECT_AUDIT.md
-FINAL_AUDIT.md
+
+# local planning / scratch — never tracked
+.scratch/
 
 # Secrets / environments
 .env
