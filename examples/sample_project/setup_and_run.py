@@ -134,28 +134,9 @@ from query_doctor import diagnose_queries
 with diagnose_queries() as report:
     response = client.get("/")
 
-console_output = []
-console_output.append(f"Total queries: {report.total_queries}")
-console_output.append(f"Total time: {report.total_time_ms:.1f}ms")
-console_output.append(f"Issues found: {report.issues}")
-console_output.append("")
-for rx in report.prescriptions:
-    console_output.append(f"{rx.severity.value.upper()}: {rx.description}")
-    if rx.fix_suggestion:
-        console_output.append(f"  Fix: {rx.fix_suggestion}")
-    if rx.callsite:
-        console_output.append(f"  Location: {rx.callsite.filepath}:{rx.callsite.line_number}")
-    console_output.append("")
-
-console_text = "\n".join(console_output)
-print(console_text)
-
-with open(os.path.join(output_dir, "console_output.txt"), "w") as f:
-    f.write("=" * 60 + "\n")
-    f.write("Query Doctor — Console Output Example\n")
-    f.write("URL: / (book list)\n")
-    f.write("=" * 60 + "\n\n")
-    f.write(console_text)
+print(f"Total queries: {report.total_queries}")
+print(f"Total time: {report.total_time_ms:.1f}ms")
+print(f"Issues found: {report.issues}")
 
 # --- 2. JSON Reporter ---
 print("\n--- JSON Reporter ---")
@@ -188,13 +169,11 @@ urls_to_test = [
     ("/publisher-stats/", "Publisher Stats"),
 ]
 
-all_prescriptions = list(report.prescriptions)  # Keep the first batch
 for url, label in urls_to_test:
     try:
         with diagnose_queries() as r:
             client.get(url)
         print(f"  {label} ({url}): {r.total_queries} queries, {r.issues} issues")
-        all_prescriptions.extend(r.prescriptions)
     except Exception as e:
         print(f"  {label} ({url}): Error — {e}")
 
@@ -250,26 +229,6 @@ with open(os.path.join(output_dir, "query_budget_output.txt"), "w") as f:
     f.write("    for b in books:\n")
     f.write("        _ = b.author.name  # N+1 — exceeds budget\n\n")
     f.write(f"Result: {budget_text}\n")
-
-# --- 7. Auto-fix diff ---
-print("\n--- Auto-Fix Diff Preview ---")
-auto_fix_output = []
-auto_fix_output.append("=" * 60)
-auto_fix_output.append("fix_queries --dry-run output")
-auto_fix_output.append("=" * 60)
-auto_fix_output.append("")
-for rx in all_prescriptions:
-    if rx.fix_suggestion and rx.callsite:
-        auto_fix_output.append(f"--- {rx.callsite.filepath}")
-        auto_fix_output.append(f"+++ {rx.callsite.filepath} (fixed)")
-        auto_fix_output.append(f"@@ Line {rx.callsite.line_number} @@")
-        auto_fix_output.append(f"  Issue: {rx.description}")
-        auto_fix_output.append(f"+ Fix: {rx.fix_suggestion}")
-        auto_fix_output.append("")
-
-with open(os.path.join(output_dir, "auto_fix_diff.txt"), "w") as f:
-    f.write("\n".join(auto_fix_output))
-print("  Auto-fix diff saved")
 
 # --- Summary ---
 print("\n" + "=" * 60)

@@ -71,7 +71,6 @@ Changelog = "https://github.com/hassanzaibhay/django-query-doctor/blob/main/CHAN
 exclude = [
     "benchmarks/report.html",
     "benchmarks/results.json",
-    "PROJECT_AUDIT.md",
 ]
 
 [tool.hatch.build.targets.wheel]

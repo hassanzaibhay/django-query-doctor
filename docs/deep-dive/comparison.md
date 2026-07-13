@@ -24,13 +24,13 @@ This document provides a detailed feature comparison between django-query-doctor
 | SQL fingerprinting | Yes | No | No | No | No |
 | **Environments** | | | | | |
 | Works without `DEBUG=True` | Yes | No | Yes | Yes | Yes |
-| Production-safe | Yes | No | Partial (overhead) | Yes | Yes |
+| Production-safe | Yes | No | Partial (overhead) | No (dev-only per its own docs) | Yes |
 | Zero required dependencies | Yes | No | No | No | No |
 | **Integration** | | | | | |
 | Management commands | Yes | No | No | No | No |
 | Pytest plugin | Yes | No | No | Partial | No |
-| Celery task support | Yes | No | Yes | No | No |
-| Async Django support | Yes | Yes | No | No | Yes |
+| Celery task support | Yes | No | Yes | Yes (`nplusone.ext.celery`) | No |
+| Async Django support | Yes | Partial (experimental) | No | No | Yes |
 | CI/CD integration | Yes | No | No | No | No |
 | Git diff-aware filtering | Yes | No | No | No | No |
 | Query budgets (per-view) | Yes | No | No | No | No |
@@ -96,6 +96,7 @@ This document provides a detailed feature comparison between django-query-doctor
 - Focused, simple implementation
 - Low overhead for its specific use case
 - Integrates with pytest via warnings
+- Has Celery integration (`nplusone.ext.celery`) and configurable whitelist/ignore rules
 
 **Where django-query-doctor adds value:**
 - Six additional detection categories beyond N+1
@@ -104,25 +105,28 @@ This document provides a detailed feature comparison between django-query-doctor
 - Management commands for full-project scanning
 - Query budgets and CI/CD enforcement
 - Git diff-aware filtering for incremental adoption
+- Designed to run in production; nplusone's own documentation says it should only be used in development
+
+> **Note:** nplusone's last release was over a year ago and the project sees low development activity, though it remains functional and available on PyPI.
 
 ### vs. django-auto-prefetch
 
-**django-auto-prefetch** takes a fundamentally different approach: instead of detecting and reporting issues, it automatically adds `select_related` to ForeignKey access at the model level.
+**django-auto-prefetch** takes a fundamentally different approach: instead of detecting and reporting issues, it automatically prefetches to-one relations (ForeignKey and OneToOneField, including reverse OneToOne) at the model level, so accessing an unfetched relation triggers a single follow-up query for the whole batch instead of one query per instance.
 
 **Strengths of django-auto-prefetch:**
 - Zero developer effort after initial setup
-- Immediate performance improvement for ForeignKey N+1
+- Immediate performance improvement for ForeignKey/OneToOne N+1
 - No reports to read or fixes to apply
+- Actively maintained (Adam Johnson), supports current Django and Python versions
 
 **Where django-query-doctor adds value:**
-- Visibility into what is happening (auto-prefetch is invisible)
-- Handles ManyToMany relationships (auto-prefetch does not)
-- Detects issues beyond N+1 (duplicates, missing indexes, etc.)
-- Does not modify query behavior (auto-prefetch changes JOINs globally)
-- Helps developers learn to write better querysets
-- Per-view control instead of global behavior change
+- Visibility into what queries ran and why (auto-prefetch's mitigation happens silently)
+- Handles ManyToMany and reverse-FK relationships (auto-prefetch handles ForeignKey/OneToOne only)
+- Detects issues beyond N+1 (duplicates, missing indexes, fat SELECTs, etc.)
+- Per-view control instead of a global model-level behavior change
+- Helps developers learn to write better querysets, since it reports rather than silently mitigates
 
-> **Warning:** django-auto-prefetch modifies your application's query behavior globally. While this can improve performance, it can also lead to unexpected query shapes and makes it harder to reason about database access patterns. django-query-doctor prefers explicit fixes over implicit behavior changes.
+> **Note:** django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off — automatic mitigation instead of manual `select_related()` calls — and the same on-demand-prefetch idea now ships in Django itself as [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/) (`FETCH_PEERS`), landing in Django 6.1. django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.
 
 ---
 
@@ -212,7 +216,7 @@ QUERY_DOCTOR = {
 }
 ```
 
-In production, only django-query-doctor and django-auto-prefetch are suitable. django-auto-prefetch provides automatic mitigation; django-query-doctor provides visibility and detection. They can coexist: auto-prefetch handles ForeignKey N+1 automatically while django-query-doctor catches everything else.
+In production, only django-query-doctor and django-auto-prefetch are suitable (nplusone's own docs say it should not be deployed to production). django-auto-prefetch provides automatic mitigation; django-query-doctor provides visibility and detection. They can coexist: auto-prefetch handles ForeignKey/OneToOne N+1 automatically while django-query-doctor catches everything else (M2M, duplicates, missing indexes, etc.).
 
 ---
 
@@ -247,7 +251,7 @@ MIDDLEWARE = ["query_doctor.middleware.QueryDoctorMiddleware", ...]
 
 ### From django-auto-prefetch (adding django-query-doctor)
 
-Keep django-auto-prefetch if it is working well for you. Add django-query-doctor to catch the issues auto-prefetch does not handle (M2M, duplicates, missing indexes, etc.):
+Keep django-auto-prefetch if it is working well for you. Add django-query-doctor to catch the issues auto-prefetch does not handle (M2M, reverse-FK, duplicates, missing indexes, etc.):
 
 ```python
 MIDDLEWARE = [
@@ -258,7 +262,7 @@ MIDDLEWARE = [
 # django-auto-prefetch is configured at the model level, not in middleware
 ```
 
-> **Note:** With both tools active, django-query-doctor will not report N+1 issues on ForeignKey relationships that django-auto-prefetch has already resolved. You will still see reports for M2M relationships and other issue categories.
+> **Note:** With both tools active, django-query-doctor will not report N+1 issues on ForeignKey/OneToOne relationships that django-auto-prefetch has already resolved. You will still see reports for M2M relationships and other issue categories.
 
 ---
 

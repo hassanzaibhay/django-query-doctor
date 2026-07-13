@@ -22,10 +22,10 @@ In a typical Django project with 100+ models, these inefficiencies accumulate si
 |------|-----------|
 | django-debug-toolbar | Requires `DEBUG=True`, manual inspection, no CI integration, no fix suggestions |
 | django-silk | Heavyweight (own DB tables), detection only, not CI-friendly |
-| nplusone | N+1 only (no duplicates, indexes, etc.), no file:line, no fixes, unmaintained |
-| django-auto-prefetch | Masks the problem instead of fixing it, ForeignKey only, no visibility |
+| nplusone | N+1 only (no duplicates, indexes, etc.), no file:line, no fixes, low recent development activity, not intended for production |
+| django-auto-prefetch | Automatically prefetches ForeignKey/OneToOne relations instead of reporting them — no visibility into what changed, and it doesn't cover M2M or other issue categories |
 
-django-query-doctor addresses all of these gaps: 8 analyzer categories, exact file:line references, copy-paste code fixes, CI integration, and no `DEBUG=True` requirement.
+django-query-doctor addresses all of these gaps: 8 analyzer categories, exact file:line references, copy-paste code fixes, CI integration, and no `DEBUG=True` requirement. (Note: Django itself is gaining a similar on-demand-prefetch mechanism — [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/) — landing in Django 6.1; django-auto-prefetch's approach predates and inspired the same idea being adopted into core Django.)
 
 ---
 
@@ -57,7 +57,7 @@ N+1 DETECTED: 47 queries on books_author via FK author_id
           + Book.objects.select_related('author')
 ```
 
-The fixer uses stack trace analysis, SQL pattern matching, and Django model introspection to generate the fix.
+The fixer generates the fix suggestion text from stack trace analysis and SQL pattern matching. Applying the fix (`fix_queries --apply`) is a separate, simpler step: a regex substitution on the single source line at the callsite — it does not parse or restructure code. See [Auto-Fix](../guides/auto-fix.md) for the real mechanics and its limitations.
 
 ### 5. Per-Request Synchronous Analysis
 

@@ -78,7 +78,8 @@ QUERY_DOCTOR = {
 
 - Python 3.10+
 - Django 4.2, 5.0, 5.1, 5.2, or 6.0
-- Optional: Rich (styled console), DRF (serializer analysis), psycopg3 (prepared statements)
+- Optional extras: `pip install django-query-doctor[rich]` for styled console output, `[celery]` for Celery task support, `[otel]` for OpenTelemetry export
+- Optional third-party packages (install separately, not query-doctor extras): DRF for serializer analysis, psycopg3 for prepared-statement support
 
 ## Links
 

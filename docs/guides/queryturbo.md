@@ -175,7 +175,7 @@ QueryTurbo works with all Django-supported database backends:
 The compilation cache is per-process and shared across all database aliases within a process. Each query fingerprint includes the database alias, so queries against different databases do not collide.
 
 !!! note "CI verification status"
-    All 749 tests run against SQLite. Backend-specific strategies for PostgreSQL
+    The full test suite runs against SQLite. Backend-specific strategies for PostgreSQL
     (psycopg3 prepared statements), MySQL (SQL-template cache), and Oracle
     (implicit cursor caching) are code-complete and unit-tested for strategy
     selection logic. End-to-end integration tests against live PostgreSQL, MySQL,

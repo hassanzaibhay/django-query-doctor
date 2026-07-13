@@ -84,7 +84,7 @@ def get_featured_count():
 ## Prescription Output
 
 ```
-[MEDIUM] Duplicate Query Detected
+[WARNING] Duplicate Query Detected
   Location: views.py:4, templatetags/book_tags.py:5
   Issue:    Query `SELECT COUNT(*) FROM "app_book" WHERE "app_book"."featured" = ?`
             executed 2 times with identical parameters.
@@ -100,12 +100,15 @@ def get_featured_count():
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `DUPLICATE_THRESHOLD` | `2` | Minimum number of identical executions before a duplicate is reported. Raise this if your application legitimately issues a small number of repeated queries per request. |
+| `ANALYZERS.duplicate.threshold` | `2` | Minimum number of identical executions before a duplicate is reported. Raise this if your application legitimately issues a small number of repeated queries per request. |
+| `ANALYZERS.duplicate.enabled` | `True` | Whether this analyzer runs at all. |
 
 ```python
 # settings.py
 QUERY_DOCTOR = {
-    "DUPLICATE_THRESHOLD": 3,
+    "ANALYZERS": {
+        "duplicate": {"threshold": 3},
+    },
 }
 ```
 
@@ -163,8 +166,10 @@ page = paginator.get_page(request.GET.get("page"))
 **Fix:** Use `paginator.count` (already cached after first access) instead of
 calling `.count()` again on the queryset.
 
-!!! tip "Near-Duplicates"
-    The duplicate analyzer also detects **near-duplicates** -- queries with the
-    same fingerprint (normalized SQL) but different bound parameters. These are
-    reported at a lower severity because they may indicate an N+1 pattern
-    rather than a true duplicate.
+!!! note "Exact duplicates only"
+    This analyzer detects **exact** duplicates: same SQL text *and* the same
+    bound parameter values, executed more than `threshold` times. It does not
+    detect near-duplicates -- queries with the same normalized SQL but
+    different parameters. Repeated queries with varying parameters are more
+    likely an [N+1 pattern](nplusone.md), which is handled by a separate
+    analyzer.

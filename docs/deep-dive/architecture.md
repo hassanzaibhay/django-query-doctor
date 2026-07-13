@@ -242,9 +242,7 @@ Every issue detected by an analyzer is represented as a `Prescription`:
 
 **N+1 Analyzer** (`nplusone.py`): Groups queries by fingerprint. If a fingerprint appears more than `N_PLUS_ONE_THRESHOLD` times and the SQL pattern matches a ForeignKey or ManyToMany access pattern (single-row lookup by PK/FK), it is flagged as N+1. The stack trace is used to identify the source location, and the fix suggests the appropriate `select_related()` or `prefetch_related()` call.
 
-**Duplicate Analyzer** (`duplicate.py`): Detects two types of duplicates:
-- *Exact duplicates*: Same SQL and same parameters, executed more than once.
-- *Near duplicates*: Same fingerprint, similar parameters (e.g., fetching the same set of rows with slightly different orderings).
+**Duplicate Analyzer** (`duplicate.py`): Detects exact duplicates only — same SQL text and same bound parameters, executed more than `threshold` times within a request. It does not detect near-duplicates (same fingerprint, different parameters); those are more likely an N+1 pattern, handled by `NPlusOneAnalyzer`.
 
 **Missing Index Analyzer** (`missing_index.py`): Examines WHERE and JOIN clauses for column references, then checks Django model meta information to determine if those columns are indexed. Suggests `Meta.indexes` with `models.Index()` for missing indexes.
 
