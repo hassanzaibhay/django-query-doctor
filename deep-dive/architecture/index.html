@@ -2727,9 +2727,7 @@
 </table>
 <h3 id="analyzer-details">Analyzer Details<a class="headerlink" href="#analyzer-details" title="Permanent link">&para;</a></h3>
 <p><strong>N+1 Analyzer</strong> (<code>nplusone.py</code>): Groups queries by fingerprint. If a fingerprint appears more than <code>N_PLUS_ONE_THRESHOLD</code> times and the SQL pattern matches a ForeignKey or ManyToMany access pattern (single-row lookup by PK/FK), it is flagged as N+1. The stack trace is used to identify the source location, and the fix suggests the appropriate <code>select_related()</code> or <code>prefetch_related()</code> call.</p>
-<p><strong>Duplicate Analyzer</strong> (<code>duplicate.py</code>): Detects two types of duplicates:
-- <em>Exact duplicates</em>: Same SQL and same parameters, executed more than once.
-- <em>Near duplicates</em>: Same fingerprint, similar parameters (e.g., fetching the same set of rows with slightly different orderings).</p>
+<p><strong>Duplicate Analyzer</strong> (<code>duplicate.py</code>): Detects exact duplicates only — same SQL text and same bound parameters, executed more than <code>threshold</code> times within a request. It does not detect near-duplicates (same fingerprint, different parameters); those are more likely an N+1 pattern, handled by <code>NPlusOneAnalyzer</code>.</p>
 <p><strong>Missing Index Analyzer</strong> (<code>missing_index.py</code>): Examines WHERE and JOIN clauses for column references, then checks Django model meta information to determine if those columns are indexed. Suggests <code>Meta.indexes</code> with <code>models.Index()</code> for missing indexes.</p>
 <p><strong>Fat SELECT Analyzer</strong> (<code>fat_select.py</code>): Detects <code>SELECT *</code> patterns (or selecting all model fields) when the code only accesses a subset of fields. Suggests <code>.only()</code> or <code>.values()</code> calls.</p>
 <p><strong>Complexity Analyzer</strong> (<code>complexity.py</code>): Scores query complexity based on the number of JOINs, subqueries, CASE expressions, and aggregate functions. Flags queries above a configurable threshold.</p>
@@ -2954,7 +2952,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 23, 2026 20:07:50 UTC">March 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 05:34:48 UTC">July 13, 2026</span>
   </span>
 
     

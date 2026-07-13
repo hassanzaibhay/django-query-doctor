@@ -2069,7 +2069,7 @@
 <p><strong>What a baseline contains</strong> — Each issue is stored as a serialized prescription dict with the analyzer type, file path, and description.</p>
 </li>
 <li>
-<p><strong>Why line numbers are ignored</strong> — The baseline hashes each issue using a SHA-256 digest of <code>{analyzer}:{file_path}:{description}</code>. Line numbers are deliberately excluded because refactoring changes line numbers without changing the underlying issue. This prevents false regressions from code reformatting.</p>
+<p><strong>Why line numbers are ignored</strong> — The baseline hashes each issue using a SHA-256 digest of <code>{issue_type}:{file_path}:{description}</code>. Line numbers are deliberately excluded because refactoring changes line numbers without changing the underlying issue. This prevents false regressions from code reformatting.</p>
 </li>
 <li>
 <p><strong>What counts as a regression</strong> — Any issue in the current run whose hash is not found in the baseline. These are new issues introduced since the baseline was created.</p>
@@ -2090,17 +2090,17 @@
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;issues&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="p">{</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">      </span><span class="nt">&quot;issue_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;n_plus_one&quot;</span><span class="p">,</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">      </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;N+1 detected: 47 queries for table \&quot;myapp_author\&quot;&quot;</span><span class="p">,</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">      </span><span class="nt">&quot;callsite&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="nt">&quot;filepath&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;myapp/views.py&quot;</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="nt">&quot;line_number&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">83</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">      </span><span class="p">},</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">      </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CRITICAL&quot;</span><span class="p">,</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">      </span><span class="nt">&quot;fix_suggestion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Add .select_related(&#39;author&#39;) to your queryset&quot;</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="p">]</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="p">}</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">      </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;warning&quot;</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">      </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;N+1 detected: 47 queries for table \&quot;myapp_author\&quot; (field: author)&quot;</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">      </span><span class="nt">&quot;file_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;myapp/views.py&quot;</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">      </span><span class="nt">&quot;line&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">83</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">      </span><span class="nt">&quot;fix_suggestion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Add .select_related(&#39;author&#39;) to your queryset&quot;</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>The schema is flat — there is no nested <code>callsite</code> object, and <code>severity</code> is
+lowercase (<code>"critical"</code>, <code>"warning"</code>, or <code>"info"</code>).</p>
 <hr />
 <h2 id="using-in-ci">Using in CI<a class="headerlink" href="#using-in-ci" title="Permanent link">&para;</a></h2>
 <p>Compare the current run against a previously saved baseline:</p>
@@ -2205,7 +2205,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 23, 2026 19:25:55 UTC">March 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 05:34:48 UTC">July 13, 2026</span>
   </span>
 
     

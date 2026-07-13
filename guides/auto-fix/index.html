@@ -993,10 +993,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#select_related" class="md-nav__link">
+  <a href="#n_plus_one" class="md-nav__link">
     <span class="md-ellipsis">
       
-        select_related
+        n_plus_one
       
     </span>
   </a>
@@ -1004,10 +1004,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#prefetch_related" class="md-nav__link">
+  <a href="#fat_select" class="md-nav__link">
     <span class="md-ellipsis">
       
-        prefetch_related
+        fat_select
       
     </span>
   </a>
@@ -1015,10 +1015,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#only_defer" class="md-nav__link">
+  <a href="#queryset_eval" class="md-nav__link">
     <span class="md-ellipsis">
       
-        only_defer
+        queryset_eval
       
     </span>
   </a>
@@ -1026,10 +1026,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#meta_index" class="md-nav__link">
+  <a href="#duplicate_query" class="md-nav__link">
     <span class="md-ellipsis">
       
-        meta_index
+        duplicate_query
       
     </span>
   </a>
@@ -1037,10 +1037,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cache_queryset" class="md-nav__link">
+  <a href="#missing_index" class="md-nav__link">
     <span class="md-ellipsis">
       
-        cache_queryset
+        missing_index
       
     </span>
   </a>
@@ -2056,10 +2056,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#select_related" class="md-nav__link">
+  <a href="#n_plus_one" class="md-nav__link">
     <span class="md-ellipsis">
       
-        select_related
+        n_plus_one
       
     </span>
   </a>
@@ -2067,10 +2067,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#prefetch_related" class="md-nav__link">
+  <a href="#fat_select" class="md-nav__link">
     <span class="md-ellipsis">
       
-        prefetch_related
+        fat_select
       
     </span>
   </a>
@@ -2078,10 +2078,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#only_defer" class="md-nav__link">
+  <a href="#queryset_eval" class="md-nav__link">
     <span class="md-ellipsis">
       
-        only_defer
+        queryset_eval
       
     </span>
   </a>
@@ -2089,10 +2089,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#meta_index" class="md-nav__link">
+  <a href="#duplicate_query" class="md-nav__link">
     <span class="md-ellipsis">
       
-        meta_index
+        duplicate_query
       
     </span>
   </a>
@@ -2100,10 +2100,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cache_queryset" class="md-nav__link">
+  <a href="#missing_index" class="md-nav__link">
     <span class="md-ellipsis">
       
-        cache_queryset
+        missing_index
       
     </span>
   </a>
@@ -2158,189 +2158,174 @@
 
 
 <h1 id="auto-fix">Auto-Fix<a class="headerlink" href="#auto-fix" title="Permanent link">&para;</a></h1>
-<p>django-query-doctor can automatically apply the fixes it prescribes by modifying your Python source files. This page explains how the auto-fix system works, what fix types are supported, and how to use it safely.</p>
+<p>django-query-doctor can automatically apply the fixes it prescribes by modifying your Python source files. This page explains how the auto-fix system actually works, what it can and cannot do, and how to use it safely.</p>
 <hr />
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <p>When you run <code>fix_queries</code>, django-query-doctor:</p>
 <ol>
-<li><strong>Analyzes</strong> the target URL(s) by executing requests and capturing queries.</li>
-<li><strong>Generates prescriptions</strong> with exact file paths, line numbers, and fix code.</li>
-<li><strong>Parses</strong> the target source files using Python's AST module.</li>
-<li><strong>Applies</strong> the fixes by modifying the AST and writing the updated source back to disk.</li>
+<li><strong>Analyzes</strong> the target URL by executing a request and capturing queries.</li>
+<li><strong>Generates prescriptions</strong> with exact file paths, line numbers, and a suggested fix as text.</li>
+<li><strong>Reads the single source line</strong> at the prescription's <code>callsite.line_number</code> and applies a <strong>regex substitution</strong> on that one line — it does not parse or understand the surrounding code.</li>
+<li><strong>Writes the modified line back to disk</strong>, replacing only that line, at its original position.</li>
 </ol>
-<p>The AST-based approach ensures that fixes are syntactically correct and properly placed. django-query-doctor does not use simple string replacement -- it understands the structure of your code.</p>
+<p>There is no AST parsing and no code restructuring. The fixer (<code>fixer.py</code>) imports only <code>logging</code>, <code>re</code>, <code>shutil</code>, <code>dataclasses</code>, and <code>pathlib</code> — no <code>ast</code> module. Each issue type has its own regex-based line handler (see <a href="#supported-fix-types">Supported Fix Types</a>); some just append a method call to the end of the line, others prepend a <code># TODO</code> comment.</p>
+<blockquote>
+<p><strong>Known limitation — the edited line may not be the line you expect.</strong> The line that gets modified is the <em>callsite</em> of the captured query: the closest application-code stack frame to where the query actually executed (see <code>stack_tracer.capture_callsite</code>). For the classic N+1 pattern —</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">:</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">name</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">author</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># triggers one query per book</span>
+</span></code></pre></div>
+<p>— the callsite is the <code>book.author.name</code> line inside the loop, <strong>not</strong> the <code>Book.objects.all()</code> line. Applying the N+1 fix here appends <code>.select_related('author')</code> to the end of the access line (<code>name = book.author.name.select_related('author')</code>), which is not valid code. The fixer works cleanly when the queryset is evaluated and iterated on the same line, or when you manually point <code>--file</code>/review the diff and edit the correct line yourself. <strong>Always review the diff before applying.</strong></p>
+</blockquote>
 <hr />
 <h2 id="dry-run-default">Dry Run (Default)<a class="headerlink" href="#dry-run-default" title="Permanent link">&para;</a></h2>
 <p>By default, <code>fix_queries</code> runs in <strong>dry-run mode</strong>. It shows you a diff of what would change without modifying any files:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/
 </span></code></pre></div>
-<p>Output:</p>
-<div class="language-diff highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gd">--- myapp/views.py (original)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="gi">+++ myapp/views.py (fixed)</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="gu">@@ -83,7 +83,7 @@</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w"> </span>    def get_queryset(self):
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="gd">-        return Book.objects.all()</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="gi">+        return Book.objects.select_related(&#39;author&#39;).all()</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="gd">--- myapp/serializers.py (original)</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="gi">+++ myapp/serializers.py (fixed)</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="gu">@@ -22,7 +22,11 @@</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w"> </span>    class Meta:
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w"> </span>        model = Book
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="gd">-        fields = &quot;__all__&quot;</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="gi">+        fields = [&quot;id&quot;, &quot;title&quot;, &quot;isbn&quot;, &quot;published_date&quot;]</span>
+<p>The diff format (from <code>QueryFixer.generate_diff</code>) shows the file, the line number, the issue description, the original line, and the replacement line(s):</p>
+<div class="language-diff highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gd">--- myapp/views.py</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="gi">+++ myapp/views.py</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="gu">@@ -8,1 +8,1 @@</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w"> </span> [N+1 detected: 47 queries for table &quot;myapp_author&quot; (field: author)]
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="gd">- books = Book.objects.all()</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="gi">+ books = Book.objects.all().select_related(&#39;author&#39;)</span>
 </span></code></pre></div>
 <p>Review this output carefully before proceeding.</p>
 <hr />
 <h2 id="applying-fixes">Applying Fixes<a class="headerlink" href="#applying-fixes" title="Permanent link">&para;</a></h2>
 <p>To modify your source files, pass the <code>--apply</code> flag:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span>--apply
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span>--apply
 </span></code></pre></div>
 <blockquote>
-<p><strong>Warning:</strong> Always ensure your code is committed to version control before running <code>--apply</code>. While django-query-doctor generates correct fixes in the vast majority of cases, complex querysets (dynamic construction, conditional chaining, multi-line expressions) may require manual adjustment. Use <code>git diff</code> to review changes after applying.</p>
+<p><strong>Warning:</strong> Always ensure your code is committed to version control before running <code>--apply</code>. This is a line-level regex tool, not a code-aware refactorer — it can produce incorrect edits, especially for N+1 fixes where the callsite line isn't the queryset definition (see the limitation above). Use <code>git diff</code> to review changes after applying, and use <code>--no-backup</code> only if you don't want the automatic <code>.bak</code> files it creates alongside each modified file.</p>
 </blockquote>
 <hr />
 <h2 id="supported-fix-types">Supported Fix Types<a class="headerlink" href="#supported-fix-types" title="Permanent link">&para;</a></h2>
+<p>The fixer dispatches on <code>Prescription.issue_type</code> (<code>fixer.py:_parse_fix</code>). Only five of the seven issue types have a fix handler:</p>
 <table>
 <thead>
 <tr>
-<th>Fix Type</th>
-<th>What It Does</th>
-<th>Example</th>
+<th>Issue Type (<code>IssueType.value</code>)</th>
+<th>What the handler does</th>
+<th>Handler</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>select_related</code></td>
-<td>Adds <code>.select_related()</code> calls for FK/OneToOne N+1 patterns</td>
-<td><code>.select_related('author', 'publisher')</code></td>
+<td><code>n_plus_one</code></td>
+<td>Extracts a <code>.select_related(...)</code> or <code>.prefetch_related(...)</code> call from the fix suggestion text and appends it to the end of the callsite line</td>
+<td><code>_fix_nplusone</code></td>
 </tr>
 <tr>
-<td><code>prefetch_related</code></td>
-<td>Adds <code>.prefetch_related()</code> calls for M2M/reverse FK N+1 patterns</td>
-<td><code>.prefetch_related('categories', 'tags')</code></td>
+<td><code>drf_serializer</code></td>
+<td>Same handler as <code>n_plus_one</code> (extracts and appends <code>.select_related</code>/<code>.prefetch_related</code>) — but see the note below, this issue type is never produced by the runtime pipeline that <code>fix_queries</code> uses</td>
+<td><code>_fix_nplusone</code></td>
 </tr>
 <tr>
-<td><code>only_defer</code></td>
-<td>Replaces <code>SELECT *</code> with <code>.only()</code> or adds <code>.defer()</code> for unused columns</td>
-<td><code>.only('id', 'title', 'price')</code></td>
+<td><code>fat_select</code></td>
+<td>Extracts a <code>.only(...)</code> or <code>.defer(...)</code> call and appends it to the end of the callsite line</td>
+<td><code>_fix_fat_select</code></td>
 </tr>
 <tr>
-<td><code>meta_index</code></td>
-<td>Adds <code>models.Index()</code> entry to model's <code>Meta.indexes</code> for missing indexes</td>
-<td><code>Meta: indexes = [models.Index(fields=["published_date"])]</code></td>
+<td><code>queryset_eval</code></td>
+<td>Rewrites <code>len(x)</code> → <code>x.count()</code> and/or <code>if x:</code> → <code>if x.exists():</code> on the callsite line via regex</td>
+<td><code>_fix_queryset_eval</code></td>
 </tr>
 <tr>
-<td><code>cache_queryset</code></td>
-<td>Extracts repeated queryset evaluations into a variable</td>
-<td><code>books = list(Book.objects.filter(...))</code></td>
+<td><code>duplicate_query</code></td>
+<td>Prepends a <code># TODO: Cache this query result to avoid duplicate execution</code> comment above the callsite line — it does <strong>not</strong> extract a shared variable</td>
+<td><code>_fix_duplicate</code></td>
+</tr>
+<tr>
+<td><code>missing_index</code></td>
+<td>Prepends a <code># TODO: Consider adding an index via Meta.indexes — &lt;suggestion&gt;</code> comment above the callsite line — it does <strong>not</strong> add a <code>models.Index()</code> entry</td>
+<td><code>_fix_missing_index</code></td>
+</tr>
+<tr>
+<td><code>complexity</code></td>
+<td>No handler. <code>--issue-type complexity</code> will never produce a fix.</td>
+<td>—</td>
 </tr>
 </tbody>
 </table>
+<p><code>meta_index</code> and <code>cache_queryset</code> are not real fix types in the code — they were names used in an earlier draft of this page. The actual behavior for missing-index and duplicate-query issues is a <code># TODO</code> comment, shown below.</p>
 <hr />
 <h2 id="targeting-specific-fix-types">Targeting Specific Fix Types<a class="headerlink" href="#targeting-specific-fix-types" title="Permanent link">&para;</a></h2>
-<p>You can limit which categories of fixes are applied using <code>--fix-type</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Only apply select_related fixes</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span>--fix-type<span class="w"> </span>select_related<span class="w"> </span>--apply
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Only apply index-related fixes</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span>--fix-type<span class="w"> </span>meta_index<span class="w"> </span>--apply
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Apply multiple specific fix types</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span>--fix-type<span class="w"> </span>select_related<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span>--fix-type<span class="w"> </span>prefetch_related<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span>--apply
+<p>Use <code>--issue-type</code> (not <code>--fix-type</code>, which does not exist) to limit which issues are fixed. It accepts one or more <code>IssueType</code> values as strings, with no validation against the real set — a typo silently produces zero fixes:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Only apply N+1 fixes</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span>--issue-type<span class="w"> </span>n_plus_one<span class="w"> </span>--apply
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Only apply duplicate-query TODO comments</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span>--issue-type<span class="w"> </span>duplicate_query<span class="w"> </span>--apply
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Apply multiple types</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span>--issue-type<span class="w"> </span>n_plus_one<span class="w"> </span>fat_select<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span>--apply
 </span></code></pre></div>
-<p>This is useful when you want to apply safe, well-understood fixes (like <code>select_related</code>) while leaving more complex changes (like <code>meta_index</code>, which requires a migration) for manual review.</p>
+<p>Values that actually produce fixes through <code>fix_queries</code>: <code>n_plus_one</code>, <code>duplicate_query</code>, <code>fat_select</code>, <code>queryset_eval</code>, <code>missing_index</code>. <code>complexity</code> is detected but has no fix handler. <code>drf_serializer</code> findings are produced by the separate <code>check_serializers</code> static analyzer (see <a href="../../analyzers/drf-serializer/">DRF Serializer Analyzer</a>), not by the runtime pipeline <code>fix_queries</code> uses, so this value currently has nothing to filter.</p>
 <hr />
 <h2 id="fix-details">Fix Details<a class="headerlink" href="#fix-details" title="Permanent link">&para;</a></h2>
-<h3 id="select_related"><code>select_related</code><a class="headerlink" href="#select_related" title="Permanent link">&para;</a></h3>
-<p>Targets N+1 patterns caused by accessing ForeignKey or OneToOneField relations in loops. The fix adds <code>.select_related('field_name')</code> to the queryset that feeds the loop.</p>
-<p>Before:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="k">return</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="c1"># Accessing book.author in template triggers N+1</span>
-</span></code></pre></div></p>
-<p>After:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">return</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s1">&#39;author&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-</span></code></pre></div></p>
-<h3 id="prefetch_related"><code>prefetch_related</code><a class="headerlink" href="#prefetch_related" title="Permanent link">&para;</a></h3>
-<p>Targets N+1 patterns from ManyToManyField or reverse ForeignKey traversal. The fix adds <code>.prefetch_related('field_name')</code> to the queryset.</p>
-<p>Before:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">:</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">categories</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>  <span class="c1"># N+1</span>
-</span></code></pre></div></p>
-<p>After:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s1">&#39;categories&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">:</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">categories</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>  <span class="c1"># Uses prefetched cache</span>
-</span></code></pre></div></p>
-<h3 id="only_defer"><code>only_defer</code><a class="headerlink" href="#only_defer" title="Permanent link">&para;</a></h3>
-<p>Targets queries that fetch all columns when only a subset is used. The fix adds <code>.only()</code> with the columns that are actually accessed.</p>
-<p>Before:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="n">book</span><span class="o">.</span><span class="n">title</span> <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">]</span>  <span class="c1"># Only uses &#39;title&#39;</span>
-</span></code></pre></div></p>
-<p>After:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;title&#39;</span><span class="p">)</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="n">book</span><span class="o">.</span><span class="n">title</span> <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">]</span>
-</span></code></pre></div></p>
-<h3 id="meta_index"><code>meta_index</code><a class="headerlink" href="#meta_index" title="Permanent link">&para;</a></h3>
-<p>Targets model fields used in <code>WHERE</code> or <code>ORDER BY</code> clauses that lack a database index. The fix adds a <code>models.Index()</code> entry to the model's <code>Meta.indexes</code>.</p>
-<p>Before:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Book</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">published_date</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">()</span>
-</span></code></pre></div></p>
-<p>After:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Book</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">published_date</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">()</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>        <span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>            <span class="n">models</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;published_date&quot;</span><span class="p">]),</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>        <span class="p">]</span>
-</span></code></pre></div></p>
-<blockquote>
-<p><strong>Note:</strong> After applying <code>meta_index</code> fixes, you must generate and run a migration:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>python<span class="w"> </span>manage.py<span class="w"> </span>makemigrations
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>migrate
+<h3 id="n_plus_one"><code>n_plus_one</code><a class="headerlink" href="#n_plus_one" title="Permanent link">&para;</a></h3>
+<p>Targets N+1 patterns caused by accessing ForeignKey, OneToOne, ManyToMany, or reverse-FK relations repeatedly. The fix appends <code>.select_related('field_name')</code> or <code>.prefetch_related('field_name')</code> to the end of the callsite line — see the <a href="#how-it-works">limitation above</a> about which line that is.</p>
+<p>When the queryset is evaluated and accessed on one line, this works as expected:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Before</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># After</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s1">&#39;author&#39;</span><span class="p">)</span>
 </span></code></pre></div>
-</blockquote>
-<h3 id="cache_queryset"><code>cache_queryset</code><a class="headerlink" href="#cache_queryset" title="Permanent link">&para;</a></h3>
-<p>Targets duplicate queries caused by evaluating the same queryset multiple times. The fix extracts the queryset evaluation into a variable.</p>
-<p>Before:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">ctx</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">ctx</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">ctx</span><span class="p">[</span><span class="s2">&quot;books&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="mi">10</span><span class="p">]</span>  <span class="c1"># Same filter, separate query</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="k">return</span> <span class="n">ctx</span>
-</span></code></pre></div></p>
-<p>After:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">ctx</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">_qs_books_active</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">ctx</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_qs_books_active</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="n">ctx</span><span class="p">[</span><span class="s2">&quot;books&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_qs_books_active</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="k">return</span> <span class="n">ctx</span>
-</span></code></pre></div></p>
+<h3 id="fat_select"><code>fat_select</code><a class="headerlink" href="#fat_select" title="Permanent link">&para;</a></h3>
+<p>Targets queries that fetch all columns when only a subset is used. The fix appends <code>.only(...)</code> or <code>.defer(...)</code> to the end of the callsite line.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Before</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># After</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;title&#39;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="queryset_eval"><code>queryset_eval</code><a class="headerlink" href="#queryset_eval" title="Permanent link">&para;</a></h3>
+<p>Targets <code>len(qs)</code> and <code>if qs:</code> patterns. The fix rewrites the callsite line directly via regex.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Before</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qs</span><span class="p">)</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># After</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">total</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+</span></code></pre></div>
+<h3 id="duplicate_query"><code>duplicate_query</code><a class="headerlink" href="#duplicate_query" title="Permanent link">&para;</a></h3>
+<p>Targets queries executed more than once with identical SQL and parameters. The fix does <strong>not</strong> extract a shared variable — it prepends a comment for you to act on manually:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Before</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">count</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># After</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># TODO: Cache this query result to avoid duplicate execution</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">count</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+</span></code></pre></div>
+<h3 id="missing_index"><code>missing_index</code><a class="headerlink" href="#missing_index" title="Permanent link">&para;</a></h3>
+<p>Targets model fields used in <code>WHERE</code>/<code>ORDER BY</code> clauses without a database index. The fix does <strong>not</strong> add a <code>models.Index()</code> entry — it prepends a comment:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Before</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">published_date</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">()</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># After</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># TODO: Consider adding an index via Meta.indexes — Add an index on published_date</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">published_date</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Adding a real index still requires manually editing <code>Meta.indexes</code> and running <code>makemigrations</code>/<code>migrate</code>.</p>
 <hr />
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>Always review diffs first.</strong> Run without <code>--apply</code>, read every change, then apply.</li>
 <li><strong>Commit before applying.</strong> Use version control so you can revert if needed.</li>
-<li><strong>Apply one fix type at a time.</strong> This makes it easier to review and test each change.</li>
+<li><strong>Apply one issue type at a time</strong> with <code>--issue-type</code>. This makes it easier to review and test each change.</li>
 <li><strong>Run tests after applying.</strong> Ensure your test suite passes after each batch of fixes.</li>
-<li><strong>Handle <code>meta_index</code> separately.</strong> Index changes require migrations and may affect write performance. Evaluate each one individually.</li>
+<li><strong>Double-check N+1 fixes especially.</strong> If the callsite line is inside a loop rather than the queryset definition, the appended call will land on the wrong line — fix it by hand instead.</li>
+<li><strong>Handle <code>missing_index</code> TODOs separately.</strong> These require a manual <code>Meta.indexes</code> edit plus a migration; evaluate each one individually.</li>
 </ol>
 <hr />
 <h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../management-commands/">Management Commands</a> -- Full command reference.</li>
-<li><a href="../how-it-works/">How It Works</a> -- Understanding prescriptions and the analysis pipeline.</li>
-<li><a href="../ci-integration/">CI Integration</a> -- Using auto-fix in CI workflows.</li>
+<li><a href="../management-commands/">Management Commands</a> — Full command reference.</li>
+<li><a href="../how-it-works/">How It Works</a> — Understanding prescriptions and the analysis pipeline.</li>
+<li><a href="../ci-integration/">CI Integration</a> — Using auto-fix in CI workflows.</li>
 </ul>
 
 
@@ -2364,7 +2349,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 18:42:10 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 05:34:48 UTC">July 13, 2026</span>
   </span>
 
     

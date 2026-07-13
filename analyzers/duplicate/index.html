@@ -2133,7 +2133,7 @@ framework:</p>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="k">return</span> <span class="n">count</span>
 </span></code></pre></div>
 <h2 id="prescription-output">Prescription Output<a class="headerlink" href="#prescription-output" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>[MEDIUM] Duplicate Query Detected
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>[WARNING] Duplicate Query Detected
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  Location: views.py:4, templatetags/book_tags.py:5
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  Issue:    Query `SELECT COUNT(*) FROM &quot;app_book&quot; WHERE &quot;app_book&quot;.&quot;featured&quot; = ?`
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>            executed 2 times with identical parameters.
@@ -2155,16 +2155,23 @@ framework:</p>
 </thead>
 <tbody>
 <tr>
-<td><code>DUPLICATE_THRESHOLD</code></td>
+<td><code>ANALYZERS.duplicate.threshold</code></td>
 <td><code>2</code></td>
 <td>Minimum number of identical executions before a duplicate is reported. Raise this if your application legitimately issues a small number of repeated queries per request.</td>
+</tr>
+<tr>
+<td><code>ANALYZERS.duplicate.enabled</code></td>
+<td><code>True</code></td>
+<td>Whether this analyzer runs at all.</td>
 </tr>
 </tbody>
 </table>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># settings.py</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="s2">&quot;DUPLICATE_THRESHOLD&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">}</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="s2">&quot;ANALYZERS&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="s2">&quot;duplicate&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;threshold&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="p">},</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p">}</span>
 </span></code></pre></div>
 <h2 id="common-scenarios">Common Scenarios<a class="headerlink" href="#common-scenarios" title="Permanent link">&para;</a></h2>
 <h3 id="multiple-view-helpers-querying-the-same-data">Multiple View Helpers Querying the Same Data<a class="headerlink" href="#multiple-view-helpers-querying-the-same-data" title="Permanent link">&para;</a></h3>
@@ -2204,12 +2211,14 @@ template:</p>
 </span></code></pre></div>
 <p><strong>Fix:</strong> Use <code>paginator.count</code> (already cached after first access) instead of
 calling <code>.count()</code> again on the queryset.</p>
-<div class="admonition tip">
-<p class="admonition-title">Near-Duplicates</p>
-<p>The duplicate analyzer also detects <strong>near-duplicates</strong> -- queries with the
-same fingerprint (normalized SQL) but different bound parameters. These are
-reported at a lower severity because they may indicate an N+1 pattern
-rather than a true duplicate.</p>
+<div class="admonition note">
+<p class="admonition-title">Exact duplicates only</p>
+<p>This analyzer detects <strong>exact</strong> duplicates: same SQL text <em>and</em> the same
+bound parameter values, executed more than <code>threshold</code> times. It does not
+detect near-duplicates -- queries with the same normalized SQL but
+different parameters. Repeated queries with varying parameters are more
+likely an <a href="../nplusone/">N+1 pattern</a>, which is handled by a separate
+analyzer.</p>
 </div>
 
 
@@ -2233,7 +2242,7 @@ rather than a true duplicate.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 18:17:25 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 05:34:48 UTC">July 13, 2026</span>
   </span>
 
     
