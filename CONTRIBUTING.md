@@ -84,6 +84,23 @@ mypy src/query_doctor/
   GitHub settings — it is not something contributors or tooling configure
   from the CLI.
 
+### Optional: pre-push hook
+
+One-time setup, after installing dev deps:
+
+```bash
+pre-commit install --hook-type pre-push
+```
+
+This runs `ruff check`, `ruff format --check`, `mypy`, and `pytest` on
+`git push`; any failure aborts the push. It needs the dev deps
+(`pip install -e ".[dev]"`) on `PATH` — normally your activated virtualenv.
+
+**This is local convenience, not enforcement.** `git push --no-verify`
+bypasses it, and a contributor who hasn't run `pre-commit install` gets no
+gate at all. The real wall is CI's required status checks (branch
+protection on `main`), not this hook.
+
 ## Changelog
 
 `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
