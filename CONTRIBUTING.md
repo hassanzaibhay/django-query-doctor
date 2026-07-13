@@ -23,7 +23,7 @@ pytest tests/test_nplusone.py -v
 pytest --cov=query_doctor --cov-report=term-missing
 ```
 
-We target **>90% test coverage**. Every new feature must include tests.
+CI enforces a minimum of **85% coverage** (`pyproject.toml` `fail_under`). Every new feature must include tests; a module at 0% coverage is considered a process bug.
 
 ## Code Quality
 
@@ -68,10 +68,31 @@ mypy src/query_doctor/
 
 ## Git Workflow
 
-- Branch per feature: `feat/your-feature`
+- **No direct commits or pushes to `main`.** Every change lands via a
+  `feat/*` or `fix/*` branch (also `docs/*`, `chore/*`, `test/*` as fits)
+  → pull request → review → squash-merge to `main`.
 - Commit messages: `feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`
-- Run `pytest` and `ruff check` before every commit
-- Open a PR against `main`
+- Run `pytest`, `ruff check`, `ruff format --check`, and `mypy` before every
+  commit and before opening a PR.
+- Use the PR template (`.github/pull_request_template.md`) — it prompts for
+  the summary, type, exact CHANGELOG entry, testing performed, and a
+  pre-merge checklist.
+- Add your change under `## [Unreleased]` in `CHANGELOG.md` (see
+  [Changelog](#changelog) below). Do not scatter version notes elsewhere.
+- GitHub branch protection on `main` (require PR before merge, require
+  status checks, disallow force-push) is enabled by the repo owner in
+  GitHub settings — it is not something contributors or tooling configure
+  from the CLI.
+
+## Changelog
+
+`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+The `## [Unreleased]` section at the top collects changes since the last
+release. Every PR that changes behavior, fixes a bug, or adds a feature
+should add a line under `[Unreleased]` (in `### Added` / `### Changed` /
+`### Fixed` / `### Removed` as appropriate). On release, `[Unreleased]` is
+renamed to the version heading and a new empty `[Unreleased]` is added above
+it.
 
 ## TDD
 

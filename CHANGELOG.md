@@ -2,7 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
-This project adheres to [Semantic Versioning](https://semver.org/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+- `.github/pull_request_template.md` — PR template (summary, type, changelog
+  entry, testing, checklist).
+
+### Changed
+- `CONTRIBUTING.md` codifies the PR workflow: all changes via `feat/*` or
+  `fix/*` branch → PR → review → squash-merge to `main`. No direct pushes
+  to `main`.
+- `CHANGELOG.md` adopts [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+  format with an `[Unreleased]` section at the top. Every PR adds its entry
+  here; on release, `[Unreleased]` is promoted to the version heading.
 
 ## [2.0.0] - 2026-03-21
 
@@ -113,7 +128,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 #### Analyzers
 - **N+1 Detection** — fingerprint-based grouping with FK pattern matching
-- **Duplicate Query Detection** — exact and near-duplicate identification
+- **Duplicate Query Detection** — exact-duplicate identification (same SQL and parameters, hashed and grouped)
 - **Missing Index Detection** — WHERE/ORDER BY columns without indexes
 - **Fat SELECT Detection** — flags `SELECT *` when fewer columns suffice
 - **QuerySet Evaluation** — suggests `.count()`, `.exists()`, `.first()` alternatives

@@ -19,8 +19,17 @@ query_doctor_report.html
 # Generated artifacts
 benchmarks/report.html
 benchmarks/results.json
+
+# Planning / scratch docs — local-only, never committed
+CLEANUP_PROPOSAL.md
+V2_1_0_SCOPE.md
 PROJECT_AUDIT.md
 FINAL_AUDIT.md
+AUDIT_REPORT.md
+FETCH_MODE_AUDIT.md
+*_AUDIT.md
+*_SCOPE.md
+*_PROPOSAL.md
 
 # Secrets / environments
 .env
