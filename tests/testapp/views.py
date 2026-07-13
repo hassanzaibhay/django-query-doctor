@@ -28,3 +28,9 @@ def book_list_optimized(request):
     for book in Book.objects.select_related("author").all():
         books.append({"title": book.title, "author": book.author.name})
     return JsonResponse({"books": books})
+
+
+def book_list_missing_index(request):
+    """View that filters on a non-indexed column to trigger missing_index."""
+    books = list(Book.objects.filter(published_date="2024-01-01").values_list("title", flat=True))
+    return JsonResponse({"books": books})
