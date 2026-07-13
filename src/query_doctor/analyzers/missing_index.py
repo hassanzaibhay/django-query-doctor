@@ -159,7 +159,7 @@ class MissingIndexAnalyzer(BaseAnalyzer):
         Returns:
             List of prescriptions for detected missing index issues.
         """
-        if not queries:
+        if not queries or not self.is_enabled():
             return []
 
         try:

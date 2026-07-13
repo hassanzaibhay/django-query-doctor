@@ -15,7 +15,7 @@ Automated diagnosis and prescriptions for slow Django ORM queries — with exact
 | Catch issues in CI | [Baseline Regression](guides/baseline.md) |
 | Faster query compilation | [QueryTurbo](guides/queryturbo.md) |
 | Integrate with test suite | [Pytest Plugin](guides/pytest-plugin.md) |
-| Analyze DRF serializers | [DRF Serializer Analyzer](analyzers/drf-serializer.md) |
+| Analyze DRF serializers | [SerializerMethodField Analysis](analyzers/drf-serializer.md) |
 | Full configuration reference | [Configuration](getting-started/configuration.md) |
 
 ## What's New in v2.0

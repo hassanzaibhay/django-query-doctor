@@ -139,6 +139,52 @@ class TestCheckQueriesBaseline:
             "--fail-on-regression",
         )
 
+    def test_baseline_version_mismatch_warns_without_failing(self, tmp_path) -> None:
+        """A stale baseline version prints a non-blocking coverage-drift warning.
+
+        Must not change the exit code (no CommandError) and must not use
+        alarming "invalid" language -- it's a heads-up, not a validity error.
+        """
+        from io import StringIO
+
+        baseline_path = str(tmp_path / "baseline.json")
+        with open(baseline_path, "w") as f:
+            json.dump({"issues": {}, "version": "0.0.1"}, f)
+
+        out = StringIO()
+        call_command(
+            "check_queries",
+            "--url",
+            "/test/",
+            f"--baseline={baseline_path}",
+            "--fail-on-regression",
+            stdout=out,
+        )
+        output = out.getvalue()
+        assert "analyzer coverage may differ between versions" in output
+        assert "invalid" not in output.lower()
+
+    def test_baseline_version_match_no_mismatch_warning(self, tmp_path) -> None:
+        """A baseline matching the current version prints no drift warning."""
+        from io import StringIO
+
+        from query_doctor import __version__
+
+        baseline_path = str(tmp_path / "baseline.json")
+        with open(baseline_path, "w") as f:
+            json.dump({"issues": {}, "version": __version__}, f)
+
+        out = StringIO()
+        call_command(
+            "check_queries",
+            "--url",
+            "/test/",
+            f"--baseline={baseline_path}",
+            stdout=out,
+        )
+        output = out.getvalue()
+        assert "analyzer coverage may differ between versions" not in output
+
 
 @pytest.mark.django_db
 class TestCheckQueriesGroupFlag:

@@ -10,4 +10,5 @@ urlpatterns = [
     path("books/nplusone/", views.book_list_nplusone, name="books-nplusone"),
     path("books/duplicate/", views.book_list_duplicate, name="books-duplicate"),
     path("books/optimized/", views.book_list_optimized, name="books-optimized"),
+    path("books/missing-index/", views.book_list_missing_index, name="books-missing-index"),
 ]

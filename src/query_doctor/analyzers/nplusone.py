@@ -131,7 +131,7 @@ class NPlusOneAnalyzer(BaseAnalyzer):
         Returns:
             List of prescriptions for detected N+1 issues.
         """
-        if not queries:
+        if not queries or not self.is_enabled():
             return []
 
         try:

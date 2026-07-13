@@ -184,9 +184,7 @@ class Command(BaseCommand):
 
     def _run_analysis(self, url: str) -> DiagnosisReport:
         """Run query analysis for the given URL."""
-        from query_doctor.analyzers.duplicate import DuplicateAnalyzer
-        from query_doctor.analyzers.missing_index import MissingIndexAnalyzer
-        from query_doctor.analyzers.nplusone import NPlusOneAnalyzer
+        from query_doctor.plugin_api import discover_analyzers
 
         interceptor = QueryInterceptor()
         report = DiagnosisReport()
@@ -213,7 +211,7 @@ class Command(BaseCommand):
         report.total_queries = len(queries)
         report.total_time_ms = sum(q.duration_ms for q in queries)
 
-        analyzers = [NPlusOneAnalyzer(), DuplicateAnalyzer(), MissingIndexAnalyzer()]
+        analyzers = discover_analyzers()
         for analyzer in analyzers:
             with contextlib.suppress(Exception):
                 report.prescriptions.extend(analyzer.analyze(queries))
@@ -256,12 +254,22 @@ class Command(BaseCommand):
 
         Returns the list of regressions (new issues not in baseline).
         """
+        from query_doctor import __version__
         from query_doctor.baseline import BaselineSnapshot
 
         baseline = BaselineSnapshot.load(baseline_path)
         current = self._prescriptions_to_dicts(report)
         regressions = baseline.find_regressions(current)
         resolved = baseline.find_resolved(current)
+
+        if baseline.version != __version__:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Baseline was created with query-doctor {baseline.version}; "
+                    f"current version is {__version__} -- analyzer coverage may "
+                    "differ between versions."
+                )
+            )
 
         if resolved:
             self.stdout.write(

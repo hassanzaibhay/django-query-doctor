@@ -143,6 +143,9 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
         Returns:
             List of Prescription objects describing detected issues.
         """
+        if not self.is_enabled():
+            return []
+
         try:
             from rest_framework import serializers as drf_serializers
         except ImportError:
@@ -193,7 +196,7 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
                 )
                 prescriptions.append(
                     Prescription(
-                        issue_type=IssueType.DRF_SERIALIZER,
+                        issue_type=IssueType.SERIALIZER_METHOD_FIELD,
                         severity=issue.get("severity", Severity.WARNING),
                         description=issue["description"],
                         fix_suggestion=issue["fix_suggestion"],

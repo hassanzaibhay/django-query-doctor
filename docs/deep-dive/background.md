@@ -25,7 +25,7 @@ In a typical Django project with 100+ models, these inefficiencies accumulate si
 | nplusone | N+1 only (no duplicates, indexes, etc.), no file:line, no fixes, low recent development activity, not intended for production |
 | django-auto-prefetch | Automatically prefetches ForeignKey/OneToOne relations instead of reporting them — no visibility into what changed, and it doesn't cover M2M or other issue categories |
 
-django-query-doctor addresses all of these gaps: 8 analyzer categories, exact file:line references, copy-paste code fixes, CI integration, and no `DEBUG=True` requirement. (Note: Django itself is gaining a similar on-demand-prefetch mechanism — [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/) — landing in Django 6.1; django-auto-prefetch's approach predates and inspired the same idea being adopted into core Django.)
+django-query-doctor addresses all of these gaps: 7 analyzer categories, exact file:line references, copy-paste code fixes, CI integration, and no `DEBUG=True` requirement. (Note: Django itself is gaining a similar on-demand-prefetch mechanism — [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/) — landing in Django 6.1; django-auto-prefetch's approach predates and inspired the same idea being adopted into core Django.)
 
 ---
 

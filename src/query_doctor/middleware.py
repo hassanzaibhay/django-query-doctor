@@ -17,11 +17,9 @@ from typing import Any
 
 from django.http import HttpRequest
 
-from query_doctor.analyzers.duplicate import DuplicateAnalyzer
-from query_doctor.analyzers.missing_index import MissingIndexAnalyzer
-from query_doctor.analyzers.nplusone import NPlusOneAnalyzer
 from query_doctor.conf import get_config
 from query_doctor.interceptor import QueryInterceptor
+from query_doctor.plugin_api import discover_analyzers
 from query_doctor.reporters.console import ConsoleReporter
 from query_doctor.reporters.json_reporter import JSONReporter
 from query_doctor.reporters.log_reporter import LogReporter
@@ -31,18 +29,13 @@ logger = logging.getLogger("query_doctor")
 
 
 def _get_enabled_analyzers(config: dict[str, Any]) -> list[Any]:
-    """Return a list of enabled analyzer instances."""
-    analyzers: list[Any] = []
-    analyzer_config = config.get("ANALYZERS", {})
+    """Return all discovered analyzer instances.
 
-    if analyzer_config.get("nplusone", {}).get("enabled", True):
-        analyzers.append(NPlusOneAnalyzer())
-    if analyzer_config.get("duplicate", {}).get("enabled", True):
-        analyzers.append(DuplicateAnalyzer())
-    if analyzer_config.get("missing_index", {}).get("enabled", True):
-        analyzers.append(MissingIndexAnalyzer())
-
-    return analyzers
+    Config-based filtering happens per-analyzer via is_enabled() inside
+    analyze(), not here -- discover_analyzers() returns every registered
+    analyzer regardless of its enabled state.
+    """
+    return discover_analyzers()
 
 
 def _get_reporters(config: dict[str, Any]) -> list[Any]:

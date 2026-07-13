@@ -24,10 +24,10 @@ QUERY_DOCTOR = {
         "nplusone": {"enabled": True, "threshold": 3},
         "duplicate": {"enabled": True, "threshold": 2},
         "missing_index": {"enabled": True},
-        "fat_select": {"enabled": True},
+        "fat_select": {"enabled": True, "threshold": 8},
         "queryset_eval": {"enabled": True},
-        "drf_serializer": {"enabled": True},
         "complexity": {"enabled": True, "threshold": 8},
+        "serializer_method": {"enabled": True},
     },
 
     # Reporter names, not class paths: "console", "json", "log".

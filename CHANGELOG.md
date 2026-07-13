@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## Upgrading to 2.1.0
+
+`nplusone`, `duplicate`, and `missing_index` now respect their
+`ANALYZERS.<name>.enabled` config setting, and every dispatch path
+(middleware, pytest plugin, Celery integration, context manager,
+`check_queries`/`diagnose_project`) now runs the full set of discovered
+analyzers instead of a hardcoded subset. If you use `check_queries
+--baseline`, **regenerate your baseline** after upgrading — the widened
+analyzer coverage means an old baseline will report newly-covered findings as
+regressions until it's refreshed. Comparing against a baseline saved with a
+different query-doctor version now prints a non-blocking warning rather than
+failing the check.
+
+## [2.1.0] - 2026-07-14
+
+### Added
+- `IssueType.SERIALIZER_METHOD_FIELD` — findings from `SerializerMethodAnalyzer`
+  (the `check_serializers` static analyzer) now carry their own issue type
+  instead of sharing `IssueType.DRF_SERIALIZER` with the deleted runtime
+  analyzer. `DRF_SERIALIZER` remains in the enum for plugin/fixer compatibility.
+
+### Fixed
+- `nplusone`, `duplicate`, and `missing_index` analyzers now respect their
+  `ANALYZERS.<name>.enabled` config setting. Previously, disabling these
+  three analyzers had no effect outside `fix_queries` — they still ran and
+  reported issues through the middleware, pytest plugin, Celery integration,
+  context manager, and `check_queries`/`diagnose_project` commands.
+- Middleware, context manager, `check_queries`, Celery integration, and the
+  pytest plugin now dispatch through `discover_analyzers()` instead of five
+  separate hardcoded, inconsistent analyzer lists (3-5 of the built-ins each).
+  Every analyzer's own `is_enabled()` gate (above) is what keeps config
+  toggles honored now that dispatch is no longer hand-filtered per site.
+- `serializer_method` now has a `DEFAULT_CONFIG` entry, so
+  `ANALYZERS.serializer_method.enabled = False` actually disables it.
+  Previously there was no config key to set, so the analyzer always ran.
+- `fat_select`'s column-count threshold is now configurable via
+  `ANALYZERS.fat_select.threshold` (previously only overridable by
+  constructing the analyzer directly; the config key didn't exist).
+- `fix_queries --issue-type` now validates against the five fixer-backed
+  issue types instead of silently accepting any string and producing zero
+  fixes on a typo.
+- `check_queries --baseline` now tracks the query-doctor version the baseline
+  was saved with (previously hardcoded to a stale `"2.0.0"` literal) and
+  prints a non-blocking warning — not a failure — when comparing against a
+  baseline saved with a different version.
+
+### Removed
+- Removed `DRFSerializerAnalyzer`, a builtin analyzer that always returned no
+  results through any code path reachable from `fix_queries`, the middleware,
+  or any management command. DRF serializer N+1 detection is unaffected —
+  it's covered by the static `SerializerMethodAnalyzer` (`check_serializers`
+  command), which is unchanged aside from its issue type (see Added). The
+  built-in analyzer count is now 7.
+
 ## [2.0.1] - 2026-07-13
 
 ### Added

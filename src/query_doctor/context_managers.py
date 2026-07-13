@@ -10,10 +10,8 @@ import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from query_doctor.analyzers.duplicate import DuplicateAnalyzer
-from query_doctor.analyzers.missing_index import MissingIndexAnalyzer
-from query_doctor.analyzers.nplusone import NPlusOneAnalyzer
 from query_doctor.interceptor import QueryInterceptor
+from query_doctor.plugin_api import discover_analyzers
 from query_doctor.types import DiagnosisReport
 
 logger = logging.getLogger("query_doctor")
@@ -47,7 +45,7 @@ def diagnose_queries() -> Generator[DiagnosisReport, None, None]:
         report.total_time_ms = sum(q.duration_ms for q in queries)
 
         # Run analyzers
-        analyzers = [NPlusOneAnalyzer(), DuplicateAnalyzer(), MissingIndexAnalyzer()]
+        analyzers = discover_analyzers()
         for analyzer in analyzers:
             try:
                 prescriptions = analyzer.analyze(queries)
