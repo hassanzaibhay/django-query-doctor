@@ -46,10 +46,8 @@ This creates a sample database, runs every feature, and saves output to `outputs
 
 | File | Description |
 |------|-------------|
-| `outputs/console_output.txt` | What you see in the terminal |
 | `outputs/report.json` | JSON reporter output |
 | `outputs/report.html` | HTML single-request report |
-| `outputs/auto_fix_diff.txt` | Fix preview diff output |
 | `outputs/query_budget_output.txt` | Budget enforcement output |
 
 ## Configuration Templates

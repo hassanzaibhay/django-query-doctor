@@ -47,7 +47,7 @@ Grouped queries are passed through a chain of **analyzers**, each responsible fo
 | Analyzer | Detects | Guide |
 |---|---|---|
 | `NPlusOneAnalyzer` | N+1 query patterns from FK/M2M traversal | [N+1 Queries](../analyzers/nplusone.md) |
-| `DuplicateAnalyzer` | Exact and near-duplicate queries within one request | [Duplicates](../analyzers/duplicate.md) |
+| `DuplicateAnalyzer` | Exact-duplicate queries (same SQL + params) within one request | [Duplicates](../analyzers/duplicate.md) |
 | `MissingIndexAnalyzer` | `WHERE`/`ORDER BY` on columns without indexes | [Missing Indexes](../analyzers/missing-index.md) |
 | `FatSelectAnalyzer` | `SELECT *` when only a few columns are used | [Fat SELECT](../analyzers/fat-select.md) |
 | `QuerysetEvalAnalyzer` | Unnecessary queryset evaluations (e.g., `len(qs)` instead of `qs.count()`, `if qs:` instead of `qs.exists()`) | [Queryset Evaluation](../analyzers/queryset-eval.md) |

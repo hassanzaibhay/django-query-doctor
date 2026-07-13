@@ -70,8 +70,9 @@ pytest --cov=query_doctor --cov-report=term-missing
 ```
 
 !!! info "Coverage target"
-    The project targets >90% code coverage. If you add new code, add tests
-    that cover it. A module at 0% coverage is considered a process bug.
+    CI enforces a minimum of 85% coverage (`pyproject.toml` `fail_under`). If
+    you add new code, add tests that cover it. A module at 0% coverage is
+    considered a process bug.
 
 ### Test Database
 

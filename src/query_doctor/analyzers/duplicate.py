@@ -1,8 +1,8 @@
 """Duplicate query detection analyzer.
 
-Detects exact and near-duplicate queries by grouping captured queries
-by their SQL text (exact) and fingerprint (near-duplicate). Suggests
-caching results in variables or consolidating with filter(id__in=[...]).
+Detects exact-duplicate queries by grouping captured queries on a hash
+of their SQL text plus parameters. Suggests caching the result in a
+variable instead of re-executing the same query.
 """
 
 from __future__ import annotations
@@ -31,10 +31,12 @@ def _sql_params_hash(sql: str, params: tuple[Any, ...] | None) -> str:
 
 
 class DuplicateAnalyzer(BaseAnalyzer):
-    """Analyzer that detects exact and near-duplicate queries.
+    """Analyzer that detects exact-duplicate queries.
 
-    Exact duplicates: same SQL + same params executed multiple times.
-    Near-duplicates: same SQL structure (fingerprint) with different params.
+    Groups queries by a hash of SQL text + params. A query executed with
+    the same SQL and the same parameter values more than `threshold` times
+    is flagged. Queries with the same SQL structure but different parameter
+    values are not considered duplicates by this analyzer.
     """
 
     name: str = "duplicate"

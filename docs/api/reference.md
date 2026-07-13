@@ -102,7 +102,7 @@ Detects N+1 query patterns using fingerprint-based grouping.
 
 ### DuplicateAnalyzer
 
-Detects exact and near-duplicate queries within a single request.
+Detects exact-duplicate queries (same SQL and same bound parameters) executed more than once within a single request.
 
 ::: query_doctor.analyzers.duplicate.DuplicateAnalyzer
     options:

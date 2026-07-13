@@ -10,7 +10,7 @@ The baseline comparison logic is in `query_doctor.baseline.BaselineSnapshot`:
 
 1. **What a baseline contains** — Each issue is stored as a serialized prescription dict with the analyzer type, file path, and description.
 
-2. **Why line numbers are ignored** — The baseline hashes each issue using a SHA-256 digest of `{analyzer}:{file_path}:{description}`. Line numbers are deliberately excluded because refactoring changes line numbers without changing the underlying issue. This prevents false regressions from code reformatting.
+2. **Why line numbers are ignored** — The baseline hashes each issue using a SHA-256 digest of `{issue_type}:{file_path}:{description}`. Line numbers are deliberately excluded because refactoring changes line numbers without changing the underlying issue. This prevents false regressions from code reformatting.
 
 3. **What counts as a regression** — Any issue in the current run whose hash is not found in the baseline. These are new issues introduced since the baseline was created.
 
@@ -35,17 +35,18 @@ This runs the full analysis and saves all detected issues to the specified JSON 
   "issues": [
     {
       "issue_type": "n_plus_one",
-      "description": "N+1 detected: 47 queries for table \"myapp_author\"",
-      "callsite": {
-        "filepath": "myapp/views.py",
-        "line_number": 83
-      },
-      "severity": "CRITICAL",
+      "severity": "warning",
+      "description": "N+1 detected: 47 queries for table \"myapp_author\" (field: author)",
+      "file_path": "myapp/views.py",
+      "line": 83,
       "fix_suggestion": "Add .select_related('author') to your queryset"
     }
   ]
 }
 ```
+
+The schema is flat — there is no nested `callsite` object, and `severity` is
+lowercase (`"critical"`, `"warning"`, or `"info"`).
 
 ---
 
