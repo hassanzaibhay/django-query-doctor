@@ -1823,6 +1823,7 @@ and rendered here automatically by MkDocs.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h2 id="201-2026-07-13">[2.0.1] - 2026-07-13<a class="headerlink" href="#201-2026-07-13" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>.github/pull_request_template.md</code> — PR template (summary, type, changelog
@@ -1836,7 +1837,49 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <li><code>CHANGELOG.md</code> adopts <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>
   format with an <code>[Unreleased]</code> section at the top. Every PR adds its entry
   here; on release, <code>[Unreleased]</code> is promoted to the version heading.</li>
+<li><code>.github/pull_request_template.md</code>: replaced the changelog-entry example
+  (previously tied to this very fix, before it shipped) with a generic
+  placeholder; split <code>breaking</code> out of the mutually-exclusive <code>## Type</code> list
+  into its own <code>Breaking change?</code> question; dropped the redundant
+  no-direct-to-main checkbox now that the branch ruleset enforces it.</li>
+<li><code>docs/getting-started/configuration.md</code>: full rewrite. The previous
+  example used dotted class paths for <code>ANALYZERS</code> and dotted-path
+  <code>REPORTERS</code>, neither of which the code accepts; documented fictional keys
+  (<code>MIN_SEVERITY</code>, <code>QUERY_DOCTOR_ENABLED</code>, <code>EXCLUDE_PATHS</code>,
+  <code>JSON_OUTPUT_DIR</code>/<code>HTML_OUTPUT_DIR</code>); and implied <code>HTMLReporter</code> works via
+  <code>REPORTERS</code>, which it doesn't. Rewritten against the real
+  <code>DEFAULT_CONFIG</code> and each key's call site, including three keys
+  (<code>STACK_TRACE_EXCLUDE</code>, <code>IGNORE_PATTERNS</code>, <code>QUERYIGNORE_PATH</code>) that exist
+  in defaults but aren't read by any code path yet.</li>
+<li><code>docs/guides/auto-fix.md</code>: updated to describe the new safe/unsafe split
+  and the <code>ast.parse()</code> validation floor.</li>
 </ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>fix_queries --apply</code> could write broken code into your source files.</strong>
+  The fixer edits the query's <em>callsite</em> line, but for <code>n_plus_one</code> and
+  <code>fat_select</code> prescriptions that's frequently the in-loop attribute-access
+  line, not the queryset definition — appending <code>.select_related(...)</code> or
+  <code>.only(...)</code> there produced invalid or silently-wrong Python. This shipped
+  in 2.0.0. <strong>If you ran <code>fix_queries --apply</code> on 2.0.0, check your diffs
+  (<code>git diff</code> or the <code>.bak</code> files it created) for corrupted lines before
+  trusting them.</strong></li>
+</ul>
+<p>As of 2.0.1, <code>--apply</code> only writes fixes for issue types verified safe
+  (<code>queryset_eval</code>, <code>duplicate_query</code>, <code>missing_index</code>) via a fixed
+  allowlist (<code>fixer.AUTO_APPLIABLE_ISSUE_TYPES</code>). <code>n_plus_one</code>, <code>fat_select</code>,
+  and <code>drf_serializer</code> are shown in the diff tagged <code>[MANUAL FIX ONLY]</code> and
+  refused at write time — apply those by hand. Before writing anything, the
+  candidate file content is also validated with <code>ast.parse()</code>; a fix that
+  would produce syntactically invalid Python is rejected instead of written
+  (this catches syntax errors only, not semantic correctness). <code>fix_queries
+  --apply</code> now exits nonzero if any fixes were skipped as unsafe or failed
+  validation, even when other fixes in the same run succeeded.</p>
+<p>Post-patch, <code>--apply</code> performs exactly one real code transform
+  (<code>queryset_eval</code>) plus two <code># TODO</code>-comment insertions (<code>duplicate_query</code>,
+  <code>missing_index</code>). <code>n_plus_one</code> and <code>fat_select</code> are dry-run only.
+  <code>drf_serializer</code> is never emitted by the runtime pipeline <code>fix_queries</code>
+  uses, so it never reaches the fixer at all.</p>
 <h2 id="200-2026-03-21">[2.0.0] - 2026-03-21<a class="headerlink" href="#200-2026-03-21" title="Permanent link">&para;</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1905,7 +1948,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <li>New config key: <code>VALIDATION_THRESHOLD</code> (default 3) controls trust promotion</li>
 </ul>
 <h2 id="103-2026-03-18">[1.0.3] - 2026-03-18<a class="headerlink" href="#103-2026-03-18" title="Permanent link">&para;</a></h2>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Missing Index analyzer now recommends <code>Meta.indexes</code> with <code>models.Index()</code> instead of <code>db_index=True</code>, following Django's official recommendation since 4.2 (fixes #1)</li>
 <li>Auto-fix for missing indexes now generates <code>Meta.indexes</code> suggestion instead of <code>db_index=True</code></li>
@@ -1920,7 +1963,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <li>Updated docs, README, and all affected tests to reflect new recommendation text</li>
 </ul>
 <h2 id="102-2026-03-16">[1.0.2] - 2026-03-16<a class="headerlink" href="#102-2026-03-16" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fixed SVG terminal renders not displaying on GitHub (switched to absolute URLs)</li>
 <li>Removed Google Fonts @import from SVGs blocked by GitHub CSP</li>
