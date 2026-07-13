@@ -1820,9 +1820,25 @@ and rendered here automatically by MkDocs.</p>
 </div>
 <h1 id="changelog_1">Changelog<a class="headerlink" href="#changelog_1" title="Permanent link">&para;</a></h1>
 <p>All notable changes to this project will be documented in this file.</p>
-<p>This project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
-<h2 id="200-2026-03-21">[2.0.0] - 2026-03-21<a class="headerlink" href="#200-2026-03-21" title="Permanent link">&para;</a></h2>
+<p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
+and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
+<h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>.github/pull_request_template.md</code> — PR template (summary, type, changelog
+  entry, testing, checklist).</li>
+</ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>CONTRIBUTING.md</code> codifies the PR workflow: all changes via <code>feat/*</code> or
+  <code>fix/*</code> branch → PR → review → squash-merge to <code>main</code>. No direct pushes
+  to <code>main</code>.</li>
+<li><code>CHANGELOG.md</code> adopts <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>
+  format with an <code>[Unreleased]</code> section at the top. Every PR adds its entry
+  here; on release, <code>[Unreleased]</code> is promoted to the version heading.</li>
+</ul>
+<h2 id="200-2026-03-21">[2.0.0] - 2026-03-21<a class="headerlink" href="#200-2026-03-21" title="Permanent link">&para;</a></h2>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>QueryTurbo</strong>: SQL compilation cache with three-phase trust lifecycle
   (UNTRUSTED → TRUSTED → POISONED). On cache miss, compiles and caches.
@@ -1879,7 +1895,7 @@ and rendered here automatically by MkDocs.</p>
 <li><strong>Annotation source field fingerprinting</strong>: Annotations with the same
   name but different field targets produce different fingerprints.</li>
 </ul>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Minimum Python version remains 3.10</li>
 <li>All existing v1.x APIs remain backward compatible</li>
@@ -1895,7 +1911,7 @@ and rendered here automatically by MkDocs.</p>
 <li>Auto-fix for missing indexes now generates <code>Meta.indexes</code> suggestion instead of <code>db_index=True</code></li>
 <li><code>_field_is_indexed</code> now checks <code>Meta.constraints</code> for <code>UniqueConstraint</code> (modern Django 4.2+ pattern) in addition to <code>unique_together</code></li>
 </ul>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Full audit of all prescription texts across all 7 analyzers to align with Django 4.2–6.0 best practices</li>
 <li>Fat SELECT prescriptions now mention <code>.values()</code>/<code>.values_list()</code> as alternatives when model instances aren't needed</li>
@@ -1910,7 +1926,7 @@ and rendered here automatically by MkDocs.</p>
 <li>Removed Google Fonts @import from SVGs blocked by GitHub CSP</li>
 </ul>
 <h2 id="101-2026-03-15">[1.0.1] - 2026-03-15<a class="headerlink" href="#101-2026-03-15" title="Permanent link">&para;</a></h2>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Added SVG terminal renders to README for visual feature showcase</li>
 <li>Added Django 6.0 mention in README requirements</li>
@@ -1918,7 +1934,7 @@ and rendered here automatically by MkDocs.</p>
 <li>Updated .gitignore with additional exclusions</li>
 </ul>
 <h2 id="100-2026-03-13">[1.0.0] - 2026-03-13<a class="headerlink" href="#100-2026-03-13" title="Permanent link">&para;</a></h2>
-<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
 <h4 id="core-pipeline">Core Pipeline<a class="headerlink" href="#core-pipeline" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Query interception via <code>connection.execute_wrapper()</code> — works without <code>DEBUG=True</code></li>
@@ -1932,7 +1948,7 @@ and rendered here automatically by MkDocs.</p>
 <h4 id="analyzers">Analyzers<a class="headerlink" href="#analyzers" title="Permanent link">&para;</a></h4>
 <ul>
 <li><strong>N+1 Detection</strong> — fingerprint-based grouping with FK pattern matching</li>
-<li><strong>Duplicate Query Detection</strong> — exact and near-duplicate identification</li>
+<li><strong>Duplicate Query Detection</strong> — exact-duplicate identification (same SQL and parameters, hashed and grouped)</li>
 <li><strong>Missing Index Detection</strong> — WHERE/ORDER BY columns without indexes</li>
 <li><strong>Fat SELECT Detection</strong> — flags <code>SELECT *</code> when fewer columns suffice</li>
 <li><strong>QuerySet Evaluation</strong> — suggests <code>.count()</code>, <code>.exists()</code>, <code>.first()</code> alternatives</li>
