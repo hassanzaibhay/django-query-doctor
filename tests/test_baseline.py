@@ -116,13 +116,45 @@ class TestBaselinePersistence:
 
     def test_save_creates_valid_json(self, tmp_path, sample_issues):
         """Saved file is valid JSON with expected structure."""
+        from query_doctor import __version__
+
         path = tmp_path / "baseline.json"
         BaselineSnapshot(sample_issues).save(path)
 
         data = json.loads(path.read_text())
-        assert data["version"] == "2.0.0"
+        assert data["version"] == __version__
         assert data["issue_count"] == 2
         assert len(data["issues"]) == 2
+
+    def test_save_writes_dynamic_package_version(self, tmp_path, sample_issues):
+        """save() must write the real package __version__, not a hardcoded literal."""
+        from query_doctor import __version__
+
+        path = tmp_path / "baseline.json"
+        BaselineSnapshot(sample_issues).save(path)
+
+        data = json.loads(path.read_text())
+        # Guard against a stale hardcoded literal slipping back in.
+        assert data["version"] != "2.0.0"
+        assert data["version"] == __version__
+
+    def test_load_exposes_saved_version(self, tmp_path, sample_issues):
+        """load() should expose whatever version save() wrote (round-trip)."""
+        from query_doctor import __version__
+
+        path = tmp_path / "baseline.json"
+        BaselineSnapshot(sample_issues).save(path)
+
+        loaded = BaselineSnapshot.load(path)
+        assert loaded.version == __version__
+
+    def test_load_missing_version_defaults_to_unknown(self, tmp_path, sample_issues):
+        """A baseline predating the version field should load as 'unknown'."""
+        path = tmp_path / "baseline.json"
+        path.write_text(json.dumps({"issues": sample_issues}))
+
+        loaded = BaselineSnapshot.load(path)
+        assert loaded.version == "unknown"
 
     def test_load_missing_file(self, tmp_path):
         """Loading from a missing file raises BaselineError."""

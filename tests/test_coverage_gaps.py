@@ -470,7 +470,7 @@ class TestContextManagerEdgeCases:
         BookFactory()
         with (
             patch(
-                "query_doctor.context_managers.NPlusOneAnalyzer.analyze",
+                "query_doctor.analyzers.nplusone.NPlusOneAnalyzer.analyze",
                 side_effect=RuntimeError("boom"),
             ),
             diagnose_queries() as report,

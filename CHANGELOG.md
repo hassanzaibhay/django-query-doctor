@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## Upgrading to 2.1.0
+
+`nplusone`, `duplicate`, and `missing_index` now respect their
+`ANALYZERS.<name>.enabled` config setting, and every dispatch path
+(middleware, pytest plugin, Celery integration, context manager,
+`check_queries`/`diagnose_project`) now runs the full set of discovered
+analyzers instead of a hardcoded subset. If you use `check_queries
+--baseline`, **regenerate your baseline** after upgrading — the widened
+analyzer coverage means an old baseline will report newly-covered findings as
+regressions until it's refreshed. Comparing against a baseline saved with a
+different query-doctor version now prints a non-blocking warning rather than
+failing the check.
+
 ## [2.0.1] - 2026-07-13
 
 ### Added

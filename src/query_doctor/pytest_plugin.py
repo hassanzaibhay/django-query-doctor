@@ -107,31 +107,9 @@ def _run_analyzers(report: DiagnosisReport, queries: list[Any]) -> None:
         report: The report to populate with prescriptions.
         queries: The captured queries to analyze.
     """
-    from query_doctor.analyzers.duplicate import DuplicateAnalyzer
-    from query_doctor.analyzers.nplusone import NPlusOneAnalyzer
+    from query_doctor.plugin_api import discover_analyzers
 
-    analyzers = [NPlusOneAnalyzer(), DuplicateAnalyzer()]
-
-    try:
-        from query_doctor.analyzers.missing_index import MissingIndexAnalyzer
-
-        analyzers.append(MissingIndexAnalyzer())
-    except Exception:
-        pass
-
-    try:
-        from query_doctor.analyzers.fat_select import FatSelectAnalyzer
-
-        analyzers.append(FatSelectAnalyzer())
-    except Exception:
-        pass
-
-    try:
-        from query_doctor.analyzers.queryset_eval import QuerySetEvalAnalyzer
-
-        analyzers.append(QuerySetEvalAnalyzer())
-    except Exception:
-        pass
+    analyzers = discover_analyzers()
 
     for analyzer in analyzers:
         try:

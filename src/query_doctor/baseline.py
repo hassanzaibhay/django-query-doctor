@@ -31,13 +31,16 @@ class BaselineError(QueryDoctorError):
 class BaselineSnapshot:
     """A snapshot of known query issues for regression detection."""
 
-    def __init__(self, issues: list[dict[str, Any]]) -> None:
+    def __init__(self, issues: list[dict[str, Any]], version: str = "unknown") -> None:
         """Initialize with a list of issue dicts.
 
         Args:
             issues: List of serialized prescription dicts.
+            version: The query-doctor version this snapshot was created with.
+                Defaults to "unknown" for baselines that predate the field.
         """
         self.issues = issues
+        self.version = version
         self._issue_hashes = {self._hash_issue(i) for i in issues}
 
     @staticmethod
@@ -103,11 +106,13 @@ class BaselineSnapshot:
         Returns:
             The resolved Path that was written.
         """
+        from query_doctor import __version__
+
         resolved = Path(path)
         resolved.write_text(
             json.dumps(
                 {
-                    "version": "2.0.0",
+                    "version": __version__,
                     "issue_count": len(self.issues),
                     "issues": self.issues,
                 },
@@ -135,7 +140,7 @@ class BaselineSnapshot:
             data = json.loads(resolved.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as e:
             raise BaselineError(f"Failed to load baseline from {path}: {e}") from e
-        return cls(issues=data.get("issues", []))
+        return cls(issues=data.get("issues", []), version=data.get("version", "unknown"))
 
     def __len__(self) -> int:
         """Return the number of issues in the baseline."""
