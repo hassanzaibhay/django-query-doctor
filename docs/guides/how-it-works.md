@@ -51,8 +51,8 @@ Grouped queries are passed through a chain of **analyzers**, each responsible fo
 | `MissingIndexAnalyzer` | `WHERE`/`ORDER BY` on columns without indexes | [Missing Indexes](../analyzers/missing-index.md) |
 | `FatSelectAnalyzer` | `SELECT *` when only a few columns are used | [Fat SELECT](../analyzers/fat-select.md) |
 | `QuerysetEvalAnalyzer` | Unnecessary queryset evaluations (e.g., `len(qs)` instead of `qs.count()`, `if qs:` instead of `qs.exists()`) | [Queryset Evaluation](../analyzers/queryset-eval.md) |
-| `DRFSerializerAnalyzer` | N+1 patterns inside DRF serializers | [DRF Serializer](../analyzers/drf-serializer.md) |
 | `QueryComplexityAnalyzer` | Overly complex queries (too many JOINs, subqueries) | [Query Complexity](../analyzers/query-complexity.md) |
+| `SerializerMethodAnalyzer` | N+1 patterns inside DRF `SerializerMethodField` methods (static AST analysis) | [SerializerMethodField](../analyzers/drf-serializer.md) |
 
 Analyzers are independent and stateless. You can enable or disable each one individually via settings.
 

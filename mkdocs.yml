@@ -136,7 +136,7 @@ nav:
     - Missing Indexes: analyzers/missing-index.md
     - Fat SELECT: analyzers/fat-select.md
     - QuerySet Evaluation: analyzers/queryset-eval.md
-    - DRF Serializer: analyzers/drf-serializer.md
+    - SerializerMethodField: analyzers/drf-serializer.md
     - Query Complexity: analyzers/query-complexity.md
   - Reporters: reporters/index.md
   - Examples: examples/index.md

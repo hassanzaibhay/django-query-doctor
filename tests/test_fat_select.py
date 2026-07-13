@@ -252,3 +252,29 @@ class TestFatSelectEdgeCases:
             queries = [_make_query(sql, tables=["t"])]
             results = analyzer.analyze(queries)
             assert results == []
+
+    def test_threshold_configurable_via_config_key(self) -> None:
+        """ANALYZERS.fat_select.threshold in QUERY_DOCTOR settings must actually
+        change detection behavior -- no analyzer-constructor override used here,
+        so this only passes if _get_threshold() reads the 'threshold' config key.
+        """
+        from django.test import override_settings
+
+        from query_doctor.conf import get_config
+
+        sql = 'SELECT "t"."a", "t"."b", "t"."c", "t"."d" FROM "t"'
+        queries = [_make_query(sql, tables=["t"])]
+
+        # 4 columns, threshold overridden down to 4 -> should flag.
+        with override_settings(QUERY_DOCTOR={"ANALYZERS": {"fat_select": {"threshold": 4}}}):
+            get_config.cache_clear()
+            results = FatSelectAnalyzer().analyze(queries)
+            get_config.cache_clear()
+        assert len(results) >= 1
+
+        # Same query, threshold overridden up to 10 -> should NOT flag.
+        with override_settings(QUERY_DOCTOR={"ANALYZERS": {"fat_select": {"threshold": 10}}}):
+            get_config.cache_clear()
+            results = FatSelectAnalyzer().analyze(queries)
+            get_config.cache_clear()
+        assert len(results) == 0

@@ -14,7 +14,7 @@ This document provides a detailed feature comparison between django-query-doctor
 | Missing index detection | Yes | No | No | No | No |
 | Fat SELECT detection | Yes | No | No | No | No |
 | Query complexity scoring | Yes | No | No | No | No |
-| DRF serializer analysis | Yes | No | No | No | No |
+| DRF serializer analysis (static AST) | Yes | No | No | No | No |
 | QuerySet evaluation issues | Yes | No | No | No | No |
 | **Diagnostics** | | | | | |
 | File:line source location | Yes | No | Partial (request only) | Partial (model only) | No |

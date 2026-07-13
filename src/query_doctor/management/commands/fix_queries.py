@@ -46,7 +46,18 @@ class Command(BaseCommand):
             "--issue-type",
             type=str,
             nargs="*",
-            help="Only fix specific issue types (e.g., n_plus_one duplicate)",
+            choices=[
+                "n_plus_one",
+                "duplicate_query",
+                "fat_select",
+                "queryset_eval",
+                "missing_index",
+            ],
+            help=(
+                "Only fix specific issue types (e.g., n_plus_one duplicate_query). "
+                "Limited to types with a fixer handler -- complexity has none, "
+                "drf_serializer is never emitted."
+            ),
         )
         parser.add_argument(
             "--file",

@@ -189,7 +189,6 @@ flowchart TD
     QList --> MI["Missing Index Analyzer"]
     QList --> FS["Fat SELECT Analyzer"]
     QList --> CX["Complexity Analyzer"]
-    QList --> DRF["DRF Serializer Analyzer"]
     QList --> QE["QuerySet Eval Analyzer"]
 
     NP --> P1["Prescriptions"]
@@ -197,7 +196,6 @@ flowchart TD
     MI --> P3["Prescriptions"]
     FS --> P4["Prescriptions"]
     CX --> P5["Prescriptions"]
-    DRF --> P6["Prescriptions"]
     QE --> P7["Prescriptions"]
 
     P1 --> AGG["Aggregated Results"]
@@ -205,7 +203,6 @@ flowchart TD
     P3 --> AGG
     P4 --> AGG
     P5 --> AGG
-    P6 --> AGG
     P7 --> AGG
 ```
 
@@ -250,9 +247,9 @@ Every issue detected by an analyzer is represented as a `Prescription`:
 
 **Complexity Analyzer** (`complexity.py`): Scores query complexity based on the number of JOINs, subqueries, CASE expressions, and aggregate functions. Flags queries above a configurable threshold.
 
-**DRF Serializer Analyzer** (`drf_serializer.py`): Specialized N+1 detection that understands Django REST Framework serializer field access patterns. Identifies when serializer fields trigger lazy-loaded relationship access.
-
 **QuerySet Eval Analyzer** (`queryset_eval.py`): Detects unnecessary queryset evaluations such as calling `.count()` on an already-evaluated queryset, or iterating over a queryset multiple times.
+
+**SerializerMethodField Analyzer** (`serializer_method.py`): A separate, static-only analyzer — it does not participate in the runtime pipeline above. It statically parses DRF `SerializerMethodField` `get_<field>` methods with Python's `ast` module and flags N+1-prone access patterns, invoked explicitly via the `check_serializers` management command rather than through `analyze(queries)`.
 
 ---
 

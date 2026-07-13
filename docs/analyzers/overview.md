@@ -52,7 +52,7 @@ A `Prescription` contains:
 | [Missing Index](missing-index.md) | Filters, ordering, or grouping on columns that lack a database index | INFO | [missing-index.md](missing-index.md) |
 | [Fat SELECT](fat-select.md) | Selecting all columns when only a subset is used | INFO | [fat-select.md](fat-select.md) |
 | [QuerySet Evaluation](queryset-eval.md) | Unintended queryset evaluation patterns such as `len()` vs `.count()` | WARNING | [queryset-eval.md](queryset-eval.md) |
-| [DRF Serializer](drf-serializer.md) | N+1 queries originating from Django REST Framework serializer nesting | WARNING | [drf-serializer.md](drf-serializer.md) |
+| [SerializerMethodField](drf-serializer.md) | N+1 queries in DRF `SerializerMethodField` methods (static AST analysis) | WARNING | [drf-serializer.md](drf-serializer.md) |
 | [Query Complexity](query-complexity.md) | Overly complex SQL with excessive JOINs, subqueries, or aggregations | WARNING / CRITICAL | [query-complexity.md](query-complexity.md) |
 
 ## Disabling Specific Analyzers

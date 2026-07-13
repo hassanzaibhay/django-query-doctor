@@ -220,6 +220,13 @@ class TestFixQueriesCommand:
         # Duplicate fix should be filtered out
         assert "Duplicate fix" not in output
 
+    def test_invalid_issue_type_errors(self) -> None:
+        """--issue-type with an unknown value should error at arg-parsing time,
+        not silently produce zero fixes.
+        """
+        with pytest.raises((CommandError, SystemExit)):
+            call_command("fix_queries", "--dry-run", "--issue-type", "not_a_real_type")
+
     def test_file_filter(self) -> None:
         """--file should filter fixes to specific files."""
         out = StringIO()

@@ -99,6 +99,14 @@ class QueryFixer:
 
         original_line = lines[line_idx]
 
+        # IssueType.SERIALIZER_METHOD_FIELD has no branch here and falls through to
+        # `else: return None` below -- fail-closed (no fix is ever written) but silent,
+        # unlike DRF_SERIALIZER which lands in last_skipped_unsafe / [MANUAL FIX ONLY].
+        # Not live today: SerializerMethodAnalyzer.analyze() always returns [], so no
+        # SERIALIZER_METHOD_FIELD prescription reaches this method via any path. If
+        # analyze() is ever wired to emit real findings, add it here (mirroring
+        # DRF_SERIALIZER's classification) so it surfaces as skipped-unsafe instead of
+        # silently vanishing -- and add generate_fixes() test coverage at the same time.
         if rx.issue_type in (IssueType.N_PLUS_ONE, IssueType.DRF_SERIALIZER):
             fixed_line = self._fix_nplusone(original_line, rx.fix_suggestion)
         elif rx.issue_type == IssueType.DUPLICATE_QUERY:

@@ -136,15 +136,6 @@ Detects unintended queryset evaluation patterns.
       show_source: true
       heading_level: 4
 
-### DRFSerializerAnalyzer
-
-Detects N+1 patterns caused by DRF serializer nesting.
-
-::: query_doctor.analyzers.drf_serializer.DRFSerializerAnalyzer
-    options:
-      show_source: true
-      heading_level: 4
-
 ### QueryComplexityAnalyzer
 
 Scores queries by complexity and flags those above threshold.

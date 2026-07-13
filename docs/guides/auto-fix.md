@@ -103,7 +103,7 @@ python manage.py fix_queries --url /api/books/ \
     --apply
 ```
 
-Values that actually produce fixes through `fix_queries`: `n_plus_one`, `duplicate_query`, `fat_select`, `queryset_eval`, `missing_index`. `complexity` is detected but has no fix handler. `drf_serializer` findings are produced by the separate `check_serializers` static analyzer (see [DRF Serializer Analyzer](../analyzers/drf-serializer.md)), not by the runtime pipeline `fix_queries` uses, so this value currently has nothing to filter.
+`--issue-type` only accepts the five values that actually produce fixes through `fix_queries`: `n_plus_one`, `duplicate_query`, `fat_select`, `queryset_eval`, `missing_index`. `complexity` is detected but has no fix handler. `SerializerMethodField` findings are produced by the separate `check_serializers` static analyzer (see [SerializerMethodField Analysis](../analyzers/drf-serializer.md)), not by the runtime pipeline `fix_queries` uses, so it isn't a valid `--issue-type` value.
 
 ---
 

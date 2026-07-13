@@ -1,15 +1,16 @@
-"""Tests for discover_analyzers() wiring across dispatch sites (3b).
+"""Tests for discover_analyzers() wiring across dispatch sites (3b/3c).
 
-Before this change, middleware.py, context_managers.py, check_queries.py,
+Before 3b, middleware.py, context_managers.py, check_queries.py,
 celery_integration.py, and pytest_plugin.py each hardcoded their own narrow
-subset of analyzer classes (3-5 out of 8). This replaced every site with
-discover_analyzers(), relying on each analyzer's is_enabled() self-gate (3a)
-to honor config toggles instead of bespoke per-site gating.
+subset of analyzer classes (3-5 out of the built-ins). This replaced every
+site with discover_analyzers(), relying on each analyzer's is_enabled()
+self-gate (3a) to honor config toggles instead of bespoke per-site gating.
 
-At this commit discover_analyzers() returns 8 analyzers (DRFSerializerAnalyzer
-is deleted in 3c, dropping it to 7). Assertions here check presence/absence of
-named analyzers, never a magic total count, so 3c's deletion doesn't require
-touching these tests.
+discover_analyzers() returns 7 analyzers (DRFSerializerAnalyzer was dead code
+-- analyze() was hardwired to return [] through every reachable path, and
+analyze_view() had no caller outside its own tests -- and was deleted in 3c).
+Assertions here check presence/absence of named analyzers, not a magic total
+count, except where the exact count is itself the thing under test.
 
 Book.objects.all() selects exactly 8 explicit columns (id, title, isbn,
 author_id, publisher_id, price, description, published_date) -- at the
@@ -40,7 +41,13 @@ from tests.factories import BookFactory
 
 
 class TestDiscoverAnalyzersMembership:
-    """discover_analyzers() must include every built-in, by name."""
+    """discover_analyzers() must include every built-in, by name.
+
+    drf_serializer is asserted ABSENT, not present: DRFSerializerAnalyzer is
+    dead code (analyze() is hardwired to return [] through every reachable
+    path, and analyze_view() has no caller outside its own tests) and is
+    deleted in 3c. discover_analyzers() must return exactly 7 analyzers.
+    """
 
     def test_widened_set_present_by_name(self) -> None:
         names = {a.name for a in discover_analyzers()}
@@ -50,10 +57,14 @@ class TestDiscoverAnalyzersMembership:
             "missing_index",
             "fat_select",
             "queryset_eval",
-            "drf_serializer",
             "complexity",
+            "serializer_method",
         ):
             assert expected in names
+        assert "drf_serializer" not in names
+
+    def test_returns_exactly_seven(self) -> None:
+        assert len(discover_analyzers()) == 7
 
 
 @pytest.mark.django_db

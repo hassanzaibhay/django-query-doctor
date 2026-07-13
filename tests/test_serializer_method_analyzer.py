@@ -143,7 +143,7 @@ class TestSerializerMethodAnalyzer:
         assert any(
             "items" in r.description.lower() or "count" in r.description.lower() for r in results
         )
-        assert all(r.issue_type == IssueType.DRF_SERIALIZER for r in results)
+        assert all(r.issue_type == IssueType.SERIALIZER_METHOD_FIELD for r in results)
 
     def test_detects_objects_filter(self):
         """Pattern 2: Model.objects.filter() should be detected."""
@@ -233,6 +233,47 @@ class TestSerializerMethodAnalyzer:
             results = self.analyzer.analyze_serializer(cls)
             for r in results:
                 assert r.fix_suggestion, f"Empty fix_suggestion for {cls.__name__}"
+
+
+class TestSerializerMethodConfigToggle:
+    """Tests that ANALYZERS.serializer_method.enabled actually gates analyze_serializer().
+
+    Prior to this, DEFAULT_CONFIG had no serializer_method key, so is_enabled()
+    always fell back to True with no key for a user to override -- the toggle
+    was unreachable. BadCountSerializer is a real finding-producing fixture (it
+    is already proven to trigger a prescription above), so the disabled case
+    below isn't passing "for free" on empty input.
+    """
+
+    def test_disabled_via_config_produces_no_findings(self) -> None:
+        from django.test import override_settings
+
+        from query_doctor.conf import get_config
+
+        with override_settings(
+            QUERY_DOCTOR={"ANALYZERS": {"serializer_method": {"enabled": False}}}
+        ):
+            get_config.cache_clear()
+            analyzer = SerializerMethodAnalyzer()
+            results = analyzer.analyze_serializer(BadCountSerializer)
+            get_config.cache_clear()
+
+        assert results == []
+
+    def test_enabled_via_config_positive_control(self) -> None:
+        from django.test import override_settings
+
+        from query_doctor.conf import get_config
+
+        with override_settings(
+            QUERY_DOCTOR={"ANALYZERS": {"serializer_method": {"enabled": True}}}
+        ):
+            get_config.cache_clear()
+            analyzer = SerializerMethodAnalyzer()
+            results = analyzer.analyze_serializer(BadCountSerializer)
+            get_config.cache_clear()
+
+        assert len(results) >= 1
 
 
 class TestSerializerMethodAnalyzerEdgeCases:

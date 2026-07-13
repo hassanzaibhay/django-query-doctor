@@ -61,13 +61,6 @@ def get_builtin_analyzers() -> list[BaseAnalyzer]:
         pass
 
     try:
-        from query_doctor.analyzers.drf_serializer import DRFSerializerAnalyzer
-
-        analyzers.append(DRFSerializerAnalyzer())
-    except Exception:
-        pass
-
-    try:
         from query_doctor.analyzers.complexity import QueryComplexityAnalyzer
 
         analyzers.append(QueryComplexityAnalyzer())

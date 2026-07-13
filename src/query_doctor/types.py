@@ -27,8 +27,9 @@ class IssueType(Enum):
     MISSING_INDEX = "missing_index"
     FAT_SELECT = "fat_select"
     QUERYSET_EVAL = "queryset_eval"
-    DRF_SERIALIZER = "drf_serializer"
+    DRF_SERIALIZER = "drf_serializer"  # unused by any analyzer; kept for plugin/fixer compat
     QUERY_COMPLEXITY = "complexity"
+    SERIALIZER_METHOD_FIELD = "serializer_method_field"
 
 
 @dataclass(frozen=True)

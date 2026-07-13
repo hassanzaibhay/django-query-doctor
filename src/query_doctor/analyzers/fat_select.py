@@ -95,7 +95,7 @@ class FatSelectAnalyzer(BaseAnalyzer):
             return int(
                 config.get("ANALYZERS", {})
                 .get("fat_select", {})
-                .get("field_count_threshold", _DEFAULT_FIELD_COUNT_THRESHOLD)
+                .get("threshold", _DEFAULT_FIELD_COUNT_THRESHOLD)
             )
         except Exception:
             return _DEFAULT_FIELD_COUNT_THRESHOLD
