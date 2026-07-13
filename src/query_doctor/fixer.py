@@ -7,6 +7,7 @@ with backup support.
 
 from __future__ import annotations
 
+import ast
 import logging
 import re
 import shutil
@@ -16,6 +17,15 @@ from pathlib import Path
 from query_doctor.types import IssueType, Prescription
 
 logger = logging.getLogger("query_doctor")
+
+# Issue types whose fix handler edits the *callsite* line, which for N+1/fat_select
+# is the in-loop attribute-access line rather than the queryset definition — applying
+# blindly can write syntactically or semantically broken code. This is an allowlist,
+# not a denylist, so any future/unknown issue type defaults to NOT auto-applied
+# (fail-safe) until its handler is verified safe and added here explicitly.
+AUTO_APPLIABLE_ISSUE_TYPES: frozenset[IssueType] = frozenset(
+    {IssueType.QUERYSET_EVAL, IssueType.DUPLICATE_QUERY, IssueType.MISSING_INDEX}
+)
 
 
 @dataclass
@@ -248,10 +258,15 @@ class QueryFixer:
 
         parts: list[str] = []
         for fix in fixes:
+            unsafe_tag = (
+                ""
+                if fix.prescription.issue_type in AUTO_APPLIABLE_ISSUE_TYPES
+                else " [MANUAL FIX ONLY]"
+            )
             parts.append(f"--- {fix.file_path}")
             parts.append(f"+++ {fix.file_path}")
             parts.append(f"@@ -{fix.line_number},1 +{fix.line_number},1 @@")
-            parts.append(f"  [{fix.description}]")
+            parts.append(f"  [{fix.description}]{unsafe_tag}")
             parts.append(f"- {fix.original_line.rstrip()}")
             for fixed in fix.fixed_line.splitlines():
                 parts.append(f"+ {fixed}")
@@ -264,6 +279,16 @@ class QueryFixer:
     ) -> list[str]:
         """Write fixes to disk.
 
+        Only issue types in ``AUTO_APPLIABLE_ISSUE_TYPES`` are written; the rest
+        are refused and recorded in ``last_skipped_unsafe`` (see that constant's
+        docstring for why). For allowlisted fixes, the candidate file content is
+        parsed with ``ast.parse()`` before anything is written — this floor
+        catches syntax errors only, not semantic corruption. A comment silently
+        swallowed into another comment, or a fix appended after a valid-but-wrong
+        expression, still parses cleanly, so don't add a type to the allowlist
+        without independently verifying its handler can't produce silent-wrong
+        output.
+
         Args:
             fixes: List of proposed fixes to apply.
             backup: If True, create .bak backup files before modifying.
@@ -272,6 +297,8 @@ class QueryFixer:
             List of modified file paths.
         """
         modified: list[str] = []
+        self.last_skipped_unsafe: list[ProposedFix] = []
+        self.last_failed_validation: list[ProposedFix] = []
 
         # Group fixes by file
         by_file: dict[str, list[ProposedFix]] = {}
@@ -279,6 +306,19 @@ class QueryFixer:
             by_file.setdefault(fix.file_path, []).append(fix)
 
         for filepath, file_fixes in by_file.items():
+            safe_fixes = [
+                f for f in file_fixes if f.prescription.issue_type in AUTO_APPLIABLE_ISSUE_TYPES
+            ]
+            unsafe_fixes = [
+                f
+                for f in file_fixes
+                if f.prescription.issue_type not in AUTO_APPLIABLE_ISSUE_TYPES
+            ]
+            self.last_skipped_unsafe.extend(unsafe_fixes)
+
+            if not safe_fixes:
+                continue
+
             try:
                 path = Path(filepath)
                 if not path.exists():
@@ -288,19 +328,27 @@ class QueryFixer:
                     )
                     continue
 
-                if backup:
-                    shutil.copy2(filepath, filepath + ".bak")
-
                 lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
 
                 # Sort fixes by line number in reverse to avoid offset issues
-                sorted_fixes = sorted(file_fixes, key=lambda f: f.line_number, reverse=True)
+                sorted_fixes = sorted(safe_fixes, key=lambda f: f.line_number, reverse=True)
+                candidate_lines = list(lines)
                 for fix in sorted_fixes:
                     idx = fix.line_number - 1
-                    if 0 <= idx < len(lines):
-                        lines[idx] = fix.fixed_line
+                    if 0 <= idx < len(candidate_lines):
+                        candidate_lines[idx] = fix.fixed_line
 
-                path.write_text("".join(lines), encoding="utf-8")
+                candidate_content = "".join(candidate_lines)
+                try:
+                    ast.parse(candidate_content)
+                except SyntaxError:
+                    self.last_failed_validation.extend(safe_fixes)
+                    continue
+
+                if backup:
+                    shutil.copy2(filepath, filepath + ".bak")
+
+                path.write_text(candidate_content, encoding="utf-8")
                 modified.append(filepath)
             except Exception:
                 logger.warning(

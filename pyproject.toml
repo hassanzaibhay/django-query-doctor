@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-query-doctor"
-version = "2.0.0"
+version = "2.0.1"
 description = "Automated Django ORM query diagnosis and optimization. SQL compilation caching, prepared statements, N+1 detection, and DRF analysis."
 readme = "README.md"
 license = "MIT"

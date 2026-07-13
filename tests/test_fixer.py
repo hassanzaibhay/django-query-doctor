@@ -168,12 +168,159 @@ class TestQueryFixerGenerateDiff:
         assert "---" in diff or "-" in diff
         assert "select_related" in diff
 
+    def test_generate_diff_marks_unsafe_types(self, tmp_path: Path) -> None:
+        """Diff entries for non-allowlisted issue types are tagged [MANUAL FIX ONLY]."""
+        unsafe_fix = ProposedFix(
+            file_path=str(tmp_path / "views.py"),
+            original_line="    books = Book.objects.all()\n",
+            fixed_line="    books = Book.objects.all().select_related('author')\n",
+            line_number=4,
+            description="Add select_related",
+            prescription=_make_prescription(issue_type=IssueType.N_PLUS_ONE),
+        )
+        safe_fix = ProposedFix(
+            file_path=str(tmp_path / "views.py"),
+            original_line="    total = len(qs)\n",
+            fixed_line="    total = qs.count()\n",
+            line_number=5,
+            description="Replace len() with count()",
+            prescription=_make_prescription(issue_type=IssueType.QUERYSET_EVAL),
+        )
+        fixer = QueryFixer()
+        diff = fixer.generate_diff([unsafe_fix, safe_fix])
+        unsafe_section, safe_section = diff.split("Replace len() with count()")
+        assert "[MANUAL FIX ONLY]" in unsafe_section
+        assert "[MANUAL FIX ONLY]" not in safe_section
+
 
 class TestQueryFixerApplyFixes:
     """Tests for applying fixes to disk."""
 
     def test_apply_modifies_files(self, tmp_path: Path) -> None:
-        """--apply should modify files on disk."""
+        """--apply should modify files on disk for an auto-appliable issue type."""
+        source = tmp_path / "views.py"
+        source.write_text(
+            "from myapp.models import Book\n"
+            "\n"
+            "def count_books():\n"
+            "    qs = Book.objects.all()\n"
+            "    total = len(qs)\n"
+            "    return total\n"
+        )
+        fix = ProposedFix(
+            file_path=str(source),
+            original_line="    total = len(qs)\n",
+            fixed_line="    total = qs.count()\n",
+            line_number=5,
+            description="Replace len() with count()",
+            prescription=_make_prescription(
+                issue_type=IssueType.QUERYSET_EVAL, filepath=str(source)
+            ),
+        )
+        fixer = QueryFixer()
+        modified = fixer.apply_fixes([fix])
+        assert str(source) in modified
+        content = source.read_text()
+        assert "qs.count()" in content
+
+    def test_apply_creates_backup(self, tmp_path: Path) -> None:
+        """--apply should create .bak backup files."""
+        source = tmp_path / "views.py"
+        source.write_text("x = 1\n")
+        fix = ProposedFix(
+            file_path=str(source),
+            original_line="x = 1\n",
+            fixed_line="x = 2\n",
+            line_number=1,
+            description="Test fix",
+            prescription=_make_prescription(
+                issue_type=IssueType.QUERYSET_EVAL, filepath=str(source)
+            ),
+        )
+        fixer = QueryFixer()
+        fixer.apply_fixes([fix], backup=True)
+        backup = tmp_path / "views.py.bak"
+        assert backup.exists()
+        assert backup.read_text() == "x = 1\n"
+
+    def test_apply_no_backup_when_disabled(self, tmp_path: Path) -> None:
+        """No .bak should be created when backup=False."""
+        source = tmp_path / "views.py"
+        source.write_text("x = 1\n")
+        fix = ProposedFix(
+            file_path=str(source),
+            original_line="x = 1\n",
+            fixed_line="x = 2\n",
+            line_number=1,
+            description="Test fix",
+            prescription=_make_prescription(
+                issue_type=IssueType.QUERYSET_EVAL, filepath=str(source)
+            ),
+        )
+        fixer = QueryFixer()
+        fixer.apply_fixes([fix], backup=False)
+        backup = tmp_path / "views.py.bak"
+        assert not backup.exists()
+
+    def test_apply_skips_nplusone_as_unsafe(self, tmp_path: Path) -> None:
+        """N_PLUS_ONE fixes are not in the auto-appliable allowlist — skipped, not written."""
+        source = tmp_path / "views.py"
+        source.write_text("    books = Book.objects.all()\n")
+        fix = ProposedFix(
+            file_path=str(source),
+            original_line="    books = Book.objects.all()\n",
+            fixed_line="    books = Book.objects.all().select_related('author')\n",
+            line_number=1,
+            description="Add select_related",
+            prescription=_make_prescription(issue_type=IssueType.N_PLUS_ONE, filepath=str(source)),
+        )
+        fixer = QueryFixer()
+        modified = fixer.apply_fixes([fix])
+        assert modified == []
+        assert source.read_text() == "    books = Book.objects.all()\n"
+        assert len(fixer.last_skipped_unsafe) == 1
+        assert fixer.last_skipped_unsafe[0].prescription.issue_type == IssueType.N_PLUS_ONE
+
+    def test_apply_skips_fat_select_as_unsafe(self, tmp_path: Path) -> None:
+        """FAT_SELECT fixes are not in the auto-appliable allowlist — skipped, not written."""
+        source = tmp_path / "views.py"
+        source.write_text("    books = Book.objects.all()\n")
+        fix = ProposedFix(
+            file_path=str(source),
+            original_line="    books = Book.objects.all()\n",
+            fixed_line="    books = Book.objects.all().only('id')\n",
+            line_number=1,
+            description="Add only()",
+            prescription=_make_prescription(issue_type=IssueType.FAT_SELECT, filepath=str(source)),
+        )
+        fixer = QueryFixer()
+        modified = fixer.apply_fixes([fix])
+        assert modified == []
+        assert source.read_text() == "    books = Book.objects.all()\n"
+        assert len(fixer.last_skipped_unsafe) == 1
+
+    def test_apply_skips_drf_serializer_as_unsafe(self, tmp_path: Path) -> None:
+        """DRF_SERIALIZER fixes are not in the auto-appliable allowlist — skipped, not written."""
+        source = tmp_path / "views.py"
+        source.write_text("    name = book.author.name\n")
+        fix = ProposedFix(
+            file_path=str(source),
+            original_line="    name = book.author.name\n",
+            fixed_line="    name = book.author.name.select_related('author')\n",
+            line_number=1,
+            description="Add select_related",
+            prescription=_make_prescription(
+                issue_type=IssueType.DRF_SERIALIZER, filepath=str(source)
+            ),
+        )
+        fixer = QueryFixer()
+        modified = fixer.apply_fixes([fix])
+        assert modified == []
+        assert source.read_text() == "    name = book.author.name\n"
+        assert len(fixer.last_skipped_unsafe) == 1
+
+    def test_apply_regression_lock_duplicate(self, tmp_path: Path) -> None:
+        """DUPLICATE_QUERY remains auto-appliable (comment-only prepend)."""
         source = tmp_path / "views.py"
         source.write_text(
             "from myapp.models import Book\n"
@@ -185,48 +332,69 @@ class TestQueryFixerApplyFixes:
         fix = ProposedFix(
             file_path=str(source),
             original_line="    books = Book.objects.all()\n",
-            fixed_line="    books = Book.objects.all().select_related('author')\n",
+            fixed_line="    # TODO: Cache this query result to avoid duplicate execution\n"
+            "    books = Book.objects.all()\n",
             line_number=4,
-            description="Add select_related",
-            prescription=_make_prescription(filepath=str(source)),
+            description="Dedup",
+            prescription=_make_prescription(
+                issue_type=IssueType.DUPLICATE_QUERY, filepath=str(source)
+            ),
         )
         fixer = QueryFixer()
         modified = fixer.apply_fixes([fix])
         assert str(source) in modified
-        content = source.read_text()
-        assert ".select_related('author')" in content
+        assert "TODO: Cache this query result" in source.read_text()
+        assert fixer.last_skipped_unsafe == []
+        assert fixer.last_failed_validation == []
 
-    def test_apply_creates_backup(self, tmp_path: Path) -> None:
-        """--apply should create .bak backup files."""
+    def test_apply_regression_lock_missing_index(self, tmp_path: Path) -> None:
+        """MISSING_INDEX remains auto-appliable (comment-only prepend)."""
         source = tmp_path / "views.py"
-        source.write_text("original content\n")
+        source.write_text(
+            "from myapp.models import Book\n"
+            "\n"
+            "def get_books():\n"
+            "    books = Book.objects.filter(status='active')\n"
+            "    return books\n"
+        )
         fix = ProposedFix(
             file_path=str(source),
-            original_line="original content\n",
-            fixed_line="fixed content\n",
-            line_number=1,
-            description="Test fix",
-            prescription=_make_prescription(filepath=str(source)),
+            original_line="    books = Book.objects.filter(status='active')\n",
+            fixed_line=(
+                "    # TODO: Consider adding an index via Meta.indexes — add index on status\n"
+                "    books = Book.objects.filter(status='active')\n"
+            ),
+            line_number=4,
+            description="Missing index",
+            prescription=_make_prescription(
+                issue_type=IssueType.MISSING_INDEX, filepath=str(source)
+            ),
         )
         fixer = QueryFixer()
-        fixer.apply_fixes([fix], backup=True)
-        backup = tmp_path / "views.py.bak"
-        assert backup.exists()
-        assert backup.read_text() == "original content\n"
+        modified = fixer.apply_fixes([fix])
+        assert str(source) in modified
+        assert "TODO: Consider adding an index" in source.read_text()
+        assert fixer.last_skipped_unsafe == []
+        assert fixer.last_failed_validation == []
 
-    def test_apply_no_backup_when_disabled(self, tmp_path: Path) -> None:
-        """No .bak should be created when backup=False."""
+    def test_apply_ast_floor_rejects_invalid_syntax(self, tmp_path: Path) -> None:
+        """An allowlisted-type fix producing invalid Python is rejected, not written."""
         source = tmp_path / "views.py"
-        source.write_text("original content\n")
+        source.write_text("x = 1\n")
         fix = ProposedFix(
             file_path=str(source),
-            original_line="original content\n",
-            fixed_line="fixed content\n",
+            original_line="x = 1\n",
+            fixed_line="x = (\n",  # unbalanced paren — invalid Python
             line_number=1,
-            description="Test fix",
-            prescription=_make_prescription(filepath=str(source)),
+            description="Broken fix",
+            prescription=_make_prescription(
+                issue_type=IssueType.QUERYSET_EVAL, filepath=str(source)
+            ),
         )
         fixer = QueryFixer()
-        fixer.apply_fixes([fix], backup=False)
-        backup = tmp_path / "views.py.bak"
-        assert not backup.exists()
+        modified = fixer.apply_fixes([fix])
+        assert modified == []
+        assert source.read_text() == "x = 1\n"
+        assert not (tmp_path / "views.py.bak").exists()
+        assert len(fixer.last_failed_validation) == 1
+        assert fixer.last_failed_validation[0].file_path == str(source)

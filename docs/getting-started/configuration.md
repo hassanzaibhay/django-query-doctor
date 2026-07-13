@@ -1,56 +1,63 @@
 # Configuration
 
-django-query-doctor works with zero configuration. Every setting has a sensible default. Override only what you need.
+django-query-doctor works with zero configuration. Every setting has a sensible default (see `query_doctor.conf.DEFAULT_CONFIG`). Override only what you need.
 
 ## All Settings
 
-Add these to your Django `settings.py`:
+Add these to your Django `settings.py`. This example shows every setting that's actually read by the code — verified against `conf.py` and each key's call site, not assumed:
+
 ```python title="settings.py"
 QUERY_DOCTOR = {
-    # Master on/off switch
+    # Master on/off switch for the middleware
     "ENABLED": True,
 
-    # Which analyzers to run (all enabled by default)
-    "ANALYZERS": [
-        "query_doctor.analyzers.NPlusOneAnalyzer",
-        "query_doctor.analyzers.DuplicateQueryAnalyzer",
-        "query_doctor.analyzers.MissingIndexAnalyzer",
-        "query_doctor.analyzers.FatSelectAnalyzer",
-        "query_doctor.analyzers.QuerySetEvalAnalyzer",
-        "query_doctor.analyzers.DRFSerializerAnalyzer",
-        "query_doctor.analyzers.QueryComplexityAnalyzer",
-    ],
+    # Fraction of requests to instrument (1.0 = every request)
+    "SAMPLE_RATE": 1.0,
 
-    # Which reporters to use
-    "REPORTERS": [
-        "query_doctor.reporters.ConsoleReporter",
-    ],
+    # Capture Python stack traces to map queries to file:line.
+    # Disabling this is faster but prescriptions lose their callsite.
+    "CAPTURE_STACK_TRACES": True,
 
-    # Minimum severity to report (DEBUG, INFO, WARNING, CRITICAL)
-    "MIN_SEVERITY": "INFO",
+    # Per-analyzer config. Keys are short names, not dotted class paths.
+    # Analyzers not listed here use their own defaults (all enabled).
+    "ANALYZERS": {
+        "nplusone": {"enabled": True, "threshold": 3},
+        "duplicate": {"enabled": True, "threshold": 2},
+        "missing_index": {"enabled": True},
+        "fat_select": {"enabled": True},
+        "queryset_eval": {"enabled": True},
+        "drf_serializer": {"enabled": True},
+        "complexity": {"enabled": True, "threshold": 8},
+    },
 
-    # N+1 detection threshold
-    "NPLUSONE_THRESHOLD": 3,
+    # Reporter names, not class paths: "console", "json", "log".
+    "REPORTERS": ["console"],
 
-    # Duplicate query threshold
-    "DUPLICATE_THRESHOLD": 2,
+    # Where the JSON reporter writes output, if "json" is in REPORTERS.
+    "JSON_REPORT_PATH": None,
 
-    # Query complexity score threshold
-    "COMPLEXITY_THRESHOLD": 50,
+    # URL paths to skip entirely (middleware won't instrument these requests).
+    "IGNORE_URLS": ["/admin/", "/static/"],
 
-    # Paths to exclude from analysis
-    "EXCLUDE_PATHS": [
-        "/admin/",
-        "/static/",
-        "/__debug__/",
-    ],
+    # Per-request query budget defaults, used by the @query_budget decorator
+    # when it isn't given explicit max_queries/max_time_ms arguments.
+    "QUERY_BUDGET": {
+        "DEFAULT_MAX_QUERIES": None,
+        "DEFAULT_MAX_TIME_MS": None,
+    },
+
+    # Admin-integrated dashboard showing recent diagnosis reports.
+    "ADMIN_DASHBOARD": {"enabled": False, "max_reports": 50},
 }
 ```
+
+There is no `HTMLReporter` entry for `REPORTERS` — `"console"`, `"json"`, and `"log"` are the only recognized names. HTML output comes from a separate management command (`query_doctor_report`), not the reporter pipeline.
 
 ## Environment-Based Toggle
 
 !!! tip "Recommended for production"
     Disable the middleware in production and use management commands in CI instead.
+
 ```python title="settings.py"
 import os
 
@@ -59,25 +66,25 @@ QUERY_DOCTOR = {
 }
 ```
 
-Or simply control it with `QUERY_DOCTOR_ENABLED = False` in your production settings module.
+There is no `QUERY_DOCTOR_ENABLED` Django setting read by the code — `ENABLED` inside the `QUERY_DOCTOR` dict is what the middleware checks. Reading an environment variable into it, as above, is a pattern you apply yourself.
 
 ## Per-Analyzer Configuration
 
-Each analyzer can be configured individually. See the [Analyzers](../analyzers/overview.md) section for per-analyzer options.
+Each analyzer reads its config from `ANALYZERS.<short_name>`. `enabled` is checked by every built-in analyzer (`BaseAnalyzer.is_enabled()`); `threshold` (or a similarly-named key) is analyzer-specific — see the [Analyzers](../analyzers/overview.md) section for what each one supports. Disabling an analyzer here also affects `fix_queries` and `check_queries`, since both discover analyzers the same way.
 
 ## Reporter Configuration
 
-Multiple reporters can be active simultaneously:
+Multiple reporters can be active simultaneously — `REPORTERS` is a list, and each recognized name adds its reporter:
+
 ```python title="settings.py"
 QUERY_DOCTOR = {
-    "REPORTERS": [
-        "query_doctor.reporters.ConsoleReporter",
-        "query_doctor.reporters.JSONReporter",
-        "query_doctor.reporters.HTMLReporter",
-    ],
-    "JSON_OUTPUT_DIR": "reports/",
-    "HTML_OUTPUT_DIR": "reports/html/",
+    "REPORTERS": ["console", "json"],
+    "JSON_REPORT_PATH": "reports/query-doctor.json",
 }
 ```
 
-See [Reporters](../reporters/index.md) for full configuration options.
+`console` uses Rich if it's installed (`pip install django-query-doctor[rich]`), falling back to plain text otherwise. `log` sends prescriptions through Python's standard `logging` module instead of stdout.
+
+## Not Yet Wired
+
+`STACK_TRACE_EXCLUDE`, `IGNORE_PATTERNS`, and `QUERYIGNORE_PATH` exist in `DEFAULT_CONFIG` but aren't read by any code path today — setting them has no effect. To suppress known false positives, use a `.queryignore` file at your project root instead (see the [.queryignore guide](../guides/query-ignore.md)); its location isn't configurable via `QUERY_DOCTOR` settings.

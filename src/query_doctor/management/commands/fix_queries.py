@@ -14,7 +14,7 @@ from __future__ import annotations
 import contextlib
 from typing import Any
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from query_doctor.fixer import ProposedFix, QueryFixer
 from query_doctor.interceptor import QueryInterceptor
@@ -101,6 +101,33 @@ class Command(BaseCommand):
             )
             if not no_backup:
                 self.stdout.write("Backup files created (.bak)")
+
+            skipped_unsafe = fixer.last_skipped_unsafe
+            failed_validation = fixer.last_failed_validation
+
+            if skipped_unsafe:
+                issue_types = sorted({f.prescription.issue_type.value for f in skipped_unsafe})
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Skipped {len(skipped_unsafe)} unsafe fix(es) "
+                        f"({', '.join(issue_types)}) — not auto-appliable, apply by hand."
+                    )
+                )
+            if failed_validation:
+                files = sorted({f.file_path for f in failed_validation})
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Rejected {len(failed_validation)} fix(es) that would produce "
+                        f"invalid Python in: {', '.join(files)}"
+                    )
+                )
+
+            if skipped_unsafe or failed_validation:
+                raise CommandError(
+                    f"{len(skipped_unsafe)} unsafe fix(es) skipped, "
+                    f"{len(failed_validation)} fix(es) failed validation. "
+                    "See warnings above."
+                )
         else:
             self.stdout.write("Dry run — showing proposed changes:\n")
             self.stdout.write(diff)

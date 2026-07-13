@@ -11,11 +11,11 @@ When you run `fix_queries`, django-query-doctor:
 1. **Analyzes** the target URL by executing a request and capturing queries.
 2. **Generates prescriptions** with exact file paths, line numbers, and a suggested fix as text.
 3. **Reads the single source line** at the prescription's `callsite.line_number` and applies a **regex substitution** on that one line — it does not parse or understand the surrounding code.
-4. **Writes the modified line back to disk**, replacing only that line, at its original position.
+4. On `--apply`, **only issue types known to be safe are written to disk** (see [Supported Fix Types](#supported-fix-types)); the rest are refused and reported instead.
 
-There is no AST parsing and no code restructuring. The fixer (`fixer.py`) imports only `logging`, `re`, `shutil`, `dataclasses`, and `pathlib` — no `ast` module. Each issue type has its own regex-based line handler (see [Supported Fix Types](#supported-fix-types)); some just append a method call to the end of the line, others prepend a `# TODO` comment.
+Each issue type has its own regex-based line handler; some just append a method call to the end of the line, others prepend a `# TODO` comment. There is no code restructuring or understanding of surrounding context — the handler only ever sees one line.
 
-> **Known limitation — the edited line may not be the line you expect.** The line that gets modified is the *callsite* of the captured query: the closest application-code stack frame to where the query actually executed (see `stack_tracer.capture_callsite`). For the classic N+1 pattern —
+> **Known limitation — the edited line may not be the line you expect.** The line a fix targets is the *callsite* of the captured query: the closest application-code stack frame to where the query actually executed (see `stack_tracer.capture_callsite`). For the classic N+1 pattern —
 >
 > ```python
 > books = Book.objects.all()
@@ -23,7 +23,9 @@ There is no AST parsing and no code restructuring. The fixer (`fixer.py`) import
 >     name = book.author.name  # triggers one query per book
 > ```
 >
-> — the callsite is the `book.author.name` line inside the loop, **not** the `Book.objects.all()` line. Applying the N+1 fix here appends `.select_related('author')` to the end of the access line (`name = book.author.name.select_related('author')`), which is not valid code. The fixer works cleanly when the queryset is evaluated and iterated on the same line, or when you manually point `--file`/review the diff and edit the correct line yourself. **Always review the diff before applying.**
+> — the callsite is the `book.author.name` line inside the loop, **not** the `Book.objects.all()` line. Appending `.select_related('author')` there would produce `name = book.author.name.select_related('author')`, which is not valid code. **This is exactly why `n_plus_one` (and `fat_select`, for the same reason) are not auto-applied** — `--apply` refuses to write them and reports them for manual review instead. Only `--dry-run` shows what the fix *would* look like.
+>
+> Before writing anything, the fixer also parses the candidate file content with `ast.parse()` and refuses to write if that fails — a syntax-error floor. This catches malformed output, not semantic correctness: a fix that lands inside a comment, or after a valid-but-wrong expression, still parses cleanly and would still be written. Treat `--apply`'s output as a starting diff to review, not a guaranteed-correct edit.
 
 ---
 
@@ -58,23 +60,27 @@ To modify your source files, pass the `--apply` flag:
 python manage.py fix_queries --url /api/books/ --apply
 ```
 
-> **Warning:** Always ensure your code is committed to version control before running `--apply`. This is a line-level regex tool, not a code-aware refactorer — it can produce incorrect edits, especially for N+1 fixes where the callsite line isn't the queryset definition (see the limitation above). Use `git diff` to review changes after applying, and use `--no-backup` only if you don't want the automatic `.bak` files it creates alongside each modified file.
+Only fixes for `queryset_eval`, `duplicate_query`, and `missing_index` are actually written — see [Supported Fix Types](#supported-fix-types) for why the other issue types are refused. If any fixes were skipped as unsafe, or rejected because they'd produce invalid Python, `fix_queries` prints a warning/error for each and **exits nonzero** (`CommandError`) even though the safe fixes in the same run were still applied.
+
+> **Warning:** Always ensure your code is committed to version control before running `--apply`. This is a line-level regex tool, not a code-aware refactorer — the `ast.parse()` floor only rejects syntactically invalid output, not semantically wrong output. Use `git diff` to review changes after applying, and use `--no-backup` only if you don't want the automatic `.bak` files it creates alongside each modified file.
 
 ---
 
 ## Supported Fix Types
 
-The fixer dispatches on `Prescription.issue_type` (`fixer.py:_parse_fix`). Only five of the seven issue types have a fix handler:
+The fixer dispatches on `Prescription.issue_type` (`fixer.py:_parse_fix`). Five of the seven issue types have a fix handler, but **`--apply` only writes three of those five to disk** — the rest are shown in the diff (`--dry-run` or the pre-write diff under `--apply`), tagged `[MANUAL FIX ONLY]`, and refused at write time:
 
-| Issue Type (`IssueType.value`) | What the handler does | Handler |
-|---|---|---|
-| `n_plus_one` | Extracts a `.select_related(...)` or `.prefetch_related(...)` call from the fix suggestion text and appends it to the end of the callsite line | `_fix_nplusone` |
-| `drf_serializer` | Same handler as `n_plus_one` (extracts and appends `.select_related`/`.prefetch_related`) — but see the note below, this issue type is never produced by the runtime pipeline that `fix_queries` uses | `_fix_nplusone` |
-| `fat_select` | Extracts a `.only(...)` or `.defer(...)` call and appends it to the end of the callsite line | `_fix_fat_select` |
-| `queryset_eval` | Rewrites `len(x)` → `x.count()` and/or `if x:` → `if x.exists():` on the callsite line via regex | `_fix_queryset_eval` |
-| `duplicate_query` | Prepends a `# TODO: Cache this query result to avoid duplicate execution` comment above the callsite line — it does **not** extract a shared variable | `_fix_duplicate` |
-| `missing_index` | Prepends a `# TODO: Consider adding an index via Meta.indexes — <suggestion>` comment above the callsite line — it does **not** add a `models.Index()` entry | `_fix_missing_index` |
-| `complexity` | No handler. `--issue-type complexity` will never produce a fix. | — |
+| Issue Type (`IssueType.value`) | What the handler does | Handler | Auto-applied by `--apply`? |
+|---|---|---|---|
+| `n_plus_one` | Extracts a `.select_related(...)` or `.prefetch_related(...)` call from the fix suggestion text and appends it to the end of the callsite line | `_fix_nplusone` | **No** — callsite is often mid-loop, not the queryset definition (see the limitation above) |
+| `drf_serializer` | Same handler as `n_plus_one` — but see the note below, this issue type is never produced by the runtime pipeline that `fix_queries` uses | `_fix_nplusone` | **No** (also never emitted here in the first place) |
+| `fat_select` | Extracts a `.only(...)` or `.defer(...)` call and appends it to the end of the callsite line | `_fix_fat_select` | **No** — same callsite-line risk as `n_plus_one` |
+| `queryset_eval` | Rewrites `len(x)` → `x.count()` and/or `if x:` → `if x.exists():` on the callsite line via regex | `_fix_queryset_eval` | **Yes** — the analyzer only fires when the anti-pattern is on the callsite line itself, so this handler is safe by construction |
+| `duplicate_query` | Prepends a `# TODO: Cache this query result to avoid duplicate execution` comment above the callsite line — it does **not** extract a shared variable | `_fix_duplicate` | **Yes** — comment-only, can't corrupt code |
+| `missing_index` | Prepends a `# TODO: Consider adding an index via Meta.indexes — <suggestion>` comment above the callsite line — it does **not** add a `models.Index()` entry | `_fix_missing_index` | **Yes** — comment-only, can't corrupt code |
+| `complexity` | No handler. `--issue-type complexity` will never produce a fix. | — | — |
+
+The auto-applied set is a fixed allowlist (`fixer.AUTO_APPLIABLE_ISSUE_TYPES`) — a future issue type only joins it after its handler is independently verified safe, not by default.
 
 `meta_index` and `cache_queryset` are not real fix types in the code — they were names used in an earlier draft of this page. The actual behavior for missing-index and duplicate-query issues is a `# TODO` comment, shown below.
 
@@ -103,29 +109,29 @@ Values that actually produce fixes through `fix_queries`: `n_plus_one`, `duplica
 
 ## Fix Details
 
-### `n_plus_one`
+### `n_plus_one` — dry-run only, never auto-applied
 
-Targets N+1 patterns caused by accessing ForeignKey, OneToOne, ManyToMany, or reverse-FK relations repeatedly. The fix appends `.select_related('field_name')` or `.prefetch_related('field_name')` to the end of the callsite line — see the [limitation above](#how-it-works) about which line that is.
+Targets N+1 patterns caused by accessing ForeignKey, OneToOne, ManyToMany, or reverse-FK relations repeatedly. The suggested fix appends `.select_related('field_name')` or `.prefetch_related('field_name')` to the end of the callsite line — see the [limitation above](#how-it-works) about which line that is.
 
-When the queryset is evaluated and accessed on one line, this works as expected:
+`--dry-run` shows what this would look like; `--apply` refuses to write it and reports it as skipped instead, because the callsite is frequently mid-loop, not the queryset definition:
 
 ```python
-# Before
+# Suggested — shown in the diff, never written by --apply
 books = Book.objects.all()
-
-# After
+# becomes:
 books = Book.objects.all().select_related('author')
 ```
 
-### `fat_select`
+Apply this one by hand, at the actual queryset definition line.
 
-Targets queries that fetch all columns when only a subset is used. The fix appends `.only(...)` or `.defer(...)` to the end of the callsite line.
+### `fat_select` — dry-run only, never auto-applied
+
+Targets queries that fetch all columns when only a subset is used. The suggested fix appends `.only(...)` or `.defer(...)` to the end of the callsite line — same callsite-line risk as `n_plus_one`, so `--apply` refuses to write it.
 
 ```python
-# Before
+# Suggested — shown in the diff, never written by --apply
 books = Book.objects.filter(published=True)
-
-# After
+# becomes:
 books = Book.objects.filter(published=True).only('id', 'title')
 ```
 
@@ -177,8 +183,9 @@ Adding a real index still requires manually editing `Meta.indexes` and running `
 2. **Commit before applying.** Use version control so you can revert if needed.
 3. **Apply one issue type at a time** with `--issue-type`. This makes it easier to review and test each change.
 4. **Run tests after applying.** Ensure your test suite passes after each batch of fixes.
-5. **Double-check N+1 fixes especially.** If the callsite line is inside a loop rather than the queryset definition, the appended call will land on the wrong line — fix it by hand instead.
+5. **Apply `n_plus_one` and `fat_select` fixes by hand.** `--apply` won't write them for you (see [Supported Fix Types](#supported-fix-types)) — use the diff as a starting point and place the fix at the actual queryset definition, not the callsite line.
 6. **Handle `missing_index` TODOs separately.** These require a manual `Meta.indexes` edit plus a migration; evaluate each one individually.
+7. **Check the exit code in CI.** `fix_queries --apply` exits nonzero if any fixes were skipped as unsafe or failed the syntax-validity check, even if other fixes in the same run succeeded.
 
 ---
 

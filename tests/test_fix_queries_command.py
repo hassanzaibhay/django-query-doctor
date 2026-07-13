@@ -6,7 +6,8 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from django.core.management import call_command
+import pytest
+from django.core.management import CommandError, call_command
 
 
 class TestFixQueriesCommand:
@@ -57,10 +58,46 @@ class TestFixQueriesCommand:
         assert "select_related" in output
 
     def test_apply_modifies_files_with_backup(self, tmp_path: Path) -> None:
-        """--apply should modify files and create .bak backups."""
+        """--apply should modify files and create .bak backups for an auto-appliable type."""
         source = tmp_path / "views.py"
-        original = "    books = Book.objects.all()\n"
+        original = "def count_books(qs):\n    total = len(qs)\n    return total\n"
         source.write_text(original)
+        out = StringIO()
+
+        from query_doctor.fixer import ProposedFix
+        from query_doctor.types import CallSite, IssueType, Prescription, Severity
+
+        mock_fixes = [
+            ProposedFix(
+                file_path=str(source),
+                original_line="    total = len(qs)\n",
+                fixed_line="    total = qs.count()\n",
+                line_number=2,
+                description="Replace len() with count()",
+                prescription=Prescription(
+                    issue_type=IssueType.QUERYSET_EVAL,
+                    severity=Severity.WARNING,
+                    description="QuerySet eval",
+                    fix_suggestion="count()",
+                    callsite=CallSite(str(source), 1, "get_books"),
+                ),
+            )
+        ]
+
+        with patch(
+            "query_doctor.management.commands.fix_queries.Command._get_fixes",
+            return_value=mock_fixes,
+        ):
+            call_command("fix_queries", "--apply", stdout=out)
+
+        assert "qs.count()" in source.read_text()
+        backup = Path(str(source) + ".bak")
+        assert backup.exists()
+
+    def test_apply_raises_command_error_on_skipped_unsafe(self, tmp_path: Path) -> None:
+        """--apply exits nonzero when unsafe fixes are skipped, but still prints the diff."""
+        source = tmp_path / "views.py"
+        source.write_text("    books = Book.objects.all()\n")
         out = StringIO()
 
         from query_doctor.fixer import ProposedFix
@@ -83,15 +120,56 @@ class TestFixQueriesCommand:
             )
         ]
 
-        with patch(
-            "query_doctor.management.commands.fix_queries.Command._get_fixes",
-            return_value=mock_fixes,
+        with (
+            patch(
+                "query_doctor.management.commands.fix_queries.Command._get_fixes",
+                return_value=mock_fixes,
+            ),
+            pytest.raises(CommandError),
         ):
             call_command("fix_queries", "--apply", stdout=out)
 
-        assert ".select_related('author')" in source.read_text()
-        backup = Path(str(source) + ".bak")
-        assert backup.exists()
+        output = out.getvalue()
+        assert "select_related" in output
+        assert source.read_text() == "    books = Book.objects.all()\n"
+
+    def test_apply_raises_command_error_on_failed_validation(self, tmp_path: Path) -> None:
+        """--apply exits nonzero when an auto-appliable fix fails the ast.parse floor."""
+        source = tmp_path / "views.py"
+        source.write_text("x = 1\n")
+        out = StringIO()
+
+        from query_doctor.fixer import ProposedFix
+        from query_doctor.types import CallSite, IssueType, Prescription, Severity
+
+        mock_fixes = [
+            ProposedFix(
+                file_path=str(source),
+                original_line="x = 1\n",
+                fixed_line="x = (\n",
+                line_number=1,
+                description="Broken fix",
+                prescription=Prescription(
+                    issue_type=IssueType.QUERYSET_EVAL,
+                    severity=Severity.WARNING,
+                    description="QuerySet eval",
+                    fix_suggestion="count()",
+                    callsite=CallSite(str(source), 1, "get_books"),
+                ),
+            )
+        ]
+
+        with (
+            patch(
+                "query_doctor.management.commands.fix_queries.Command._get_fixes",
+                return_value=mock_fixes,
+            ),
+            pytest.raises(CommandError),
+        ):
+            call_command("fix_queries", "--apply", stdout=out)
+
+        assert source.read_text() == "x = 1\n"
+        assert not (tmp_path / "views.py.bak").exists()
 
     def test_issue_type_filter(self) -> None:
         """--issue-type should filter fixes by issue type."""
