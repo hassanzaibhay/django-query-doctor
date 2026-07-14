@@ -39,9 +39,9 @@ The overhead depends on your configuration:
 The primary cost is capturing stack traces for each query. You can reduce
 overhead by:
 
-- Disabling stack trace capture: `"CAPTURE_TRACEBACKS": False`
+- Disabling stack trace capture: `"CAPTURE_STACK_TRACES": False`
 - Reducing the sample rate: `"SAMPLE_RATE": 0.1`
-- Excluding paths: `"EXCLUDE_PATHS": ["/admin/", "/static/"]`
+- Excluding paths: `"IGNORE_URLS": ["/admin/", "/static/"]`
 
 ### Will django-query-doctor crash my application?
 
@@ -87,10 +87,10 @@ The prescription will reference the property method and suggest adding
 Yes. Use the `@diagnose_task` decorator to analyze queries within Celery tasks:
 
 ```python
-from query_doctor.decorators import diagnose_task
+from query_doctor.celery_integration import diagnose_task
 
-@diagnose_task
 @app.task
+@diagnose_task
 def process_orders():
     orders = Order.objects.all()
     for order in orders:
@@ -160,8 +160,8 @@ mode and uses the appropriate execution path.
 | Fat SELECT detection | Yes | No |
 | DRF-specific analysis | Yes | No |
 | Fix suggestions | Yes (exact code) | No |
-| Multiple reporters | 5 | 1 (logging) |
-| Management commands | 4 | 0 |
+| Multiple reporters | 3 (console, JSON, log) | 1 (logging) |
+| Management commands | 6 | 0 |
 | Auto-fix mode | Yes | No |
 
 ---
@@ -170,49 +170,42 @@ mode and uses the appropriate execution path.
 
 ### Can I write custom analyzers?
 
-Yes. Subclass `BaseAnalyzer` and register your analyzer through Django settings
-or Python entry points:
+Yes. Subclass `BaseAnalyzer` and register your analyzer via Python entry
+points:
 
 ```python title="myapp/analyzers.py"
-from query_doctor.analyzers.base import BaseAnalyzer, Prescription
+from query_doctor.analyzers.base import BaseAnalyzer
+from query_doctor.types import IssueType, Prescription, Severity
 
 
 class SlowJoinAnalyzer(BaseAnalyzer):
     """Detects queries with slow JOIN patterns."""
 
-    def analyze(self, queries):
+    name = "slow_join"
+
+    def analyze(self, queries, models_meta=None):
         prescriptions = []
         for query in queries:
             if self._has_slow_join(query):
                 prescriptions.append(Prescription(
-                    severity="warning",
-                    issue="Query uses a slow cross-join pattern",
-                    location=query.location,
-                    suggestion="Rewrite using subquery or EXISTS",
-                    analyzer="SlowJoinAnalyzer",
+                    issue_type=IssueType.QUERY_COMPLEXITY,
+                    severity=Severity.WARNING,
+                    description="Query uses a slow cross-join pattern",
+                    fix_suggestion="Rewrite using subquery or EXISTS",
+                    callsite=query.callsite,
                 ))
         return prescriptions
 ```
 
-Register it in settings:
-
-```python title="settings.py"
-QUERY_DOCTOR = {
-    "EXTRA_ANALYZERS": [
-        "myapp.analyzers.SlowJoinAnalyzer",
-    ],
-}
-```
-
-Or register via entry points in `pyproject.toml`:
+Register via entry points in `pyproject.toml`:
 
 ```toml title="pyproject.toml"
 [project.entry-points."query_doctor.analyzers"]
 slow_join = "myapp.analyzers:SlowJoinAnalyzer"
 ```
 
-See [Contributing](contributing.md) for a full walkthrough of adding an
-analyzer.
+See the [Custom Plugins Guide](guides/custom-plugins.md) for a full
+walkthrough.
 
 ### Does auto-fix modify my code automatically?
 
@@ -221,9 +214,14 @@ safety guardrails:
 
 1. **Dry run by default** -- you must explicitly pass `--apply` to make changes
 2. **Backup files** -- `.bak` files are created before any modifications
-3. **Limited scope** -- only `select_related` and `prefetch_related` additions
-   are auto-applied. Complex fixes (annotations, restructuring) are suggested
-   but not auto-applied.
+   (disable with `--no-backup`)
+3. **Allowlisted issue types** -- only `queryset_eval`, `duplicate_query`,
+   and `missing_index` fixes are written to disk. N+1 and fat-SELECT fixes
+   (which would edit the in-loop access line rather than the queryset
+   definition) are shown in the diff as `[MANUAL FIX ONLY]` and never
+   auto-applied.
+4. **Syntax validation** -- the modified file must parse as valid Python
+   before it is written; otherwise the fix is rejected.
 
 ```bash
 # Preview what would change
@@ -248,8 +246,8 @@ Check these common causes:
 
 1. **Middleware not installed** -- verify `"query_doctor.middleware.QueryDoctorMiddleware"` is in your `MIDDLEWARE` setting
 2. **Package disabled** -- check that `QUERY_DOCTOR["ENABLED"]` is `True` (or not set, as it defaults to `True`)
-3. **Path excluded** -- check `QUERY_DOCTOR["EXCLUDE_PATHS"]` does not match your URL
-4. **Severity filter too high** -- lower `MIN_SEVERITY` to `"DEBUG"` to see all issues
+3. **Path excluded** -- check `QUERY_DOCTOR["IGNORE_URLS"]` does not match your URL
+4. **Findings suppressed** -- check your `.queryignore` file for rules that match
 5. **No issues exist** -- your code may already be well-optimized
 
 ### Prescriptions point to the wrong file/line
@@ -258,13 +256,9 @@ The stack tracer excludes Django internals and third-party packages to find
 the first frame in your application code. If the reported location seems wrong:
 
 1. Check if the query originates from a middleware or signal handler
-2. Verify your project's source root is correctly detected
-3. Try enabling verbose mode to see the full stack trace:
-   ```python
-   QUERY_DOCTOR = {
-       "CONSOLE_VERBOSITY": "verbose",
-   }
-   ```
+2. Verify your project's source root is correctly detected -- the tracer
+   reports the first stack frame outside Django, django-query-doctor, and
+   the standard library
 
 ### Too many prescriptions in a large project
 

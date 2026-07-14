@@ -1,10 +1,12 @@
 # Reporters
 
-Reporters format analysis results for different audiences and workflows. Each reporter receives the same list of `Prescription` objects and outputs them in its own format. Multiple reporters can be active simultaneously.
+Reporters format analysis results for different audiences and workflows. Each reporter receives the same `DiagnosisReport` and outputs it in its own format. Multiple reporters can be active simultaneously.
 
 ---
 
 ## Configuring Reporters
+
+The middleware dispatches to reporters named in the `REPORTERS` setting. Three names are recognized: `"console"`, `"json"`, and `"log"`.
 
 ```python title="settings.py"
 QUERY_DOCTOR = {
@@ -12,64 +14,54 @@ QUERY_DOCTOR = {
 }
 ```
 
-All reporters respect `MIN_SEVERITY` to filter output:
-
 ```python
 QUERY_DOCTOR = {
-    "MIN_SEVERITY": "WARNING",  # Only WARNING and CRITICAL
+    "REPORTERS": ["console", "json", "log"],
+    "JSON_REPORT_PATH": "reports/query-doctor.json",  # used by the json reporter
 }
 ```
 
+There is no severity filter setting for reporters; every prescription in the report is output. To suppress specific findings, use a [`.queryignore` file](../guides/query-ignore.md).
+
 ---
 
-## Console (Rich)
+## Console
 
-Terminal output with colors and tables when [Rich](https://github.com/Textualize/rich) is installed. Falls back to plain text without it.
+Terminal output. Uses [Rich](https://github.com/Textualize/rich) panels and colors when Rich is installed, and falls back to plain text without it. Rich is optional:
 
 ```bash
 pip install django-query-doctor[rich]
 ```
 
-```python title="settings.py"
-QUERY_DOCTOR = {
-    "REPORTERS": ["query_doctor.reporters.ConsoleReporter"],
-    "CONSOLE_COLOR_SCHEME": "auto",     # "auto", "dark", "light", "none"
-    "CONSOLE_VERBOSITY": "normal",      # "quiet", "normal", "verbose"
-    "CONSOLE_SHOW_SQL": True,
-    "CONSOLE_MAX_SQL_LENGTH": 200,
-}
-```
-
 Example output (plain text fallback):
 
 ```
-[query-doctor] GET /api/books/ (127 queries, 4 prescriptions)
+============================================================
+Query Doctor Report
+Total queries: 127 | Time: 342.5ms | Issues: 2
+============================================================
 
-[CRITICAL] N+1 Query
-  50 queries fetching Author for each Book.
-  Location: views.py:42
-  Fix: Add select_related('author') to queryset
+CRITICAL: N+1 detected: 50 queries for table "myapp_author" (field: author)
+   Location: /app/myapp/views.py:42 in book_list
+   Fix: Add .select_related('author') to your queryset
+   Queries: 50 | Est. savings: ~120.0ms
 
-[WARNING] Duplicate Query
-  Query executed 12 times: SELECT "books_category"."id" ...
-  Location: serializers.py:18
-  Fix: Hoist query above the loop
+WARNING: Duplicate query: 12 identical queries for table "books_category"
+   Location: /app/myapp/serializers.py:18 in to_representation
+   Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+   Queries: 12 | Est. savings: ~8.3ms
 ```
-
-Verbosity levels: `"quiet"` shows only CRITICAL/WARNING. `"verbose"` adds full SQL and stack traces. Set `CONSOLE_COLOR_SCHEME: "none"` or `NO_COLOR=1` to disable colors.
 
 ---
 
 ## JSON
 
-Structured `.json` files for CI/CD pipelines and automated tooling.
+Structured JSON for CI/CD pipelines and automated tooling. When `JSON_REPORT_PATH` is set, the middleware's JSON reporter writes the report to that file after each analyzed request:
 
 ```python title="settings.py"
 QUERY_DOCTOR = {
-    "REPORTERS": ["query_doctor.reporters.JSONReporter"],
-    "JSON_OUTPUT_DIR": "reports/query-doctor/",
-    "JSON_INDENT": 2,
-    "JSON_INCLUDE_SQL": True,
+    "REPORTERS": ["json"],
+    "JSON_REPORT_PATH": "reports/query-doctor.json",
 }
 ```
 
@@ -77,66 +69,43 @@ Example output:
 
 ```json
 {
-  "version": "1.0.0",
-  "request": {
-    "method": "GET",
-    "path": "/api/books/",
-    "total_queries": 127,
-    "total_time_ms": 342.5
-  },
+  "version": "2.1.0",
+  "timestamp": "2026-07-14T12:00:00+00:00",
   "summary": {
-    "total_prescriptions": 4,
-    "by_severity": {"critical": 1, "warning": 2, "info": 1}
+    "total_queries": 127,
+    "total_time_ms": 342.5,
+    "issues_found": 2,
+    "critical": 1,
+    "warnings": 1,
+    "info": 0
   },
   "prescriptions": [
     {
+      "issue_type": "n_plus_one",
       "severity": "critical",
-      "analyzer": "NPlusOneAnalyzer",
-      "issue": "50 queries fetching Author for each Book",
-      "location": {"file": "myapp/views.py", "line": 42},
-      "suggestion": "Add select_related('author') to queryset"
+      "description": "N+1 detected: 50 queries for table \"myapp_author\" (field: author)",
+      "fix_suggestion": "Add .select_related('author') to your queryset",
+      "location": {"file": "/app/myapp/views.py", "line": 42, "function": "book_list"},
+      "query_count": 50,
+      "estimated_savings_ms": 120.0
     }
   ]
 }
 ```
 
-Filter with jq: `cat reports/*.json | jq '.prescriptions[] | select(.severity == "critical")'`
+Filter with jq: `jq '.prescriptions[] | select(.severity == "critical")' reports/query-doctor.json`
+
+The `check_queries` management command produces the same JSON with `--format json` (optionally `--output <path>`); see [Management Commands](../guides/management-commands.md).
 
 ---
 
-## HTML Dashboard
+## Log
 
-Standalone, self-contained HTML file with sortable tables, severity filters, and expandable SQL sections.
-
-```python title="settings.py"
-QUERY_DOCTOR = {
-    "REPORTERS": ["query_doctor.reporters.HTMLReporter"],
-    "HTML_OUTPUT_DIR": "reports/html/",
-    "HTML_TITLE": "Query Doctor Report",
-    "HTML_MAX_REPORTS": 50,
-}
-```
-
-Generate via command:
-
-```bash
-python manage.py diagnose_project --format html --output reports/project-health.html
-```
-
-Features: summary dashboard with severity counts, sortable prescription table (by severity, analyzer, location, query count), expandable SQL sections, inline CSS/JS with no external dependencies.
-
----
-
-## Log File
-
-Outputs prescriptions through Python's `logging` module, integrating with your existing log infrastructure (files, Sentry, ELK, CloudWatch).
+Outputs prescriptions through Python's `logging` module (logger name `query_doctor`), integrating with your existing log infrastructure (files, Sentry, ELK, CloudWatch).
 
 ```python title="settings.py"
 QUERY_DOCTOR = {
-    "REPORTERS": ["query_doctor.reporters.LogReporter"],
-    "LOG_LOGGER_NAME": "query_doctor",
-    "LOG_LEVEL": "WARNING",
-    "LOG_INCLUDE_SQL": False,
+    "REPORTERS": ["log"],
 }
 ```
 
@@ -161,41 +130,40 @@ LOGGING = {
 }
 ```
 
+> **Note:** the `query_doctor` logger is also used for the package's own diagnostic warnings, so a handler attached to it receives both.
+
+---
+
+## HTML Reports
+
+Two HTML outputs exist, both generated by management commands rather than the middleware:
+
+- `python manage.py diagnose_project --format html --output report.html` -- project-wide health report (per-app scores, per-URL findings).
+- `python manage.py query_doctor_report --output report.html` -- QueryTurbo benchmark dashboard (cache hit rates, Chart.js graphs). See [Benchmark Dashboard](../guides/benchmark-dashboard.md).
+
 ---
 
 ## OpenTelemetry
 
-Exports prescriptions as OTel span attributes and events into your observability stack (Jaeger, Datadog, New Relic, Honeycomb).
+An `OTelReporter` class ships in `query_doctor.reporters.otel_exporter`. It exports the report as a span (`query_doctor.diagnosis`) with summary attributes (`query_doctor.total_queries`, `query_doctor.total_time_ms`, `query_doctor.issues_found`) and one span event per prescription. If the `opentelemetry` packages are not installed, it is a no-op.
 
-```bash
-pip install django-query-doctor[otel]
-```
+> **Not wired to `REPORTERS`:** the middleware only recognizes `console`, `json`, and `log`. To use `OTelReporter`, invoke it yourself, e.g. from your own code:
+>
+> ```python
+> from query_doctor.context_managers import diagnose_queries
+> from query_doctor.reporters.otel_exporter import OTelReporter
+>
+> with diagnose_queries() as report:
+>     ...  # your ORM code
+> OTelReporter().report(report)
+> ```
 
-```python title="settings.py"
-QUERY_DOCTOR = {
-    "REPORTERS": ["query_doctor.reporters.OpenTelemetryReporter"],
-    "OTEL_SERVICE_NAME": "my-django-app",
-    "OTEL_ENDPOINT": "http://localhost:4317",
-    "OTEL_INCLUDE_SQL": False,  # Disable in production to avoid leaking data
-}
-```
-
-Span attributes added to the current request span:
-
-```
-query_doctor.total_queries = 127
-query_doctor.total_prescriptions = 4
-query_doctor.critical_count = 1
-```
-
-Each prescription is emitted as a span event with structured attributes (severity, analyzer, issue, location, suggestion).
-
-Place `QueryDoctorMiddleware` **after** the OTel middleware so it can attach to the existing request span.
+OpenTelemetry configuration (exporter endpoint, service name) is done through the standard OTel SDK/environment variables, not through `QUERY_DOCTOR` settings.
 
 ---
 
 ## Next Steps
 
-- [Configuration](../getting-started/configuration.md) — all reporter settings
-- [CI/CD Integration](../guides/ci-integration.md) — using JSON reporter in pipelines
+- [Configuration](../getting-started/configuration.md) — all settings
+- [CI/CD Integration](../guides/ci-integration.md) — using JSON output in pipelines
 - [Benchmark Dashboard](../guides/benchmark-dashboard.md) — QueryTurbo-specific HTML report

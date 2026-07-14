@@ -55,29 +55,31 @@ books = Book.objects.values_list("id", "title")
 
 ## Prescription Output
 
-```
-[LOW] Fat SELECT Detected
-  Location: views.py:5
-  Issue:    Query selects 12 columns from `app_book` but only `id` and `title`
-            are accessed in subsequent code.
-  Fix:      Use .only() to limit the selected columns:
+Console output for a flagged query (severity is always INFO):
 
-            - books = Book.objects.all()
-            + books = Book.objects.only("id", "title")
 ```
+INFO: Fat SELECT: 12 columns from "app_book" including large fields: description
+   Location: /app/myapp/views.py:5 in book_list
+   Fix: Use .defer('description') to skip loading large fields, or .values()/.values_list() if you don't need model instances
+```
+
+When no large fields (TextField, JSONField, BinaryField) are detected, the
+suggestion recommends `.only()` with an explicit field list instead. Each
+table is reported at most once per request.
 
 ## Configuration
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `FAT_SELECT_THRESHOLD` | `6` | Minimum number of selected columns before the analyzer considers a query "fat". Queries selecting fewer columns than this are ignored. |
-| `FAT_SELECT_IGNORE_TABLES` | `[]` | List of table names to exclude from analysis. Useful for small reference tables where selecting all columns is acceptable. |
+| `ANALYZERS.fat_select.threshold` | `8` | Minimum number of selected columns before the analyzer considers a query "fat". Queries selecting fewer columns than this are ignored. |
+| `ANALYZERS.fat_select.enabled` | `True` | Set to `False` to disable this analyzer. |
 
 ```python
 # settings.py
 QUERY_DOCTOR = {
-    "FAT_SELECT_THRESHOLD": 8,
-    "FAT_SELECT_IGNORE_TABLES": ["app_config"],
+    "ANALYZERS": {
+        "fat_select": {"threshold": 12},
+    },
 }
 ```
 

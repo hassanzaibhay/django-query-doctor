@@ -143,7 +143,7 @@ Automatically apply suggested fixes to your source code.
 |------|------|---------|-------------|
 | `--dry-run` | flag | **default** | Show diff without applying changes |
 | `--apply` | flag | — | Apply fixes to source files |
-| `--issue-type` | `str` | — | Only fix specific issue types (e.g., `n_plus_one`, `duplicate`). Can be repeated. |
+| `--issue-type` | `str` | — | Only fix specific issue types. Validated choices: `n_plus_one`, `duplicate_query`, `fat_select`, `queryset_eval`, `missing_index` (any other value is rejected). Can be repeated. |
 | `--file` | `str` | — | Only fix specific files. Can be repeated. |
 | `--no-backup` | flag | — | Do not create `.bak` files when applying |
 | `--url` | `str` | `/` | URL path to analyze |
@@ -181,7 +181,7 @@ Run a comprehensive health scan across your entire project by discovering URL pa
 | `--format` | `str` | `html` | Report format: `html` or `json` |
 | `--apps` | `str` | — | Only diagnose specific apps (space-separated) |
 | `--timeout` | `int` | `30` | Timeout per URL in seconds |
-| `--exclude-urls` | `str` | — | URL prefixes to exclude (space-separated) |
+| `--exclude-urls` | `str` | `/admin/ /static/ /media/ /__debug__/` | URL prefixes to exclude (space-separated) |
 | `--methods` | `str` | `GET` | HTTP methods to test (space-separated) |
 | `--file` | `str` | — | Only report issues in files matching this substring. Can be repeated. |
 | `--module` | `str` | — | Only report issues in modules matching this substring. Can be repeated. |

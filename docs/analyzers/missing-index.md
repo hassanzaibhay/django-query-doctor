@@ -2,10 +2,13 @@
 
 ## What It Detects
 
-The missing index analyzer inspects captured SQL for `WHERE`, `ORDER BY`, and
-`GROUP BY` clauses that reference columns without a corresponding database
-index. Filtering or sorting on unindexed columns forces the database to
-perform a full table scan, which degrades rapidly as row counts grow.
+The missing index analyzer inspects captured SQL for `WHERE` and `ORDER BY`
+clauses that reference columns without a corresponding database index.
+Filtering or sorting on unindexed columns forces the database to perform a
+full table scan, which degrades rapidly as row counts grow. Columns that are
+primary keys, `db_index=True`, `unique=True`, foreign keys, or covered by
+`Meta.indexes`, `unique_together`, or a `UniqueConstraint` are treated as
+indexed.
 
 ## Problem Code
 
@@ -57,31 +60,34 @@ python manage.py migrate
 
 ## Prescription Output
 
-```
-[MEDIUM] Missing Index Detected
-  Location: views.py:6
-  Issue:    Column `published_date` on table `app_book` is used in a
-            WHERE clause but has no database index.
-  Fix:      Add models.Index(fields=["published_date"]) to Book's Meta.indexes
+Console output (severity is always INFO):
 
-            Then run: python manage.py makemigrations && python manage.py migrate
 ```
+INFO: Missing index: column "published_date" on Book (table "app_book") is used in WHERE/ORDER BY but has no index
+   Location: /app/myapp/views.py:6 in recent_books
+   Fix: Add to Book's Meta.indexes: indexes = [models.Index(fields=["published_date"], name="idx_app_book_published_date")]
+```
+
+After adding the index, generate and apply a migration
+(`python manage.py makemigrations && python manage.py migrate`).
 
 ## Configuration
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `MISSING_INDEX_ENABLED` | `True` | Set to `False` to skip index analysis entirely. |
-| `MISSING_INDEX_IGNORE_TABLES` | `[]` | List of table names to exclude from analysis (e.g., small lookup tables). |
-| `MISSING_INDEX_IGNORE_COLUMNS` | `["id", "pk"]` | Columns to skip. Primary keys are always indexed. |
+| `ANALYZERS.missing_index.enabled` | `True` | Set to `False` to skip index analysis entirely. |
 
 ```python
 # settings.py
 QUERY_DOCTOR = {
-    "MISSING_INDEX_IGNORE_TABLES": ["app_config", "app_featureflag"],
-    "MISSING_INDEX_IGNORE_COLUMNS": ["id", "pk", "uuid"],
+    "ANALYZERS": {
+        "missing_index": {"enabled": False},
+    },
 }
 ```
+
+To suppress findings for specific tables or files, use a
+[`.queryignore` file](../guides/query-ignore.md).
 
 ## Common Scenarios
 

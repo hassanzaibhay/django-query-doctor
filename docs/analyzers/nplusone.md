@@ -43,27 +43,30 @@ books = Book.objects.prefetch_related("categories")  # 2 queries total
 
 ## Prescription Output
 
-```
-[HIGH] N+1 Query Detected
-  Location: views.py:8
-  Issue:    Query fingerprint `SELECT "app_author"...` executed 100 times.
-            Likely N+1 caused by accessing `author` on each `Book` instance.
-  Fix:      Add `select_related("author")` to the queryset in views.py:5.
+Console output for a detected N+1:
 
-            - books = Book.objects.all()
-            + books = Book.objects.select_related("author")
 ```
+CRITICAL: N+1 detected: 100 queries for table "app_author" (field: author)
+   Location: /app/myapp/views.py:8 in book_list
+   Fix: Add .select_related('author') to your queryset
+   Queries: 100 | Est. savings: ~99.0ms
+```
+
+Severity is CRITICAL when the repeated query count is 10 or more, WARNING below that.
 
 ## Configuration
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `NPLUSONE_THRESHOLD` | `3` | Minimum number of repeated fingerprints before reporting an N+1. Set higher to reduce noise in views that legitimately issue a small number of similar queries. |
+| `ANALYZERS.nplusone.threshold` | `3` | Minimum number of same-fingerprint queries before reporting an N+1. Set higher to reduce noise in views that legitimately issue a small number of similar queries. |
+| `ANALYZERS.nplusone.enabled` | `True` | Set to `False` to disable this analyzer. |
 
 ```python
 # settings.py
 QUERY_DOCTOR = {
-    "NPLUSONE_THRESHOLD": 5,
+    "ANALYZERS": {
+        "nplusone": {"threshold": 5},
+    },
 }
 ```
 
@@ -131,7 +134,8 @@ context["books"] = Book.objects.select_related("author")
     The N+1 analyzer does **not** rely on heuristics around model field
     definitions. Instead it normalizes each SQL query into a fingerprint by
     replacing literal values with placeholders, then groups by fingerprint.
-    If the same fingerprint appears more than `NPLUSONE_THRESHOLD` times and
-    the SQL pattern matches a foreign-key lookup, it is flagged as an N+1.
+    If the same fingerprint appears at least `ANALYZERS.nplusone.threshold`
+    times and the SQL pattern matches a foreign-key lookup, it is flagged
+    as an N+1.
     This approach catches N+1 patterns regardless of how the ORM call is
     constructed.

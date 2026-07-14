@@ -57,33 +57,28 @@ A `Prescription` contains:
 
 ## Disabling Specific Analyzers
 
-By default all analyzers are enabled. To disable one or more, set
-`QUERY_DOCTOR_DISABLED_ANALYZERS` in your Django settings:
+By default all analyzers are enabled. To disable one, set its `enabled` flag
+under `ANALYZERS` in your Django settings. The keys are the analyzer config
+names: `nplusone`, `duplicate`, `missing_index`, `fat_select`, `queryset_eval`,
+`complexity`, and `serializer_method`:
 
 ```python
 # settings.py
 
 QUERY_DOCTOR = {
-    "DISABLED_ANALYZERS": [
-        "query_doctor.analyzers.fat_select.FatSelectAnalyzer",
-        "query_doctor.analyzers.query_complexity.QueryComplexityAnalyzer",
-    ],
+    "ANALYZERS": {
+        "fat_select": {"enabled": False},
+        "complexity": {"enabled": False},
+    },
 }
 ```
 
-You can also disable analyzers on a per-request basis using the
-`@diagnose` decorator or the `diagnose_queries()` context manager:
-
-```python
-from query_doctor.decorators import diagnose
-
-@diagnose(disabled_analyzers=["FatSelectAnalyzer"])
-def my_view(request):
-    ...
-```
+There is no per-request disable mechanism: `@diagnose` and
+`diagnose_queries()` take no arguments and run every enabled analyzer.
 
 ## Custom Analyzer Plugins
 
-You can write your own analyzer by subclassing `BaseAnalyzer` and registering it
-via the `QUERY_DOCTOR["EXTRA_ANALYZERS"]` setting. See the
-[Custom Plugins Guide](../guides/custom-plugins.md) for a full walkthrough.
+You can write your own analyzer by subclassing `BaseAnalyzer` and registering
+it via the `query_doctor.analyzers` entry point group in your package's
+`pyproject.toml`. See the [Custom Plugins Guide](../guides/custom-plugins.md)
+for a full walkthrough.

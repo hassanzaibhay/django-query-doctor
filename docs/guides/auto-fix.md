@@ -88,7 +88,7 @@ The auto-applied set is a fixed allowlist (`fixer.AUTO_APPLIABLE_ISSUE_TYPES`) �
 
 ## Targeting Specific Fix Types
 
-Use `--issue-type` (not `--fix-type`, which does not exist) to limit which issues are fixed. It accepts one or more `IssueType` values as strings, with no validation against the real set — a typo silently produces zero fixes:
+Use `--issue-type` (not `--fix-type`, which does not exist) to limit which issues are fixed. It accepts one or more values, validated with argparse `choices` — an unknown value (e.g. a typo, or the analyzer name `duplicate` instead of the issue-type value `duplicate_query`) is rejected with an error before anything runs:
 
 ```bash
 # Only apply N+1 fixes

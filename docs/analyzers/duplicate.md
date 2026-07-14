@@ -83,17 +83,13 @@ def get_featured_count():
 
 ## Prescription Output
 
-```
-[WARNING] Duplicate Query Detected
-  Location: views.py:4, templatetags/book_tags.py:5
-  Issue:    Query `SELECT COUNT(*) FROM "app_book" WHERE "app_book"."featured" = ?`
-            executed 2 times with identical parameters.
-  Fix:      Compute the value once and pass it through the template context,
-            or cache the result.
+Console output (severity is always WARNING):
 
-            # views.py -- the value is already computed on line 4.
-            # Remove the duplicate call in templatetags/book_tags.py:5
-            # and use {{ featured_count }} in the template instead.
+```
+WARNING: Duplicate query: 2 identical queries for table "app_book"
+   Location: /app/myapp/views.py:4 in dashboard
+   Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+   Queries: 2 | Est. savings: ~1.5ms
 ```
 
 ## Configuration
@@ -168,7 +164,7 @@ calling `.count()` again on the queryset.
 
 !!! note "Exact duplicates only"
     This analyzer detects **exact** duplicates: same SQL text *and* the same
-    bound parameter values, executed more than `threshold` times. It does not
+    bound parameter values, executed at least `threshold` times. It does not
     detect near-duplicates -- queries with the same normalized SQL but
     different parameters. Repeated queries with varying parameters are more
     likely an [N+1 pattern](nplusone.md), which is handled by a separate

@@ -1,6 +1,6 @@
 # CI Integration
 
-django-query-doctor is designed to catch query regressions before they reach production. This page covers GitHub Actions setup, diff-aware mode, query budgets in CI, and integration with pytest.
+django-query-doctor is designed to catch query regressions before they reach production. This page covers GitHub Actions setup, diff-scoped reporting, baselines, query budgets in CI, and integration with pytest.
 
 ---
 
@@ -40,7 +40,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required for diff-aware mode
+          fetch-depth: 0  # Required for --diff mode
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -59,8 +59,8 @@ jobs:
       - name: Check queries
         run: |
           python manage.py check_queries \
-            --severity WARNING \
-            --fail \
+            --url /api/books/ \
+            --fail-on warning \
             --format json \
             --output query-report.json
         env:
@@ -74,98 +74,112 @@ jobs:
           path: query-report.json
 ```
 
-The key line is the `check_queries` step with `--severity WARNING --fail`. This causes the workflow to fail if any WARNING or CRITICAL issues are found.
+The key line is the `check_queries` step with `--fail-on warning`. This causes the workflow to fail if any issue at WARNING severity or higher is found. Valid values are `critical`, `warning`, and `info`.
+
+`check_queries` analyzes one URL per invocation (`--url`, default `/`). To check several endpoints, run it once per URL, or use `diagnose_project` to sweep every discovered URL in one run.
 
 ---
 
-## Diff-Aware Mode
+## Diff-Scoped Reporting
 
-In large projects, running a full scan on every PR is slow and noisy. **Diff-aware mode** analyzes only the endpoints affected by files changed in the current PR:
+In large projects, reporting every pre-existing issue on every PR is noisy. The `--diff` flag limits the report to issues whose callsite is in a file changed relative to a git ref:
 
 ```bash
 python manage.py check_queries \
-    --diff-aware \
-    --base-branch main \
-    --severity WARNING \
-    --fail
+    --url /api/books/ \
+    --diff origin/main \
+    --fail-on warning
 ```
 
 How it works:
 
-1. Computes the file diff between the current branch and `--base-branch`.
-2. Identifies which Django views and URL patterns are affected by the changed files.
-3. Only analyzes those endpoints.
+1. Computes the file diff between the working tree and the given git ref (e.g. `main`, `origin/develop`, a commit SHA).
+2. Filters the report to prescriptions whose file:line callsite falls inside a changed file.
 
-This dramatically reduces scan time and focuses feedback on the code being changed.
+The analysis itself still runs against the URL you specify; `--diff` filters which findings are reported.
 
-### GitHub Actions with Diff-Aware Mode
+### GitHub Actions with `--diff`
 
 ```yaml
-      - name: Check queries (diff-aware)
+      - name: Check queries (changed files only)
         run: |
           python manage.py check_queries \
-            --diff-aware \
-            --base-branch origin/main \
-            --severity WARNING \
-            --fail \
+            --url /api/books/ \
+            --diff origin/main \
+            --fail-on warning \
             --format json \
             --output query-report.json
 ```
 
-> **Note:** The `fetch-depth: 0` option in the checkout step is required for diff-aware mode. Without it, Git does not have the history needed to compute the diff.
+> **Note:** The `fetch-depth: 0` option in the checkout step is required for `--diff`. Without it, Git does not have the history needed to compute the diff.
+
+You can also scope the report to specific files or modules (substring match, repeatable):
+
+```bash
+python manage.py check_queries --url /api/books/ --file myapp/views.py
+python manage.py check_queries --url /api/books/ --module myapp.api
+```
+
+---
+
+## Baselines
+
+To adopt django-query-doctor on an existing project without failing CI on every pre-existing issue, snapshot the current state and fail only on regressions:
+
+```bash
+# Once, on main: record the current issues
+python manage.py check_queries --url /api/books/ --save-baseline .query-baseline.json
+
+# On every PR: report and fail only on NEW issues vs the baseline
+python manage.py check_queries \
+    --url /api/books/ \
+    --baseline .query-baseline.json \
+    --fail-on-regression
+```
+
+Commit `.query-baseline.json` to the repository so the whole team shares the same baseline. Regenerate it after upgrading django-query-doctor (analyzer coverage can widen between versions) and after fixing a batch of issues.
 
 ---
 
 ## Query Budgets in CI
 
-Use the `query_budget` command to enforce hard limits on query counts per endpoint:
+Use the `query_budget` command to enforce a hard limit on query count (and optionally total query time) for a block of code:
 
 ```yaml
-      - name: Enforce query budgets
+      - name: Enforce query budget
         run: |
           python manage.py query_budget \
-            --budget-file query_budgets.yml \
-            --fail
+            --max-queries 10 \
+            --max-time-ms 500 \
+            --execute "from myapp.services import build_dashboard; build_dashboard()"
 ```
 
-With a budget file:
+`--max-queries` is required. When the executed code exceeds the budget, the command prints the measured counts and exits with code 1.
 
-```yaml title="query_budgets.yml"
-/api/books/: 10
-/api/books/{id}/: 8
-/api/authors/: 5
-/api/authors/{id}/: 6
-/dashboard/: 25
-```
+> **Warning:** `--execute` runs the given string with `exec()`. Only run trusted code.
 
-When an endpoint exceeds its budget, the command prints the offending queries and exits with code 1.
-
-### Generating an Initial Budget File
-
-If you do not have a budget file yet, use `diagnose_project` to generate one based on current behavior:
-
-```bash
-python manage.py diagnose_project --generate-budget > query_budgets.yml
-```
-
-This sets each endpoint's budget to its current query count plus a small margin. You can then tighten the budgets over time.
+There is no per-endpoint budget file; to budget several code paths, run the command once per path, or assert budgets inside your test suite with the [pytest fixture](pytest-plugin.md).
 
 ---
 
 ## Using with Pytest
 
-The pytest plugin integrates naturally with CI. Add the `--query-doctor` flag to your pytest command:
+The pytest plugin provides a `query_doctor` fixture. Any test that requests the fixture gets query capture and analysis for that test, and can assert on the result:
+
+```python
+def test_book_list_has_no_issues(client, query_doctor):
+    client.get("/api/books/")
+    assert query_doctor.issues == 0
+    assert query_doctor.total_queries <= 10
+```
+
+Failing assertions fail the test, which fails the CI job — no extra flags needed:
 
 ```yaml
       - name: Run tests with query analysis
         run: |
-          pytest \
-            --query-doctor \
-            -v \
-            --junitxml=test-results.xml
+          pytest -v --junitxml=test-results.xml
 ```
-
-Tests decorated with `@pytest.mark.query_budget` or `@pytest.mark.no_nplusone` will fail if their constraints are violated, causing the CI job to fail.
 
 ### Combined Workflow
 
@@ -196,22 +210,15 @@ jobs:
       - name: Migrate
         run: python manage.py migrate
 
-      - name: Pytest with query checks
-        run: pytest --query-doctor -v
+      - name: Pytest with query assertions
+        run: pytest -v
 
-      - name: Management command checks (diff-aware)
+      - name: Management command checks (changed files only)
         run: |
           python manage.py check_queries \
-            --diff-aware \
-            --base-branch origin/main \
-            --severity WARNING \
-            --fail
-
-      - name: Enforce query budgets
-        run: |
-          python manage.py query_budget \
-            --budget-file query_budgets.yml \
-            --fail
+            --url /api/books/ \
+            --diff origin/main \
+            --fail-on warning
 ```
 
 ---
@@ -227,24 +234,20 @@ For visibility, you can post query doctor results as PR comments using the GitHu
           echo "## Query Doctor Report" > comment.md
           echo "" >> comment.md
           echo "Query issues were found in this PR. See the full report in the job artifacts." >> comment.md
-          echo "" >> comment.md
-          python manage.py check_queries \
-            --diff-aware \
-            --base-branch origin/main \
-            --severity WARNING \
-            --format markdown >> comment.md 2>/dev/null || true
           gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+The JSON report written with `--format json --output query-report.json` is machine-readable if you want to render a richer comment body yourself.
+
 ---
 
 ## Tips
 
-- **Start with `--severity CRITICAL`** on existing projects to catch only the worst issues. Lower the threshold to `WARNING` as you fix existing problems.
-- **Use diff-aware mode** on PRs to keep CI fast. Run full scans on a nightly schedule for comprehensive coverage.
-- **Commit your `query_budgets.yml`** to the repository so the entire team shares the same constraints.
+- **Start with `--fail-on critical`** on existing projects to catch only the worst issues. Lower the threshold to `warning` as you fix existing problems.
+- **Use `--diff origin/main`** on PRs to keep feedback focused on the code being changed. Run full scans (`diagnose_project`) on a nightly schedule for comprehensive coverage.
+- **Commit your `.query-baseline.json`** to the repository so the entire team shares the same baseline.
 - **Use `.queryignore`** to suppress known issues that you plan to fix later. See [Query Ignore](query-ignore.md).
 
 ---
@@ -252,5 +255,6 @@ For visibility, you can post query doctor results as PR comments using the GitHu
 ## Further Reading
 
 - [Management Commands](management-commands.md) -- Detailed command reference.
-- [Pytest Plugin](pytest-plugin.md) -- Markers, fixtures, and configuration.
+- [Pytest Plugin](pytest-plugin.md) -- Fixture usage and assertion patterns.
 - [Query Ignore](query-ignore.md) -- Suppressing known issues.
+- [Baseline](baseline.md) -- Baseline workflow in depth.

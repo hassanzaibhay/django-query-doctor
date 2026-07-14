@@ -1,18 +1,16 @@
 # Celery Support
 
-django-query-doctor can analyze database queries inside Celery tasks. Since Celery tasks run outside the HTTP request/response cycle, the middleware is not active. Instead, use the `@diagnose` decorator or the `diagnose_queries()` context manager.
+django-query-doctor can analyze database queries inside Celery tasks. Since Celery tasks run outside the HTTP request/response cycle, the middleware is not active. Instead, use the `@diagnose_task` decorator or the `diagnose_queries()` context manager.
 
 ---
 
 ## Installation
 
-Install django-query-doctor with the `celery` extras to pull in the Celery integration utilities:
+Celery support has no extra dependencies -- the decorator works on any callable. The optional extras group exists for version pinning:
 
 ```bash
 pip install "django-query-doctor[celery]"
 ```
-
-This does not add Celery as a dependency -- it enables the Celery-aware task base class and signal hooks.
 
 ---
 
@@ -27,15 +25,26 @@ The `QueryDoctorMiddleware` hooks into Django's request/response cycle. Celery t
 
 ## Using the Decorator
 
-The simplest approach is to apply the `@diagnose` decorator to your task function:
+Apply `@diagnose_task` beneath the task decorator, and pass an `on_report` callback to receive the results:
 
 ```python title="myapp/tasks.py"
+import logging
+
 from celery import shared_task
-from query_doctor.decorators import diagnose
+from query_doctor.celery_integration import diagnose_task
+
+logger = logging.getLogger(__name__)
+
+
+def log_findings(report):
+    if report.prescriptions:
+        logger.warning("Query issues in task: %d found", report.issues)
+        for rx in report.prescriptions:
+            logger.warning("  %s: %s", rx.severity.value, rx.description)
 
 
 @shared_task
-@diagnose
+@diagnose_task(on_report=log_findings)
 def generate_report(report_id):
     """Generate a PDF report for the given report."""
     report = Report.objects.select_related("author").get(pk=report_id)
@@ -45,21 +54,20 @@ def generate_report(report_id):
     return f"Report {report_id} generated"
 ```
 
-The decorator wraps the task execution in a query interceptor. When the task completes, any prescriptions are logged via the configured reporters.
+The decorator wraps the task execution in a query interceptor, runs every enabled analyzer when the task completes (including when it raises), and passes the populated `DiagnosisReport` to `on_report`.
 
-### Decorator Options
+> **Important:** `@diagnose_task` does not print or log anything by itself, and it does not dispatch to the `REPORTERS` setting. Without an `on_report` callback the analysis results are discarded -- always pass a callback (or use the context manager below) if you want to see the findings.
 
-You can pass options to control the analysis:
+The bare form also works when you only want capture wired in for a callback added later:
 
 ```python
 @shared_task
-@diagnose(severity="WARNING", analyzers=["nplusone", "duplicate"])
-def send_notifications(user_ids):
-    """Send email notifications. Only check for N+1 and duplicates."""
-    users = User.objects.filter(pk__in=user_ids)
-    for user in users:
-        send_email(user.email, build_message(user))
+@diagnose_task
+def cleanup_task():
+    ...
 ```
+
+If Celery is not installed, `@diagnose_task` still works -- it wraps any plain callable.
 
 ---
 
@@ -89,79 +97,41 @@ def sync_inventory(warehouse_id):
             len(report.prescriptions),
         )
         for rx in report.prescriptions:
-            logger.warning("  %s: %s (%s)", rx.severity, rx.issue, rx.location)
+            location = (
+                f"{rx.callsite.filepath}:{rx.callsite.line_number}" if rx.callsite else "?"
+            )
+            logger.warning("  %s: %s (%s)", rx.severity.value, rx.description, location)
 ```
 
 This is useful when a task has multiple phases and you only want to analyze the database-intensive portion.
 
 ---
 
-## Accessing Results
+## Example: Shipping Findings to Monitoring
 
-Both the decorator and context manager produce a report object. With the context manager, you get it directly via the `as` clause. With the decorator, prescriptions are sent to the configured reporters (console, JSON, log).
-
-To programmatically access results with the decorator, use the callback option:
+The `on_report` callback is the integration point for metrics and alerting:
 
 ```python
 def on_diagnosis_complete(report):
     if report.prescriptions:
-        # Send to monitoring, log, or store in DB
         metrics.increment("query_doctor.issues", len(report.prescriptions))
 
 
 @shared_task
-@diagnose(callback=on_diagnosis_complete)
+@diagnose_task(on_report=on_diagnosis_complete)
 def process_orders(order_ids):
     orders = Order.objects.filter(pk__in=order_ids).select_related("customer")
     for order in orders:
         fulfill(order)
 ```
 
+To persist results, render the report yourself inside the callback, e.g. with `query_doctor.reporters.json_reporter.JSONReporter(output_path=...).report(report)`.
+
 ---
 
 ## Configuration
 
-Celery tasks use the same `QUERY_DOCTOR` settings as the rest of your project. You can override settings per-task via decorator or context manager arguments:
-
-```python
-@shared_task
-@diagnose(
-    severity="CRITICAL",
-    analyzers=["nplusone"],
-    reporters=["log"],
-)
-def heavy_task():
-    ...
-```
-
----
-
-## Example: Periodic Task Monitoring
-
-Combine django-query-doctor with Celery Beat to periodically audit a critical task:
-
-```python title="myapp/tasks.py"
-from celery import shared_task
-from query_doctor.decorators import diagnose
-
-
-@shared_task
-@diagnose(reporters=["json"], output="/var/log/query-doctor/nightly-sync.json")
-def nightly_sync():
-    """Nightly data synchronization. Query analysis is logged to JSON."""
-    ...
-```
-
-```python title="settings.py"
-CELERY_BEAT_SCHEDULE = {
-    "nightly-sync": {
-        "task": "myapp.tasks.nightly_sync",
-        "schedule": crontab(hour=2, minute=0),
-    },
-}
-```
-
-The JSON report is written after each run, allowing you to track query patterns over time.
+Celery tasks use the same `QUERY_DOCTOR` settings as the rest of your project (analyzer toggles, thresholds). There are no per-task setting overrides; the decorator's only option is `on_report`.
 
 ---
 

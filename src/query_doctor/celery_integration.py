@@ -1,8 +1,9 @@
 """Celery task integration for django-query-doctor.
 
 Provides a @diagnose_task decorator that wraps Celery tasks (or any callable)
-with query diagnosis. Captures all SQL queries during task execution, runs
-analyzers, and sends results to configured reporters.
+with query diagnosis. Captures all SQL queries during task execution and runs
+analyzers. Results are delivered via the optional ``on_report`` callback;
+without it, the populated report is not surfaced anywhere.
 
 Celery is NOT required. If not installed, the decorator is a passthrough.
 

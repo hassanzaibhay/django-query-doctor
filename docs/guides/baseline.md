@@ -30,7 +30,7 @@ This runs the full analysis and saves all detected issues to the specified JSON 
 
 ```json
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "issue_count": 12,
   "issues": [
     {
@@ -46,7 +46,11 @@ This runs the full analysis and saves all detected issues to the specified JSON 
 ```
 
 The schema is flat — there is no nested `callsite` object, and `severity` is
-lowercase (`"critical"`, `"warning"`, or `"info"`).
+lowercase (`"critical"`, `"warning"`, or `"info"`). The `version` field records
+the django-query-doctor version that saved the baseline; comparing against a
+baseline saved with a different version prints a non-blocking warning.
+Regenerate your baseline after upgrading — analyzer coverage can widen between
+versions, and an old baseline reports newly-covered findings as regressions.
 
 ---
 

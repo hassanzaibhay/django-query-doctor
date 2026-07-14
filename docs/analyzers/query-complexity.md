@@ -12,20 +12,22 @@ benefit from being broken apart or restructured.
 
 Each SQL feature contributes points to the total complexity score:
 
-| SQL Feature | Points per Occurrence | Example ORM Usage |
-|-------------|----------------------|-------------------|
-| `JOIN` (each) | 5 | `select_related()`, `annotate()` with relations |
-| Subquery (each) | 10 | `Subquery()`, `qs.filter(id__in=other_qs)` |
-| Aggregation (`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`) | 3 | `.annotate(total=Sum(...))` |
-| `CASE / WHEN` (each) | 4 | `Case(When(...))` |
-| `DISTINCT` | 3 | `.distinct()` |
-| `UNION` / `INTERSECT` / `EXCEPT` | 8 | `qs1.union(qs2)` |
-| `GROUP BY` | 3 | `.values().annotate()` |
-| `HAVING` | 4 | `.annotate().filter()` after group |
-| `ORDER BY` on expression | 2 | `.order_by(F("field").desc())` |
-| Window function | 8 | `Window(expression=..., partition_by=...)` |
+| SQL Feature | Points | Example ORM Usage |
+|-------------|--------|-------------------|
+| `JOIN` (each) | 2 | `select_related()`, `annotate()` with relations |
+| Subquery (each additional `SELECT`) | 3 | `Subquery()`, `qs.filter(id__in=other_qs)` |
+| `OR` (each) | 1 | `Q(...) \| Q(...)` |
+| `GROUP BY` | 2 | `.values().annotate()` |
+| `HAVING` | 2 | `.annotate().filter()` after group |
+| `DISTINCT` | 1 | `.distinct()` |
+| `ORDER BY` | 1 | `.order_by(...)` |
+| `CASE / WHEN` (each `WHEN`) | 1 | `Case(When(...))` |
+| `UNION` / `INTERSECT` / `EXCEPT` | 3 | `qs1.union(qs2)` |
+| `LIKE` with leading `%` | 2 | `.filter(name__contains=...)` |
+| `COUNT(*)` combined with `JOIN` | 2 | `.annotate(n=Count(...))` over relations |
 
-The total score is the sum of all points. The default threshold is **50**.
+The total score is the sum of all points. The default threshold is **8**; a
+query scoring 8 or more is flagged (WARNING severity, CRITICAL at 12 or more).
 
 ## Problem Code
 
@@ -33,9 +35,8 @@ The total score is the sum of all points. The default threshold is **50**.
 # views.py
 
 from django.db.models import (
-    Case, Count, F, Q, Subquery, OuterRef, Sum, When, Window
+    Avg, Case, Count, OuterRef, Subquery, Sum, Value, When
 )
-from django.db.models.functions import Rank
 
 def complex_report(request):
     subquery = (
@@ -48,28 +49,24 @@ def complex_report(request):
 
     books = (
         Book.objects
-        .select_related("author", "publisher")                  # 2 JOINs = 10
+        .select_related("author", "publisher")                  # 2 JOINs = 4
         .prefetch_related("categories")
         .annotate(
-            review_count=Count("reviews"),                      # aggregation = 3
-            avg_rating=Subquery(subquery),                      # subquery = 10
-            revenue=Sum("sales__amount"),                       # aggregation = 3, JOIN = 5
-            tier=Case(                                          # CASE = 4
+            review_count=Count("reviews"),                      # JOIN = 2, COUNT+JOIN = 2
+            avg_rating=Subquery(subquery),                      # subquery = 3
+            revenue=Sum("sales__amount"),                       # JOIN = 2
+            tier=Case(                                          # 2 WHENs = 2
                 When(revenue__gte=10000, then=Value("gold")),
                 When(revenue__gte=1000, then=Value("silver")),
                 default=Value("bronze"),
             ),
-            rank=Window(                                        # window = 8
-                expression=Rank(),
-                partition_by=F("publisher"),
-                order_by=F("revenue").desc(),
-            ),
         )
-        .filter(review_count__gte=5)                            # HAVING = 4
-        .distinct()                                              # DISTINCT = 3
-        .order_by("-rank")
+        .filter(review_count__gte=5)                            # HAVING = 2
+        .distinct()                                              # DISTINCT = 1
+        .order_by("-revenue")                                    # ORDER BY = 1
     )
-    # Total score: 10 + 3 + 10 + 3 + 5 + 4 + 8 + 4 + 3 = 50 (at threshold)
+    # GROUP BY from the annotations = 2
+    # Total score: 4 + 2 + 2 + 3 + 2 + 2 + 2 + 1 + 1 + 2 = 21 (over threshold 8)
 ```
 
 ## Fix Code
@@ -120,32 +117,32 @@ books = Book.objects.annotate(avg_rating=Avg("reviews__rating"))
 
 ## Prescription Output
 
+Console output for a flagged query:
+
 ```
-[LOW] High Query Complexity (score: 54)
-  Location: views.py:12
-  Issue:    Query has a complexity score of 54 (threshold: 50).
-            Breakdown: 2 JOINs (10), 1 subquery (10), 2 aggregations (6),
-            1 CASE/WHEN (4), 1 window function (8), 1 DISTINCT (3),
-            1 HAVING (4), expression ORDER BY (2), GROUP BY (3).
-  Fix:      Consider breaking this into multiple simpler queries.
-            - Extract the subquery into a separate query and join in Python.
-            - Move the window function to a dedicated annotation query.
-            - Use .annotate() with JOIN-based aggregation instead of Subquery
-              where possible.
+CRITICAL: Query complexity score 21 exceeds threshold 8
+   Location: /app/myapp/views.py:12 in complex_report
+   Fix: Replace subqueries with JOINs or annotate() where possible.
 ```
+
+The fix suggestion is contextual: with more than 3 JOINs it recommends
+splitting the query and using `select_related`/`prefetch_related`; with
+subqueries it suggests JOIN-based rewrites; with multiple `OR` conditions
+it points at index-friendly alternatives.
 
 ## Configuration
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `COMPLEXITY_THRESHOLD` | `50` | Total score above which a query is flagged. Lower values catch more queries but may produce noise. |
-| `COMPLEXITY_IGNORE_TABLES` | `[]` | Tables to exclude from analysis. Reporting queries against analytics tables are often intentionally complex. |
+| `ANALYZERS.complexity.threshold` | `8` | Total score at or above which a query is flagged. Lower values catch more queries but may produce noise. |
+| `ANALYZERS.complexity.enabled` | `True` | Set to `False` to disable this analyzer. |
 
 ```python
 # settings.py
 QUERY_DOCTOR = {
-    "COMPLEXITY_THRESHOLD": 40,
-    "COMPLEXITY_IGNORE_TABLES": ["analytics_report"],
+    "ANALYZERS": {
+        "complexity": {"threshold": 12},
+    },
 }
 ```
 

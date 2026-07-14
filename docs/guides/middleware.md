@@ -42,11 +42,11 @@ The middleware uses `threading.local()` to store per-request state, so it is ful
 
 ## Excluding Paths
 
-Not every endpoint needs analysis. Static files, health checks, and admin pages often generate noise. Use the `EXCLUDE_PATHS` setting to skip them:
+Not every endpoint needs analysis. Static files, health checks, and admin pages often generate noise. Use the `IGNORE_URLS` setting to skip them:
 
 ```python title="settings.py"
 QUERY_DOCTOR = {
-    "EXCLUDE_PATHS": [
+    "IGNORE_URLS": [
         "/static/",
         "/media/",
         "/health/",
@@ -56,7 +56,7 @@ QUERY_DOCTOR = {
 }
 ```
 
-Paths are matched by prefix. If the request path starts with any entry in `EXCLUDE_PATHS`, the middleware skips interception entirely.
+Paths are matched by prefix. If the request path starts with any entry in `IGNORE_URLS`, the middleware skips interception entirely.
 
 ---
 
@@ -121,13 +121,7 @@ class BookListView(ListView):
     model = Book
 ```
 
-The decorator accepts the same options as the middleware settings:
-
-```python
-@diagnose(severity="WARNING", analyzers=["nplusone", "duplicate"])
-def my_view(request):
-    ...
-```
+The decorator takes no arguments; it runs every enabled analyzer, honoring the same `QUERY_DOCTOR` settings as the middleware. After execution, the report is attached to the wrapped function as `my_view._query_doctor_report`.
 
 ### The `diagnose_queries()` Context Manager
 
@@ -143,7 +137,7 @@ def book_detail(request, pk):
         related = Book.objects.filter(author=book.author)
 
     # report.prescriptions contains any issues found
-    # report.query_count contains the total number of queries
+    # report.total_queries contains the total number of queries
     return render(request, "books/detail.html", {
         "book": book,
         "related": related,

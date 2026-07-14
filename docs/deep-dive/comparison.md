@@ -195,11 +195,11 @@ Use debug-toolbar for interactive exploration and django-query-doctor for automa
 ```yaml
 # .github/workflows/ci.yml
 steps:
-  - name: Run tests with query analysis
-    run: pytest --query-doctor --fail-on-query-issues
+  - name: Run tests with query assertions
+    run: pytest -v
 
-  - name: Full project scan
-    run: python manage.py diagnose_queries --format=json --fail-on-issues
+  - name: Endpoint scan
+    run: python manage.py check_queries --url /api/books/ --format json --fail-on warning
 ```
 
 In CI, only django-query-doctor and nplusone can run (debug-toolbar and silk require a browser/server). django-query-doctor provides the most comprehensive CI analysis.
@@ -210,8 +210,8 @@ In CI, only django-query-doctor and nplusone can run (debug-toolbar and silk req
 # settings/production.py
 QUERY_DOCTOR = {
     "ENABLED": True,
-    "SAMPLE_RATE": 0.01,           # 1% of requests
-    "REPORT_FORMAT": "json",
+    "SAMPLE_RATE": 0.01,            # 1% of requests
+    "REPORTERS": ["log"],           # Route findings into your log pipeline
     "CAPTURE_STACK_TRACES": False,  # Minimize overhead
 }
 ```

@@ -1,18 +1,17 @@
 """Pytest plugin for django-query-doctor.
 
-Provides a ``query_doctor`` fixture that captures and analyzes SQL queries
-during a test. The fixture is opt-in by usage: request it as a test argument
-and analysis runs for that test only.
+Provides a ``query_doctor`` fixture that captures SQL queries during a
+test. The fixture is opt-in by usage: request it as a test argument and
+capture runs for that test only.
+
+NOTE: The returned DiagnosisReport is populated in a test *finalizer*,
+i.e. after the test body has finished. Assertions on it inside the test
+body see an empty report. For in-test assertions, use the
+``diagnose_queries()`` context manager instead.
 
 Registration:
     The plugin is auto-discovered via the ``pytest11`` entry point
     defined in pyproject.toml.
-
-Usage:
-    def test_my_view(query_doctor):
-        response = client.get('/api/books/')
-        assert query_doctor.issues == 0
-        assert query_doctor.total_queries <= 10
 """
 
 from __future__ import annotations

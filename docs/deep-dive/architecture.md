@@ -64,7 +64,7 @@ Each entry point activates the same core pipeline. The only difference is how an
 | `QueryDoctorMiddleware` | Per HTTP request | Development and staging servers |
 | `diagnose_queries()` context manager | Arbitrary code block | Testing, scripts, ad-hoc analysis |
 | `@diagnose` decorator | Single function/method | View-level analysis |
-| `diagnose_queries` management command | Entire URL set or view list | Full project scan, CI/CD |
+| `check_queries` / `diagnose_project` management commands | One URL / entire URL set | Endpoint checks and full project scans, CI/CD |
 | Pytest plugin | Per test or test suite | Automated regression detection |
 
 ---
@@ -300,35 +300,48 @@ src/query_doctor/
 |-- types.py                 # Shared type definitions
 |-- fixer.py                 # Auto-fix code generation
 |-- diff_filter.py           # Git diff-aware filtering for CI
-|-- ignore.py                # Query ignore rules
-|-- plugin_api.py            # Custom analyzer plugin registration
+|-- ignore.py                # .queryignore rules
+|-- plugin_api.py            # Analyzer discovery (built-in + entry points)
 |-- project_diagnoser.py     # Full-project scanning logic
 |-- pytest_plugin.py         # Pytest plugin for test-time analysis
 |-- celery_integration.py    # Celery task wrapper
 |-- url_discovery.py         # URL pattern discovery for management commands
-|-- admin_panel.py           # Django admin integration
-|-- urls.py                  # URL configuration for HTML dashboard
+|-- baseline.py              # Baseline snapshots for regression checks
+|-- grouping.py              # Prescription grouping strategies
+|-- admin_panel.py           # Django admin dashboard integration
+|-- urls.py                  # URL configuration for the admin dashboard
+|-- apps.py                  # AppConfig (QueryTurbo patching hook)
 |-- py.typed                 # PEP 561 marker
 |-- analyzers/
 |   |-- __init__.py
-|   |-- base.py              # BaseAnalyzer ABC, Prescription dataclass
+|   |-- base.py              # BaseAnalyzer ABC
 |   |-- nplusone.py          # N+1 detection
 |   |-- duplicate.py         # Duplicate query detection
 |   |-- missing_index.py     # Missing index detection
 |   |-- fat_select.py        # Fat SELECT detection
 |   |-- complexity.py        # Query complexity scoring
-|   |-- drf_serializer.py    # DRF serializer N+1 detection
 |   |-- queryset_eval.py     # Unnecessary queryset evaluation
+|   |-- serializer_method.py # Static AST analysis of DRF SerializerMethodFields
+|   |-- discovery.py         # Serializer class discovery for check_serializers
+|-- filters/
+|   |-- file_filter.py       # --file/--module prescription filtering
 |-- reporters/
 |   |-- console.py           # Rich/plain text console output
 |   |-- json_reporter.py     # JSON output
-|   |-- html_reporter.py     # HTML dashboard reporter
+|   |-- log_reporter.py      # Python logging output
+|   |-- html_reporter.py     # HTML report renderer
+|   |-- project_report.py    # diagnose_project HTML report
+|   |-- dashboard.py         # QueryTurbo benchmark dashboard
+|   |-- otel_exporter.py     # OpenTelemetry span exporter
 |-- management/
 |   |-- commands/
-|       |-- diagnose_queries.py  # Full project scan command
-|-- templates/
-|   |-- query_doctor/
-|       |-- dashboard.html   # HTML dashboard template
+|       |-- check_queries.py       # Single-URL analysis for CI
+|       |-- check_serializers.py   # Static DRF serializer analysis
+|       |-- diagnose_project.py    # Full project scan
+|       |-- fix_queries.py         # Auto-fix engine CLI
+|       |-- query_budget.py        # Query budget enforcement
+|       |-- query_doctor_report.py # QueryTurbo benchmark report
+|-- turbo/                   # QueryTurbo SQL compilation cache
 ```
 
 ---
@@ -371,7 +384,7 @@ Both the query interceptor and QueryTurbo context managers use `contextvars.Cont
 The following guarantees hold:
 
 - No module-level mutable variables (lists, dicts, sets) are used for query storage. Per-request state uses `contextvars.ContextVar`.
-- Configuration is read once per request via `conf.get_config()`, which reads from Django settings (immutable at runtime).
+- Configuration is read once per process via `conf.get_config()` (LRU-cached), which merges Django settings over the defaults.
 - Analyzers are stateless: they receive a query list as input and return prescriptions as output. No state is retained between invocations.
 - Reporters are stateless: they receive prescriptions and produce output.
 
@@ -383,39 +396,43 @@ django-query-doctor is designed to be extended without modifying its source code
 
 | Extension Point | Mechanism | Example |
 |-----------------|-----------|---------|
-| Custom analyzers | Subclass `BaseAnalyzer`, register via `QUERY_DOCTOR["ANALYZERS"]` or `plugin_api.register_analyzer()` | Detect queries on deprecated tables |
-| Custom reporters | Implement reporter interface, register via `QUERY_DOCTOR["REPORTERS"]` | Send prescriptions to Datadog |
-| Ignore rules | Configure `QUERY_DOCTOR["IGNORE_PATTERNS"]` or use `@query_doctor_ignore` | Skip health check queries |
-| Query budgets | Use `@query_budget(max_queries=N)` decorator or pytest markers | Enforce per-view limits |
-| Diff filtering | Set `QUERY_DOCTOR["DIFF_BASE"]` to a git ref | Only report issues in changed code |
+| Custom analyzers | Subclass `BaseAnalyzer`, register via the `query_doctor.analyzers` entry point group | Detect queries on deprecated tables |
+| Analyzer toggles | `QUERY_DOCTOR["ANALYZERS"][<name>]["enabled"]` | Disable `fat_select` project-wide |
+| Ignore rules | `.queryignore` file at the project root | Skip known findings in legacy code |
+| Query budgets | `@query_budget(max_queries=N, max_time_ms=T)` decorator or the `query_budget` command | Enforce per-view limits |
+| Diff filtering | `check_queries --diff <git-ref>` | Only report issues in changed code |
 
 ### Custom Analyzer Example
 
 ```python
-from query_doctor.analyzers.base import BaseAnalyzer, Prescription, Severity
+from query_doctor.analyzers.base import BaseAnalyzer
+from query_doctor.types import IssueType, Prescription, Severity
 
 class DeprecatedTableAnalyzer(BaseAnalyzer):
     """Detect queries against deprecated database tables."""
 
+    name = "deprecated_table"
+
     DEPRECATED_TABLES = {"legacy_users", "old_orders", "temp_cache"}
 
-    def analyze(self, queries):
+    def analyze(self, queries, models_meta=None):
         prescriptions = []
         for query in queries:
             for table in self.DEPRECATED_TABLES:
                 if table in query.sql.lower():
                     prescriptions.append(
                         Prescription(
+                            issue_type=IssueType.QUERY_COMPLEXITY,
                             severity=Severity.WARNING,
-                            category="deprecated_table",
                             description=f"Query accesses deprecated table: {table}",
-                            file_path=query.stack_trace[0].filename if query.stack_trace else None,
-                            line_number=query.stack_trace[0].lineno if query.stack_trace else None,
-                            suggested_fix=f"Migrate away from {table} to the new schema.",
+                            fix_suggestion=f"Migrate away from {table} to the new schema.",
+                            callsite=query.callsite,
                             query_count=1,
                         )
                     )
         return prescriptions
 ```
+
+See the [Custom Plugins Guide](../guides/custom-plugins.md) for registration via entry points.
 
 For more on the design rationale behind these choices, see [Background & Design](./background.md). For performance characteristics, see [Performance](./performance.md).

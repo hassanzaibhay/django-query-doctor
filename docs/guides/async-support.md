@@ -1,48 +1,12 @@
 # Async Support
 
-django-query-doctor fully supports Django's async views, async ORM methods, and ASGI deployments. This page covers how to use query analysis in async contexts.
-
----
-
-## Async Views with the Decorator
-
-Use the `@diagnose` decorator on async views the same way you would on sync views. The decorator automatically detects whether the wrapped function is a coroutine and adapts its behavior:
-
-```python title="myapp/views.py"
-from query_doctor.decorators import diagnose
-
-
-@diagnose
-async def book_list(request):
-    """Async view that lists books."""
-    books = [book async for book in Book.objects.select_related("author").all()]
-    return JsonResponse({"books": [{"title": b.title} for b in books]})
-```
-
-The decorator installs an async-compatible query interceptor that captures all database calls made within the coroutine, including those made by Django's async ORM methods.
-
-### Class-Based Async Views
-
-For async class-based views, apply the decorator to the `dispatch` method:
-
-```python title="myapp/views.py"
-from django.utils.decorators import method_decorator
-from django.views import View
-from query_doctor.decorators import diagnose
-
-
-@method_decorator(diagnose, name="dispatch")
-class AsyncBookListView(View):
-    async def get(self, request):
-        books = [book async for book in Book.objects.all()]
-        return JsonResponse({"books": [{"title": b.title} for b in books]})
-```
+django-query-doctor supports async Django views and ASGI deployments through its middleware. This page covers what works in async contexts -- and what does not.
 
 ---
 
 ## ASGI Middleware Auto-Detection
 
-When your Django application is served via ASGI (using Daphne, Uvicorn, Hypercorn, or similar), `QueryDoctorMiddleware` automatically detects the ASGI environment and switches to its async implementation. No additional configuration is needed.
+When your Django application is served via ASGI (using Daphne, Uvicorn, Hypercorn, or similar), `QueryDoctorMiddleware` automatically detects the ASGI environment and switches to its async implementation (`sync_capable` and `async_capable` are both enabled). No additional configuration is needed:
 
 ```python title="settings.py"
 MIDDLEWARE = [
@@ -53,78 +17,70 @@ MIDDLEWARE = [
 
 Under ASGI, the middleware:
 
-- Uses `contextvars.ContextVar` for async safety, ensuring correct isolation across concurrent coroutines. Both QueryTurbo context managers and the query interceptor use `contextvars.ContextVar`, making the full capture pipeline safe for ASGI deployments with concurrent requests on the same thread.
-- Installs an async `execute_wrapper` on the database connection.
+- Uses `contextvars.ContextVar` for async safety, ensuring correct isolation across concurrent coroutines on the same thread.
 - Awaits the response before running analyzers.
 - Works correctly with Django's async-to-sync and sync-to-async bridge functions.
+
+Async views analyzed by the middleware need nothing special:
+
+```python title="myapp/views.py"
+async def book_list(request):
+    """Async view -- queries captured by the middleware."""
+    books = [book async for book in Book.objects.select_related("author").all()]
+    return JsonResponse({"books": [{"title": b.title} for b in books]})
+```
 
 ---
 
 ## Django Async ORM Methods
 
-Django's async ORM methods (`aget`, `afilter`, `acreate`, `acount`, `aexists`, etc.) are fully supported. django-query-doctor captures queries made through these methods identically to their sync counterparts:
+Django's async ORM methods (`aget`, `acreate`, `acount`, `aexists`, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's `execute_wrapper` captures them identically. Async iteration over querysets is captured the same way.
+
+---
+
+## The Context Manager in Async Code
+
+`diagnose_queries()` is a **synchronous** context manager. Use it with a plain `with` statement -- including inside `async def` functions:
 
 ```python
 from query_doctor.context_managers import diagnose_queries
 
 
 async def process_books():
-    async with diagnose_queries() as report:
+    with diagnose_queries() as report:
         count = await Book.objects.acount()
         book = await Book.objects.select_related("author").aget(pk=1)
         exists = await Book.objects.filter(published=True).aexists()
 
-    # report.query_count == 3
+    # report.total_queries == 3
     # Prescriptions are generated normally
 ```
 
-### Async Iteration
-
-Async iteration over querysets is captured:
-
-```python
-async with diagnose_queries() as report:
-    async for book in Book.objects.select_related("author").all():
-        print(book.title, book.author.name)
-
-# All queries from the async iterator are captured
-```
+> **Not supported:** `async with diagnose_queries()` raises a `TypeError` -- the context manager does not implement the async context manager protocol.
 
 ---
 
-## Async Context Manager
+## The `@diagnose` Decorator and Async Views
 
-The `diagnose_queries()` context manager works as both a sync and async context manager:
+> **Not supported:** `@diagnose` does not detect or await coroutine functions. Applied to an `async def` view, the wrapped call returns the coroutine object and the capture context exits before the view body runs, so nothing useful is captured.
 
-```python
-# Sync usage
-with diagnose_queries() as report:
-    books = list(Book.objects.all())
-
-# Async usage
-async with diagnose_queries() as report:
-    books = [b async for b in Book.objects.all()]
-```
-
-Both produce the same `report` object with the same attributes.
+For async views, use the middleware (recommended) or a `with diagnose_queries():` block inside the view body.
 
 ---
 
 ## Mixed Sync/Async Code
 
-Django allows mixing sync and async code using `sync_to_async` and `async_to_sync`. django-query-doctor handles these transitions correctly:
+Django allows mixing sync and async code using `sync_to_async` and `async_to_sync`. Queries made in a `sync_to_async`-wrapped helper are captured because the interceptor is installed at the database connection level, which is shared across sync and async execution within the same request:
 
 ```python
 from asgiref.sync import sync_to_async
-from query_doctor.decorators import diagnose
 
 
-@diagnose
 async def mixed_view(request):
-    # Async ORM call
+    # Async ORM call -- captured
     book = await Book.objects.aget(pk=1)
 
-    # Sync function called from async context
+    # Sync function called from async context -- also captured
     related_books = await sync_to_async(get_related_books)(book)
 
     return JsonResponse({"book": book.title, "related": len(related_books)})
@@ -135,14 +91,13 @@ def get_related_books(book):
     return list(Book.objects.filter(author=book.author).exclude(pk=book.pk))
 ```
 
-Queries made in the `sync_to_async` wrapped function are captured because the interceptor is installed at the database connection level, which is shared across sync and async contexts within the same request.
-
 ---
 
 ## Limitations
 
-- **Connection pooling**: If you use a third-party connection pooler (like `django-db-connection-pool`), ensure it is compatible with Django's `execute_wrapper` mechanism. Most poolers are compatible, but some may require configuration.
-- **Multi-database**: Async support works with Django's multi-database routing. The interceptor is installed on each database connection individually.
+- **`@diagnose` / `@query_budget` on coroutines**: not supported (see above).
+- **Connection pooling**: If you use a third-party connection pooler (like `django-db-connection-pool`), ensure it is compatible with Django's `execute_wrapper` mechanism.
+- **Raw async drivers**: Queries issued directly through non-Django drivers (e.g. `asyncpg`) bypass Django's connection and are not captured.
 
 ---
 
