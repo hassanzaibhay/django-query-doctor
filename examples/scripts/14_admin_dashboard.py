@@ -12,7 +12,9 @@ print("""
 QUERY_DOCTOR = {
     "ADMIN_DASHBOARD": {
         "enabled": True,
-        "max_reports": 50,  # Ring buffer size
+        # NOTE: ring buffer size is currently fixed at 50;
+        # max_reports has no effect
+        "max_reports": 50,
     },
 }
 
@@ -32,8 +34,7 @@ urlpatterns = [
 #   - Summary cards: total requests, total issues, critical count
 #   - Table of recent requests with query count, time, issues
 #   - Expandable detail for each request showing prescriptions
-#   - Latest project diagnosis report (if diagnose_project was run)
-#   - Auto-refresh toggle
+#   - Auto-refresh toggle (10s)
 #
 # Data is stored in an in-memory ring buffer — no database tables needed.
 # When the server restarts, the history is cleared.

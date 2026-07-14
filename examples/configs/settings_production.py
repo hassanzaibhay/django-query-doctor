@@ -21,7 +21,7 @@ QUERY_DOCTOR = {
         "missing_index": {"enabled": True},
         "fat_select": {"enabled": False},                   # Too noisy in prod
         "queryset_eval": {"enabled": True},
-        "drf_serializer": {"enabled": True},
+        "serializer_method": {"enabled": True},
         "complexity": {"enabled": True, "threshold": 10},  # Higher threshold
     },
     "QUERY_BUDGET": {

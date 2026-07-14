@@ -53,7 +53,7 @@ QUERY_DOCTOR = {
         "missing_index": {"enabled": True},
         "fat_select": {"enabled": True},
         "queryset_eval": {"enabled": True},
-        "drf_serializer": {"enabled": True},
+        "serializer_method": {"enabled": True},
         "complexity": {"enabled": True, "threshold": 8},
     },
 }

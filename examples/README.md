@@ -30,8 +30,8 @@ This creates a sample database, runs every feature, and saves output to `outputs
 | 01 | `basic_middleware.py` | Zero-config middleware setup |
 | 02 | `context_manager.py` | `diagnose_queries()` for tests and scripts |
 | 03 | `decorator.py` | `@diagnose` and `@query_budget` |
-| 04 | `pytest_usage.py` | Built-in pytest fixture |
-| 05 | `management_commands.sh` | All 4 management commands |
+| 04 | `pytest_usage.py` | Query assertions in pytest via `diagnose_queries()` |
+| 05 | `management_commands.sh` | Management commands |
 | 06 | `celery_tasks.py` | Background task diagnosis |
 | 07 | `async_views.py` | Async Django support |
 | 08 | `custom_analyzer.py` | Writing analyzer plugins |

@@ -1,0 +1,28 @@
+============================================================
+Query Doctor Report
+Total queries: 15 | Time: 0.2ms | Issues: 4
+============================================================
+
+CRITICAL: N+1 detected: 12 queries for table "testapp_author" (field: author)
+   Location: C:\Users\hassa\Desktop\django-query-doctor\scripts\regen_examples.py:118 in test_capture_console_output
+   Code: _ = book.author.name  # N+1
+   Fix: Add .select_related('author') to your queryset
+   Queries: 12 | Est. savings: ~0.2ms
+
+WARNING: Duplicate query: 2 identical queries for table "testapp_book"
+   Location: C:\Users\hassa\Desktop\django-query-doctor\scripts\regen_examples.py:119 in test_capture_console_output
+   Code: Book.objects.filter(title=books[0].title).count()  # duplicate x2
+   Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+   Queries: 2 | Est. savings: ~0.0ms
+
+INFO: Missing index: column "title" on Book (table "testapp_book") is used in WHERE/ORDER BY but has no index
+   Location: C:\Users\hassa\Desktop\django-query-doctor\scripts\regen_examples.py:119 in test_capture_console_output
+   Code: Book.objects.filter(title=books[0].title).count()  # duplicate x2
+   Fix: Add to Book's Meta.indexes: indexes = [models.Index(fields=["title"], name="idx_testapp_book_title")]
+   Queries: 1 | Est. savings: ~0.0ms
+
+INFO: Fat SELECT: 8 columns from "testapp_book" including large fields: description
+   Location: C:\Users\hassa\Desktop\django-query-doctor\scripts\regen_examples.py:116 in test_capture_console_output
+   Code: books = list(Book.objects.all())
+   Fix: Use .defer('description') to skip loading large fields, or .values()/.values_list() if you don't need model instances
+   Queries: 1 | Est. savings: ~0.0ms

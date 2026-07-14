@@ -5,7 +5,8 @@ with query diagnosis. Captures all SQL queries during task execution and runs
 analyzers. Results are delivered via the optional ``on_report`` callback;
 without it, the populated report is not surfaced anywhere.
 
-Celery is NOT required. If not installed, the decorator is a passthrough.
+Celery is NOT required. The decorator wraps any callable and works the
+same with or without Celery installed.
 
 Usage:
     from query_doctor.celery_integration import diagnose_task

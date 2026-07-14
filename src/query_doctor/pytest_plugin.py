@@ -29,15 +29,19 @@ logger = logging.getLogger("query_doctor")
 
 @pytest.fixture()
 def query_doctor(request: pytest.FixtureRequest) -> DiagnosisReport:
-    """Fixture that captures and analyzes SQL queries during a test.
+    """Fixture that captures SQL queries during a test.
 
-    Returns a DiagnosisReport that is populated with query data.
-    The report is available during the test for assertions.
+    Returns a DiagnosisReport that is populated in a test finalizer,
+    i.e. AFTER the test body finishes. Assertions on it inside the test
+    body see an empty report (they pass vacuously). For in-test
+    assertions, use the diagnose_queries() context manager instead:
 
-    Usage:
-        def test_optimized(query_doctor):
-            list(Book.objects.select_related('author').all())
-            assert query_doctor.issues == 0
+        from query_doctor.context_managers import diagnose_queries
+
+        def test_optimized():
+            with diagnose_queries() as report:
+                list(Book.objects.select_related('author').all())
+            assert report.issues == 0
     """
     from query_doctor.interceptor import QueryInterceptor
     from query_doctor.types import DiagnosisReport

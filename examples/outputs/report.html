@@ -49,15 +49,15 @@ h1 { color: #2c3e50; margin-bottom: 20px; }
 <h2>Summary</h2>
 <div class="stats">
 <div class="stat">
-<div class="stat-value">51</div>
+<div class="stat-value">43</div>
 <div class="stat-label">Total Queries</div>
 </div>
 <div class="stat">
-<div class="stat-value">273.7ms</div>
+<div class="stat-value">0.8ms</div>
 <div class="stat-label">Total Time</div>
 </div>
 <div class="stat">
-<div class="stat-value">14</div>
+<div class="stat-value">5</div>
 <div class="stat-label">Issues Found</div>
 </div>
 <div class="stat stat-critical">
@@ -65,112 +65,49 @@ h1 { color: #2c3e50; margin-bottom: 20px; }
 <div class="stat-label">Critical</div>
 </div>
 <div class="stat stat-warning">
-<div class="stat-value">12</div>
+<div class="stat-value">1</div>
 <div class="stat-label">Warnings</div>
 </div>
 <div class="stat stat-info">
-<div class="stat-value">0</div>
+<div class="stat-value">2</div>
 <div class="stat-label">Info</div>
 </div>
 </div>
 </div>
 <div class="prescription critical">
 <span class="severity critical">CRITICAL</span>
-<div class="description">N+1 detected: 25 queries for table &quot;sample_project_author&quot; (field: project_author)</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Add .select_related(&#x27;project_author&#x27;) to your queryset</div>
-<div class="metrics">Queries: 25 | Est. savings: ~40.5ms</div>
+<div class="description">N+1 detected: 20 queries for table &quot;testapp_author&quot; (field: author)</div>
+<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\scripts\regen_examples.py:64 in test_regenerate_outputs</div><div class="code-context">_ = b.author.name  # N+1 on author</div>
+<div class="fix">Fix: Add .select_related(&#x27;author&#x27;) to your queryset</div>
+<div class="metrics">Queries: 20 | Est. savings: ~0.3ms</div>
 </div>
 <div class="prescription critical">
 <span class="severity critical">CRITICAL</span>
-<div class="description">N+1 detected: 25 queries for table &quot;sample_project_publisher&quot; (field: project_publisher)</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Add .select_related(&#x27;project_publisher&#x27;) to your queryset</div>
-<div class="metrics">Queries: 25 | Est. savings: ~24.8ms</div>
+<div class="description">N+1 detected: 20 queries for table &quot;testapp_publisher&quot; (field: publisher)</div>
+<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\scripts\regen_examples.py:65 in test_regenerate_outputs</div><div class="code-context">_ = b.publisher.name  # N+1 on publisher</div>
+<div class="fix">Fix: Add .select_related(&#x27;publisher&#x27;) to your queryset</div>
+<div class="metrics">Queries: 20 | Est. savings: ~0.3ms</div>
 </div>
 <div class="prescription warning">
 <span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 5 identical queries for table &quot;sample_project_author&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
+<div class="description">Duplicate query: 2 identical queries for table &quot;testapp_book&quot;</div>
+<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\scripts\regen_examples.py:67 in test_regenerate_outputs</div><div class="code-context">Book.objects.filter(title=books[0].title).count()</div>
 <div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 5 | Est. savings: ~16.8ms</div>
+<div class="metrics">Queries: 2 | Est. savings: ~0.0ms</div>
 </div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 5 identical queries for table &quot;sample_project_publisher&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 5 | Est. savings: ~5.3ms</div>
+<div class="prescription info">
+<span class="severity info">INFO</span>
+<div class="description">Missing index: column &quot;title&quot; on Book (table &quot;testapp_book&quot;) is used in WHERE/ORDER BY but has no index</div>
+<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\scripts\regen_examples.py:67 in test_regenerate_outputs</div><div class="code-context">Book.objects.filter(title=books[0].title).count()</div>
+<div class="fix">Fix: Add to Book&#x27;s Meta.indexes: indexes = [models.Index(fields=[&quot;title&quot;], name=&quot;idx_testapp_book_title&quot;)]</div>
+<div class="metrics">Queries: 1 | Est. savings: ~0.0ms</div>
 </div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 4 identical queries for table &quot;sample_project_author&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 4 | Est. savings: ~3.4ms</div>
-</div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 6 identical queries for table &quot;sample_project_publisher&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 6 | Est. savings: ~5.3ms</div>
-</div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 7 identical queries for table &quot;sample_project_publisher&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 7 | Est. savings: ~5.9ms</div>
-</div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 2 identical queries for table &quot;sample_project_author&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 2 | Est. savings: ~0.8ms</div>
-</div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 4 identical queries for table &quot;sample_project_author&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 4 | Est. savings: ~2.7ms</div>
-</div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 5 identical queries for table &quot;sample_project_publisher&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 5 | Est. savings: ~3.5ms</div>
-</div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 2 identical queries for table &quot;sample_project_author&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 2 | Est. savings: ~1.6ms</div>
-</div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 3 identical queries for table &quot;sample_project_author&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 3 | Est. savings: ~2.3ms</div>
-</div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 4 identical queries for table &quot;sample_project_author&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 4 | Est. savings: ~2.5ms</div>
-</div>
-<div class="prescription warning">
-<span class="severity warning">WARNING</span>
-<div class="description">Duplicate query: 2 identical queries for table &quot;sample_project_publisher&quot;</div>
-<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\examples\sample_project\views.py:19 in book_list</div><div class="code-context">return render(request, &quot;books/list.html&quot;, {&quot;books&quot;: books})</div>
-<div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 2 | Est. savings: ~0.8ms</div>
+<div class="prescription info">
+<span class="severity info">INFO</span>
+<div class="description">Fat SELECT: 8 columns from &quot;testapp_book&quot; including large fields: description</div>
+<div class="location">Location: C:\Users\hassa\Desktop\django-query-doctor\scripts\regen_examples.py:62 in test_regenerate_outputs</div><div class="code-context">books = list(Book.objects.all())</div>
+<div class="fix">Fix: Use .defer(&#x27;description&#x27;) to skip loading large fields, or .values()/.values_list() if you don&#x27;t need model instances</div>
+<div class="metrics">Queries: 1 | Est. savings: ~0.0ms</div>
 </div>
 </div>
 </body>
