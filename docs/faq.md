@@ -127,6 +127,9 @@ mode and uses the appropriate execution path.
 
 ## Comparison with Other Tools
 
+Comparative claims current as of 2026-07-14; versions and sources are listed
+in the [full comparison](deep-dive/comparison.md).
+
 ### How does it compare to django-debug-toolbar?
 
 | Feature | django-query-doctor | django-debug-toolbar |
