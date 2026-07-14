@@ -82,7 +82,7 @@ class ProjectReportGenerator:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Query Doctor — Project Health Report</title>
+<title>Query Doctor - Project Health Report</title>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -158,7 +158,7 @@ td {{ padding: 8px 12px; border-bottom: 1px solid #eee; font-size: 14px; }}
 </head>
 <body>
 <div class="container">
-<h1>Query Doctor — Project Health Report</h1>
+<h1>Query Doctor - Project Health Report</h1>
 <div class="subtitle">Generated: {html.escape(result.started_at or "")} |
 URLs Analyzed: {result.total_urls_analyzed} |
 Overall Health: {result.overall_health_score:.0f}/100</div>
@@ -341,7 +341,7 @@ function sortTable(tableId, col) {{
             path = html.escape(ur.url.pattern)
             queries = ur.report.total_queries if ur.report else 0
             issues = ur.report.issues if ur.report else 0
-            status = ur.status_code or "—"
+            status = ur.status_code or "-"
 
             if ur.error:
                 parts.append(
@@ -394,7 +394,7 @@ function sortTable(tableId, col) {{
         for pattern, reason in skipped:
             rows.append(
                 f'<div class="skipped">'
-                f"<code>{html.escape(pattern)}</code> — {html.escape(reason)}</div>"
+                f"<code>{html.escape(pattern)}</code> - {html.escape(reason)}</div>"
             )
 
         return f"""<div class="section">

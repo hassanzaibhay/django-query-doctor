@@ -42,9 +42,11 @@ failing the check.
 - `serializer_method` now has a `DEFAULT_CONFIG` entry, so
   `ANALYZERS.serializer_method.enabled = False` actually disables it.
   Previously there was no config key to set, so the analyzer always ran.
-- `fat_select`'s column-count threshold is now configurable via
-  `ANALYZERS.fat_select.threshold` (previously only overridable by
-  constructing the analyzer directly; the config key didn't exist).
+- `fat_select`'s column-count threshold config key was **renamed** from
+  `ANALYZERS.fat_select.field_count_threshold` (the key 2.0.x read) to
+  `ANALYZERS.fat_select.threshold`, matching the other analyzers. The old
+  key is now **silently ignored** — if you set `field_count_threshold` in
+  your settings, rename it to `threshold` when upgrading.
 - `fix_queries --issue-type` now validates against the five fixer-backed
   issue types instead of silently accepting any string and producing zero
   fixes on a typo.

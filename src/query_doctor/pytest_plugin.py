@@ -1,8 +1,8 @@
 """Pytest plugin for django-query-doctor.
 
-Provides a ``query_doctor`` fixture that automatically captures and analyzes
-SQL queries during each test. Enable with ``--query-doctor`` on the pytest
-command line or by setting ``query_doctor = true`` in pytest.ini.
+Provides a ``query_doctor`` fixture that captures and analyzes SQL queries
+during a test. The fixture is opt-in by usage: request it as a test argument
+and analysis runs for that test only.
 
 Registration:
     The plugin is auto-discovered via the ``pytest11`` entry point
@@ -26,21 +26,6 @@ if TYPE_CHECKING:
     from query_doctor.types import DiagnosisReport
 
 logger = logging.getLogger("query_doctor")
-
-
-def pytest_addoption(parser: Any) -> None:
-    """Add --query-doctor command-line option to pytest.
-
-    Args:
-        parser: The pytest argument parser.
-    """
-    group = parser.getgroup("query_doctor", "Django Query Doctor")
-    group.addoption(
-        "--query-doctor",
-        action="store_true",
-        default=False,
-        help="Enable query doctor analysis for all tests",
-    )
 
 
 @pytest.fixture()

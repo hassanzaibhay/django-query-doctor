@@ -10,30 +10,22 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from query_doctor.pytest_plugin import (
-    _run_analyzers,
-    pytest_addoption,
-)
+from query_doctor.pytest_plugin import _run_analyzers
 from query_doctor.types import DiagnosisReport
 
 
 class TestPluginRegistration:
     """Tests for plugin registration and option handling."""
 
-    def test_addoption_callable(self) -> None:
-        """pytest_addoption should be a callable function."""
-        assert callable(pytest_addoption)
+    def test_no_dead_query_doctor_option(self) -> None:
+        """The plugin must not register a --query-doctor flag it never reads.
 
-    def test_addoption_registers_flag(self) -> None:
-        """pytest_addoption should register the --query-doctor flag."""
-        mock_parser = MagicMock()
-        mock_group = MagicMock()
-        mock_parser.getgroup.return_value = mock_group
-        pytest_addoption(mock_parser)
-        mock_parser.getgroup.assert_called_once_with("query_doctor", "Django Query Doctor")
-        mock_group.addoption.assert_called_once()
-        call_kwargs = mock_group.addoption.call_args
-        assert "--query-doctor" in call_kwargs[0]
+        The option was registered but getoption() was never called, so it
+        silently did nothing. The fixture is opt-in by usage instead.
+        """
+        import query_doctor.pytest_plugin as plugin
+
+        assert not hasattr(plugin, "pytest_addoption")
 
 
 class TestQueryDoctorFixtureIntegration:
@@ -158,10 +150,9 @@ class TestPluginImport:
         assert query_doctor.pytest_plugin.__doc__
 
     def test_exports_expected_names(self) -> None:
-        """Module should export expected pytest hook functions."""
+        """Module should export the query_doctor fixture."""
         import query_doctor.pytest_plugin as plugin
 
-        assert hasattr(plugin, "pytest_addoption")
         assert hasattr(plugin, "query_doctor")
 
     def test_run_analyzers_exported(self) -> None:

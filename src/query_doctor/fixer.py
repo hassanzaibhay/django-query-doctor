@@ -250,7 +250,7 @@ class QueryFixer:
         """
         indent = len(line) - len(line.lstrip())
         prefix = line[:indent]
-        return f"{prefix}# TODO: Consider adding an index via Meta.indexes — {suggestion}\n{line}"
+        return f"{prefix}# TODO: Consider adding an index via Meta.indexes - {suggestion}\n{line}"
 
     def generate_diff(self, fixes: list[ProposedFix]) -> str:
         """Generate a unified diff string from proposed fixes.
@@ -331,7 +331,7 @@ class QueryFixer:
                 path = Path(filepath)
                 if not path.exists():
                     logger.warning(
-                        "query_doctor: cannot apply fix — file not found: %s",
+                        "query_doctor: cannot apply fix - file not found: %s",
                         filepath,
                     )
                     continue

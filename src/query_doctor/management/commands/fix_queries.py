@@ -121,7 +121,7 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.WARNING(
                         f"Skipped {len(skipped_unsafe)} unsafe fix(es) "
-                        f"({', '.join(issue_types)}) — not auto-appliable, apply by hand."
+                        f"({', '.join(issue_types)}) - not auto-appliable, apply by hand."
                     )
                 )
             if failed_validation:
@@ -140,7 +140,7 @@ class Command(BaseCommand):
                     "See warnings above."
                 )
         else:
-            self.stdout.write("Dry run — showing proposed changes:\n")
+            self.stdout.write("Dry run: showing proposed changes:\n")
             self.stdout.write(diff)
             self.stdout.write(
                 self.style.WARNING(
