@@ -234,6 +234,16 @@ failing the check. See `UPGRADING.md` for the full 2.1.0 upgrade checklist.
 
 ## [1.0.0] - 2026-03-13
 
+> **Historical note (added during the 2.1.0 remediation):** two features
+> listed below never functioned in any release. The runtime "DRF Serializer
+> N+1" analyzer returned no results through any reachable code path and was
+> removed in 2.1.0 (see the [2.1.0] "Removed" entry; static DRF analysis via
+> `check_serializers` replaces it). "Admin dashboard integration showing
+> latest project scan results" never activated: `record_project_report` has
+> no caller in any released version and the dashboard template does not
+> render project-report data. The original entries are preserved unchanged
+> below.
+
 ### Added
 
 #### Core Pipeline
