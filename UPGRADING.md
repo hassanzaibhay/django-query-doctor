@@ -1,3 +1,160 @@
+# Upgrading django-query-doctor
+
+## From 2.0.x to 2.1.0
+
+### Breaking / behavior changes
+
+**1. Regenerate your baselines.** `nplusone`, `duplicate`, and
+`missing_index` now honor `ANALYZERS.<name>.enabled`, and every dispatch
+path (middleware, pytest plugin, Celery integration, context manager,
+`check_queries`/`diagnose_project`) runs the full set of discovered
+analyzers instead of a hardcoded subset. The widened coverage means a
+baseline saved on 2.0.x reports newly-covered findings as regressions:
+
+```bash
+python manage.py check_queries --save-baseline=.query-baseline.json
+```
+
+Baselines now also record the query-doctor version; comparing against a
+baseline from a different version prints a non-blocking warning.
+
+**2. `fat_select` threshold key renamed.** 2.0.x read
+`ANALYZERS.fat_select.field_count_threshold`; 2.1.0 reads
+`ANALYZERS.fat_select.threshold`. The old key is silently ignored — rename
+it in your settings:
+
+```python
+QUERY_DOCTOR = {
+    "ANALYZERS": {
+        "fat_select": {"threshold": 8},  # was: "field_count_threshold": 8
+    },
+}
+```
+
+**3. `fix_queries --issue-type` now validates its values.** Previously any
+string was accepted and a typo silently produced zero fixes. Now the flag
+rejects anything outside `n_plus_one`, `duplicate_query`, `fat_select`,
+`queryset_eval`, `missing_index`. Scripts passing analyzer names instead of
+issue-type values (e.g. `duplicate` or `nplusone`) will fail fast — update
+them to the enum values.
+
+**4. `DRFSerializerAnalyzer` removed.** The runtime DRF analyzer (which
+always returned no results) was deleted; importing
+`query_doctor.analyzers.drf_serializer` now raises `ImportError`. DRF
+serializer N+1 detection is covered by the static `SerializerMethodAnalyzer`
+(`python manage.py check_serializers`), whose findings now carry
+`IssueType.SERIALIZER_METHOD_FIELD`. `IssueType.DRF_SERIALIZER` remains in
+the enum for plugin/fixer compatibility. If your settings contain an
+`ANALYZERS["drf_serializer"]` entry, replace it with `"serializer_method"`.
+
+### If you ran `fix_queries --apply` on 2.0.0
+
+2.0.0 was the only published release for ~4 months and its `--apply` carried
+two source-mutating defects. Neither fix reached PyPI before 2.1.0 (2.0.1 was
+never uploaded). Dry runs were harmless - damage requires an explicit
+`--apply`. Both defects are detectable in your committed source.
+
+#### Defect 1 - appended calls on the wrong line (fixed in unpublished 2.0.1)
+
+**Symptom.** 2.0.0 appended `.select_related('X')` / `.prefetch_related('X')`
+(N+1 fixes), or `.defer('<field>')` (fat-SELECT fixes on models with large
+fields), to the END of the flagged line. The flagged line is frequently the
+in-loop attribute-access or queryset-evaluation line rather than the queryset
+definition. The canonical damage shape is a single-level relation access in a
+loop:
+
+```python
+_ = book.author.select_related('author')   # was: _ = book.author
+```
+
+which crashes at runtime (model instances have no `.select_related`). Deeper
+chains (`_ = book.author.name.select_related('author')`) crash the same way;
+appends onto loop headers produce a SyntaxError; appends onto lines with a
+trailing comment are swallowed into the comment (a silent no-op). For
+fat-SELECT fixes on models without large fields, 2.0.0 appended the literal
+placeholder `.only('field1', 'field2', ...)` - that placeholder is the only
+`.only(` shape 2.0.0 could write, so the exact search below is exhaustive for
+`.only` damage.
+
+**Trigger.** `python manage.py fix_queries --apply` on 2.0.0, where the run
+produced `n_plus_one` or `fat_select` fixes. 2.0.0 had no safety allowlist
+and no syntax validation; 2.0.1+ refuses to write these fix types.
+
+**Detection.** The authoritative check: if you still have the `.bak` files
+2.0.0 wrote next to each modified file (created by default unless
+`--no-backup`), run `diff file.py.bak file.py` to see exactly what `--apply`
+changed. Otherwise review history around the run (this regex pickaxe covers
+all four call names the fixer could append):
+
+```bash
+git log -p -G"\.(select_related|prefetch_related|defer|only)\(" -- "*.py"
+```
+
+Exact signature of the fat-SELECT placeholder bug (any hit is damage):
+
+```bash
+grep -rnF ".only('field1', 'field2', ...)" --include="*.py" .
+```
+
+Review-aid search - hits are candidates, not proof; legitimate chained
+querysets also match, but every appended-call damage shape ends the line
+this way:
+
+```bash
+grep -rnE "\.(select_related|prefetch_related|defer|only)\('[^)]*'\)[[:space:]]*$" --include="*.py" .
+```
+
+The syntactically-broken subset (loop-header appends) is caught by:
+
+```bash
+python -m compileall -q your_app/
+```
+
+**Remediation.** There is no programmatic repair - revert damaged hunks from
+git history (or the `.bak` files), then re-run `fix_queries` on 2.1.0, where
+these fix types are shown as `[MANUAL FIX ONLY]` and never written.
+
+#### Defect 2 - em dash written into your source (fixed in 2.1.0)
+
+**Symptom.** Missing-index fixes inserted a comment line containing a
+non-ASCII em dash (U+2014):
+
+```python
+# TODO: Consider adding an index via Meta.indexes — Add db_index=True to the 'published_date' field
+```
+
+Harmless to Python, but breaks ASCII-only linters/CI and pre-commit hooks
+that reject non-ASCII source.
+
+**Trigger.** `python manage.py fix_queries --apply` on 2.0.0 where the run
+produced `missing_index` fixes.
+
+**Detection.** Search for the em dash byte sequence itself (hits mean damage
+even after upgrading - 2.1.0 writes this comment in pure ASCII, which does
+not match):
+
+```bash
+git grep -n $'\xe2\x80\x94' -- '*.py'
+```
+
+With GNU grep (Linux; the `-P` flag is not available in macOS/BSD grep), you
+can also scan for any non-ASCII byte:
+
+```bash
+grep -rnP "[^\x00-\x7F]" --include="*.py" .
+```
+
+**Remediation.** Replace the em dash with `-` (or delete the comment).
+
+---
+
+2.1.0's `--apply` writes only allowlisted issue types (`queryset_eval`,
+`duplicate_query`, `missing_index`), tags the rest `[MANUAL FIX ONLY]`,
+validates candidate files with `ast.parse()` before writing, and exits
+nonzero when fixes are skipped or rejected.
+
+---
+
 # Upgrading to django-query-doctor v2.0
 
 ## From v1.x to v2.0
