@@ -3,8 +3,9 @@
 This list came out of the 2.1.0 documentation remediation (PR #7). None of
 these are regressions introduced by that work — all are pre-existing
 conditions the audit surfaced. Entries 5, 6, and 10 were found by the final
-directed checks, i.e. the audit was still finding dead features on its last
-pass; treat this list as a floor, not a ceiling.
+directed checks, and entry 12 by the post-review pass, i.e. the audit was
+still finding items on its last passes; treat this list as a floor, not a
+ceiling.
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -153,3 +154,44 @@ zero in-src references. Classification:
 - **Disposition:** pin the interpreter in the hook config, or move the
   entries off `language: system`. Pre-existing condition surfaced by this
   PR, not a regression.
+
+## 12. Rich console path is unverified in CI and by the ASCII test
+
+- **Evidence:** `rich` is not in the `dev` extra (`pyproject.toml:48-59`)
+  and CI installs `pip install -e ".[dev]"`
+  (`.github/workflows/ci.yml:33,66`), so the four Rich-gated tests in
+  `tests/test_console_reporter.py` (tests at `:322,352,362,385`, each with
+  a `try/except ImportError -> pytest.skip` guard) skip on every CI run
+  and have never executed there. `tests/test_ascii_output.py:115` asserts
+  ASCII-cleanliness against `ConsoleReporter()._render_plain` only.
+  `ConsoleReporter._render_rich` (`console.py:96-117`) renders through
+  `rich.panel.Panel` (`:114`).
+- **Impact:** the "ASCII-only output surfaces" guarantee from the 2.1.0
+  remediation is verified for the plain renderer only. The Rich renderer
+  is the DEFAULT path whenever `rich` is installed (a documented extra,
+  included in `[all]`), and it is untested for ASCII and unexercised by
+  CI. Its output is platform-dependent - verified as a matched pair on
+  rich 15.0.0 with `Console(file=None, force_terminal=False)`:
+  - Linux/UTF-8 session (`legacy_windows=False`, `encoding=utf-8`,
+    `safe_box=True`, `is_terminal=False`): `_render_rich` emits Unicode
+    box-drawing (U+2500, U+2502, U+256D-U+2570).
+  - Legacy-Windows session (`legacy_windows=True`, `encoding=cp1252`,
+    `safe_box=True`, `is_terminal=False`): the same call emits pure ASCII
+    (`legacy_windows=True` triggers Rich's box substitution).
+
+  Because Rich substitutes ASCII exactly on the platform at risk of
+  `UnicodeEncodeError` (legacy Windows/cp1252), no crash scenario is
+  claimed. The backed finding is the smaller problem: console output
+  silently differs by platform, and CI exercises NEITHER branch, so a
+  regression on the default (Rich) path cannot be caught.
+- **Disposition** (deliberately not implemented in this recording commit):
+  add `rich` to the `dev` extra so CI runs the four Rich tests; extend
+  `test_ascii_output.py` to cover `_render_rich` (expect RED in
+  box-drawing environments); then decide deliberately whether Unicode
+  box-drawing is acceptable console output or the Panel should use
+  `box=box.ASCII` - given Rich's own downgrade behavior, that is a design
+  choice about output consistency, not a crash fix. Pair with the entry-1
+  fixture warning as a fast-follow before the r/django announcement -
+  both are small.
+- Pre-existing condition surfaced by PR #7's review, not a regression -
+  the Rich path has always behaved this way.
