@@ -2371,6 +2371,44 @@
 
 <h1 id="comparison-with-other-tools">Comparison with Other Tools<a class="headerlink" href="#comparison-with-other-tools" title="Permanent link">&para;</a></h1>
 <p>This document provides a detailed feature comparison between django-query-doctor and other Django query analysis tools, along with guidance on when to use each tool and how they can work together.</p>
+<blockquote>
+<p><strong>Comparisons current as of 2026-07-14</strong>, against these releases (per each
+project's PyPI page):</p>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Version</th>
+<th>Released</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://pypi.org/project/django-debug-toolbar/">django-debug-toolbar</a></td>
+<td>7.0.0</td>
+<td>2026-06-19</td>
+</tr>
+<tr>
+<td><a href="https://pypi.org/project/django-silk/">django-silk</a></td>
+<td>5.5.0</td>
+<td>2026-03-08</td>
+</tr>
+<tr>
+<td><a href="https://pypi.org/project/nplusone/">nplusone</a></td>
+<td>1.0.0</td>
+<td>2018-05-21</td>
+</tr>
+<tr>
+<td><a href="https://pypi.org/project/django-auto-prefetch/">django-auto-prefetch</a></td>
+<td>1.14.0</td>
+<td>2025-09-18</td>
+</tr>
+</tbody>
+</table>
+<p>Cells marked "—" are capabilities the project's own documentation does not
+address. If a project has since gained a feature listed as missing here,
+please open an issue.</p>
+</blockquote>
 <hr />
 <h2 id="feature-matrix">Feature Matrix<a class="headerlink" href="#feature-matrix" title="Permanent link">&para;</a></h2>
 <table>
@@ -2547,27 +2585,27 @@
 </tr>
 <tr>
 <td>Pytest plugin</td>
-<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Fixture only²</td>
 <td style="text-align: center;">No</td>
 <td style="text-align: center;">No</td>
-<td style="text-align: center;">Partial</td>
+<td style="text-align: center;">No¹</td>
 <td style="text-align: center;">No</td>
 </tr>
 <tr>
 <td>Celery task support</td>
 <td style="text-align: center;">Yes</td>
 <td style="text-align: center;">No</td>
-<td style="text-align: center;">Yes</td>
-<td style="text-align: center;">Yes (<code>nplusone.ext.celery</code>)</td>
-<td style="text-align: center;">No</td>
+<td style="text-align: center;">Partial (profiling decorators usable in tasks)</td>
+<td style="text-align: center;">Partial (generic <code>Profiler</code> context manager)</td>
+<td style="text-align: center;">—</td>
 </tr>
 <tr>
 <td>Async Django support</td>
 <td style="text-align: center;">Yes</td>
-<td style="text-align: center;">Partial (experimental)</td>
-<td style="text-align: center;">No</td>
-<td style="text-align: center;">No</td>
-<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Partial (experimental, no concurrent requests)</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">No (predates async Django)</td>
+<td style="text-align: center;">—</td>
 </tr>
 <tr>
 <td>CI/CD integration</td>
@@ -2627,7 +2665,7 @@
 </tr>
 <tr>
 <td>OpenTelemetry export</td>
-<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (manual invocation)</td>
 <td style="text-align: center;">No</td>
 <td style="text-align: center;">No</td>
 <td style="text-align: center;">No</td>
@@ -2651,7 +2689,7 @@
 </tr>
 <tr>
 <td>Custom reporter plugins</td>
-<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">No</td>
 <td style="text-align: center;">Yes (panels)</td>
 <td style="text-align: center;">No</td>
 <td style="text-align: center;">No</td>
@@ -2683,7 +2721,7 @@
 </tr>
 <tr>
 <td>Per-view configuration</td>
-<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Partial (per-view <code>@query_budget</code>; analyzer config is global)</td>
 <td style="text-align: center;">No</td>
 <td style="text-align: center;">No</td>
 <td style="text-align: center;">No</td>
@@ -2699,6 +2737,14 @@
 </tr>
 </tbody>
 </table>
+<p>¹ nplusone ships no pytest plugin or fixtures; failing automated tests on N+1 is
+supported first-party via <code>NPLUSONE_RAISE = True</code> (raises <code>NPlusOneError</code>, "to force
+all automated tests involving unnecessary queries to fail") or the core <code>Profiler</code>
+context manager (<a href="https://github.com/jmcarp/nplusone">README</a>).</p>
+<p>² django-query-doctor registers a <code>pytest11</code> entry point providing a <code>query_doctor</code>
+fixture, but the fixture's report is populated at test teardown — in-test assertions
+on it see an empty report. For working in-test assertions, use <code>diagnose_queries()</code>
+(see the <a href="../../guides/pytest-plugin/">pytest guide</a>).</p>
 <hr />
 <h2 id="tool-by-tool-comparison">Tool-by-Tool Comparison<a class="headerlink" href="#tool-by-tool-comparison" title="Permanent link">&para;</a></h2>
 <h3 id="vs-django-debug-toolbar">vs. django-debug-toolbar<a class="headerlink" href="#vs-django-debug-toolbar" title="Permanent link">&para;</a></h3>
@@ -2735,8 +2781,9 @@
 <p><strong>Strengths of nplusone:</strong>
 - Focused, simple implementation
 - Low overhead for its specific use case
-- Integrates with pytest via warnings
-- Has Celery integration (<code>nplusone.ext.celery</code>) and configurable whitelist/ignore rules</p>
+- Can fail automated tests via <code>NPLUSONE_RAISE</code> (raises <code>NPlusOneError</code>)
+- Configurable whitelist (<code>NPLUSONE_WHITELIST</code>, exact names or fnmatch patterns) and a generic <code>Profiler</code> context manager for use outside HTTP requests
+- Also detects <em>unused</em> eager loading (related data loaded but never accessed)</p>
 <p><strong>Where django-query-doctor adds value:</strong>
 - Six additional detection categories beyond N+1
 - Exact file:line references (nplusone reports the model/relationship only)
@@ -2746,7 +2793,7 @@
 - Git diff-aware filtering for incremental adoption
 - Designed to run in production; nplusone's own documentation says it should only be used in development</p>
 <blockquote>
-<p><strong>Note:</strong> nplusone's last release was over a year ago and the project sees low development activity, though it remains functional and available on PyPI.</p>
+<p><strong>Note:</strong> nplusone's most recent release is 1.0.0, published in May 2018 (per its PyPI page) — the project has been unmaintained for years, though it remains installable and functional on the ORMs of its era.</p>
 </blockquote>
 <h3 id="vs-django-auto-prefetch">vs. django-auto-prefetch<a class="headerlink" href="#vs-django-auto-prefetch" title="Permanent link">&para;</a></h3>
 <p><strong>django-auto-prefetch</strong> takes a fundamentally different approach: instead of detecting and reporting issues, it automatically prefetches to-one relations (ForeignKey and OneToOneField, including reverse OneToOne) at the model level, so accessing an unfetched relation triggers a single follow-up query for the whole batch instead of one query per instance.</p>
@@ -2754,7 +2801,7 @@
 - Zero developer effort after initial setup
 - Immediate performance improvement for ForeignKey/OneToOne N+1
 - No reports to read or fixes to apply
-- Actively maintained (Adam Johnson), supports current Django and Python versions</p>
+- Written by Gordon Wrigley (GitHub: <code>tolomea</code>) and maintained by Adam Johnson (<code>adamchainz</code>), per <a href="https://pypi.org/project/django-auto-prefetch/">its PyPI page</a> — as of 1.14.0 it supports Django 4.2-6.0 and Python 3.9-3.14</p>
 <p><strong>Where django-query-doctor adds value:</strong>
 - Visibility into what queries ran and why (auto-prefetch's mitigation happens silently)
 - Handles ManyToMany and reverse-FK relationships (auto-prefetch handles ForeignKey/OneToOne only)
@@ -2762,7 +2809,7 @@
 - Per-view control instead of a global model-level behavior change
 - Helps developers learn to write better querysets, since it reports rather than silently mitigates</p>
 <blockquote>
-<p><strong>Note:</strong> django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off — automatic mitigation instead of manual <code>select_related()</code> calls — and the same on-demand-prefetch idea now ships in Django itself as <a href="https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/">fetch modes</a> (<code>FETCH_PEERS</code>), landing in Django 6.1. django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.</p>
+<p><strong>Note:</strong> django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off — automatic mitigation instead of manual <code>select_related()</code> calls — and the same on-demand-prefetch idea is coming to Django core as <a href="https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/">fetch modes</a> (<code>FETCH_PEERS</code>), new in <a href="https://docs.djangoproject.com/en/dev/releases/6.1/">Django 6.1</a> — under development and unreleased as of 2026-07-14 (Django 6.0 is the latest stable release). django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.</p>
 </blockquote>
 <hr />
 <h2 id="when-to-use-what">When to Use What<a class="headerlink" href="#when-to-use-what" title="Permanent link">&para;</a></h2>
@@ -2820,19 +2867,19 @@
 <h3 id="ci-stack">CI Stack<a class="headerlink" href="#ci-stack" title="Permanent link">&para;</a></h3>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># .github/workflows/ci.yml</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">steps</span><span class="p">:</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run tests with query analysis</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pytest --query-doctor --fail-on-query-issues</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run tests with query assertions</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pytest -v</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Full project scan</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python manage.py diagnose_queries --format=json --fail-on-issues</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Endpoint scan</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python manage.py check_queries --url /api/books/ --format json --fail-on warning</span>
 </span></code></pre></div>
 <p>In CI, only django-query-doctor and nplusone can run (debug-toolbar and silk require a browser/server). django-query-doctor provides the most comprehensive CI analysis.</p>
 <h3 id="production-stack">Production Stack<a class="headerlink" href="#production-stack" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># settings/production.py</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="s2">&quot;ENABLED&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="s2">&quot;SAMPLE_RATE&quot;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>           <span class="c1"># 1% of requests</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="s2">&quot;REPORT_FORMAT&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="s2">&quot;SAMPLE_RATE&quot;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>            <span class="c1"># 1% of requests</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="s2">&quot;REPORTERS&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;log&quot;</span><span class="p">],</span>           <span class="c1"># Route findings into your log pipeline</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="s2">&quot;CAPTURE_STACK_TRACES&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># Minimize overhead</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">}</span>
 </span></code></pre></div>
@@ -2849,7 +2896,7 @@
 </span></code></pre></div>
 <h3 id="from-nplusone-to-django-query-doctor">From nplusone to django-query-doctor<a class="headerlink" href="#from-nplusone-to-django-query-doctor" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Replace <code>nplusone.middleware.NPlusOneMiddleware</code> with <code>query_doctor.middleware.QueryDoctorMiddleware</code>.</li>
+<li>Replace <code>nplusone.ext.django.NPlusOneMiddleware</code> with <code>query_doctor.middleware.QueryDoctorMiddleware</code>.</li>
 <li>Remove <code>nplusone</code> from <code>INSTALLED_APPS</code> and <code>MIDDLEWARE</code>.</li>
 <li>django-query-doctor covers all of nplusone's detection and more.</li>
 </ol>
@@ -2943,7 +2990,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 19:43:08 UTC">July 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

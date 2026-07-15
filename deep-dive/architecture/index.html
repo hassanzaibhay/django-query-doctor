@@ -2493,9 +2493,9 @@
 <td>View-level analysis</td>
 </tr>
 <tr>
-<td><code>diagnose_queries</code> management command</td>
-<td>Entire URL set or view list</td>
-<td>Full project scan, CI/CD</td>
+<td><code>check_queries</code> / <code>diagnose_project</code> management commands</td>
+<td>One URL / entire URL set</td>
+<td>Endpoint checks and full project scans, CI/CD</td>
 </tr>
 <tr>
 <td>Pytest plugin</td>
@@ -2796,35 +2796,48 @@
 </span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>|-- types.py                 # Shared type definitions
 </span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>|-- fixer.py                 # Auto-fix code generation
 </span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>|-- diff_filter.py           # Git diff-aware filtering for CI
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>|-- ignore.py                # Query ignore rules
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>|-- plugin_api.py            # Custom analyzer plugin registration
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>|-- ignore.py                # .queryignore rules
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>|-- plugin_api.py            # Analyzer discovery (built-in + entry points)
 </span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>|-- project_diagnoser.py     # Full-project scanning logic
 </span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>|-- pytest_plugin.py         # Pytest plugin for test-time analysis
 </span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>|-- celery_integration.py    # Celery task wrapper
 </span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>|-- url_discovery.py         # URL pattern discovery for management commands
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>|-- admin_panel.py           # Django admin integration
-</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>|-- urls.py                  # URL configuration for HTML dashboard
-</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>|-- py.typed                 # PEP 561 marker
-</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>|-- analyzers/
-</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>|   |-- __init__.py
-</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>|   |-- base.py              # BaseAnalyzer ABC, Prescription dataclass
-</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>|   |-- nplusone.py          # N+1 detection
-</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>|   |-- duplicate.py         # Duplicate query detection
-</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>|   |-- missing_index.py     # Missing index detection
-</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>|   |-- fat_select.py        # Fat SELECT detection
-</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>|   |-- complexity.py        # Query complexity scoring
-</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>|   |-- drf_serializer.py    # DRF serializer N+1 detection
-</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>|   |-- queryset_eval.py     # Unnecessary queryset evaluation
-</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>|-- reporters/
-</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>|   |-- console.py           # Rich/plain text console output
-</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>|   |-- json_reporter.py     # JSON output
-</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>|   |-- html_reporter.py     # HTML dashboard reporter
-</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>|-- management/
-</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>|   |-- commands/
-</span><span id="__span-4-39"><a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>|       |-- diagnose_queries.py  # Full project scan command
-</span><span id="__span-4-40"><a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>|-- templates/
-</span><span id="__span-4-41"><a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a>|   |-- query_doctor/
-</span><span id="__span-4-42"><a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a>|       |-- dashboard.html   # HTML dashboard template
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>|-- baseline.py              # Baseline snapshots for regression checks
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>|-- grouping.py              # Prescription grouping strategies
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>|-- admin_panel.py           # Django admin dashboard integration
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>|-- urls.py                  # URL configuration for the admin dashboard
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>|-- apps.py                  # AppConfig (QueryTurbo patching hook)
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>|-- py.typed                 # PEP 561 marker
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>|-- analyzers/
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>|   |-- __init__.py
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>|   |-- base.py              # BaseAnalyzer ABC
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>|   |-- nplusone.py          # N+1 detection
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>|   |-- duplicate.py         # Duplicate query detection
+</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>|   |-- missing_index.py     # Missing index detection
+</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>|   |-- fat_select.py        # Fat SELECT detection
+</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>|   |-- complexity.py        # Query complexity scoring
+</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>|   |-- queryset_eval.py     # Unnecessary queryset evaluation
+</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>|   |-- serializer_method.py # Static AST analysis of DRF SerializerMethodFields
+</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>|   |-- discovery.py         # Serializer class discovery for check_serializers
+</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>|-- filters/
+</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>|   |-- file_filter.py       # --file/--module prescription filtering
+</span><span id="__span-4-39"><a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>|-- reporters/
+</span><span id="__span-4-40"><a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>|   |-- console.py           # Rich/plain text console output
+</span><span id="__span-4-41"><a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a>|   |-- json_reporter.py     # JSON output
+</span><span id="__span-4-42"><a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a>|   |-- log_reporter.py      # Python logging output
+</span><span id="__span-4-43"><a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>|   |-- html_reporter.py     # HTML report renderer
+</span><span id="__span-4-44"><a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a>|   |-- project_report.py    # diagnose_project HTML report
+</span><span id="__span-4-45"><a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a>|   |-- dashboard.py         # QueryTurbo benchmark dashboard
+</span><span id="__span-4-46"><a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a>|   |-- otel_exporter.py     # OpenTelemetry span exporter
+</span><span id="__span-4-47"><a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a>|-- management/
+</span><span id="__span-4-48"><a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a>|   |-- commands/
+</span><span id="__span-4-49"><a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a>|       |-- check_queries.py       # Single-URL analysis for CI
+</span><span id="__span-4-50"><a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a>|       |-- check_serializers.py   # Static DRF serializer analysis
+</span><span id="__span-4-51"><a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a>|       |-- diagnose_project.py    # Full project scan
+</span><span id="__span-4-52"><a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a>|       |-- fix_queries.py         # Auto-fix engine CLI
+</span><span id="__span-4-53"><a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a>|       |-- query_budget.py        # Query budget enforcement
+</span><span id="__span-4-54"><a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a>|       |-- query_doctor_report.py # QueryTurbo benchmark report
+</span><span id="__span-4-55"><a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a>|-- turbo/                   # QueryTurbo SQL compilation cache
 </span></code></pre></div>
 <hr />
 <h2 id="threading-and-concurrency">Threading and Concurrency<a class="headerlink" href="#threading-and-concurrency" title="Permanent link">&para;</a></h2>
@@ -2857,7 +2870,7 @@
 <p>The following guarantees hold:</p>
 <ul>
 <li>No module-level mutable variables (lists, dicts, sets) are used for query storage. Per-request state uses <code>contextvars.ContextVar</code>.</li>
-<li>Configuration is read once per request via <code>conf.get_config()</code>, which reads from Django settings (immutable at runtime).</li>
+<li>Configuration is read once per process via <code>conf.get_config()</code> (LRU-cached), which merges Django settings over the defaults.</li>
 <li>Analyzers are stateless: they receive a query list as input and return prescriptions as output. No state is retained between invocations.</li>
 <li>Reporters are stateless: they receive prescriptions and produce output.</li>
 </ul>
@@ -2875,57 +2888,60 @@
 <tbody>
 <tr>
 <td>Custom analyzers</td>
-<td>Subclass <code>BaseAnalyzer</code>, register via <code>QUERY_DOCTOR["ANALYZERS"]</code> or <code>plugin_api.register_analyzer()</code></td>
+<td>Subclass <code>BaseAnalyzer</code>, register via the <code>query_doctor.analyzers</code> entry point group</td>
 <td>Detect queries on deprecated tables</td>
 </tr>
 <tr>
-<td>Custom reporters</td>
-<td>Implement reporter interface, register via <code>QUERY_DOCTOR["REPORTERS"]</code></td>
-<td>Send prescriptions to Datadog</td>
+<td>Analyzer toggles</td>
+<td><code>QUERY_DOCTOR["ANALYZERS"][&lt;name&gt;]["enabled"]</code></td>
+<td>Disable <code>fat_select</code> project-wide</td>
 </tr>
 <tr>
 <td>Ignore rules</td>
-<td>Configure <code>QUERY_DOCTOR["IGNORE_PATTERNS"]</code> or use <code>@query_doctor_ignore</code></td>
-<td>Skip health check queries</td>
+<td><code>.queryignore</code> file at the project root</td>
+<td>Skip known findings in legacy code</td>
 </tr>
 <tr>
 <td>Query budgets</td>
-<td>Use <code>@query_budget(max_queries=N)</code> decorator or pytest markers</td>
+<td><code>@query_budget(max_queries=N, max_time_ms=T)</code> decorator or the <code>query_budget</code> command</td>
 <td>Enforce per-view limits</td>
 </tr>
 <tr>
 <td>Diff filtering</td>
-<td>Set <code>QUERY_DOCTOR["DIFF_BASE"]</code> to a git ref</td>
+<td><code>check_queries --diff &lt;git-ref&gt;</code></td>
 <td>Only report issues in changed code</td>
 </tr>
 </tbody>
 </table>
 <h3 id="custom-analyzer-example">Custom Analyzer Example<a class="headerlink" href="#custom-analyzer-example" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.analyzers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAnalyzer</span><span class="p">,</span> <span class="n">Prescription</span><span class="p">,</span> <span class="n">Severity</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">DeprecatedTableAnalyzer</span><span class="p">(</span><span class="n">BaseAnalyzer</span><span class="p">):</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Detect queries against deprecated database tables.&quot;&quot;&quot;</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">DEPRECATED_TABLES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;legacy_users&quot;</span><span class="p">,</span> <span class="s2">&quot;old_orders&quot;</span><span class="p">,</span> <span class="s2">&quot;temp_cache&quot;</span><span class="p">}</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queries</span><span class="p">):</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="n">prescriptions</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">:</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>            <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEPRECATED_TABLES</span><span class="p">:</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>                <span class="k">if</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>                    <span class="n">prescriptions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>                        <span class="n">Prescription</span><span class="p">(</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>                            <span class="n">severity</span><span class="o">=</span><span class="n">Severity</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>                            <span class="n">category</span><span class="o">=</span><span class="s2">&quot;deprecated_table&quot;</span><span class="p">,</span>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>                            <span class="n">description</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Query accesses deprecated table: </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>                            <span class="n">file_path</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">stack_trace</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">filename</span> <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">stack_trace</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>                            <span class="n">line_number</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">stack_trace</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lineno</span> <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">stack_trace</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>                            <span class="n">suggested_fix</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Migrate away from </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"> to the new schema.&quot;</span><span class="p">,</span>
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>                            <span class="n">query_count</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>                        <span class="p">)</span>
-</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>                    <span class="p">)</span>
-</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>        <span class="k">return</span> <span class="n">prescriptions</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.analyzers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAnalyzer</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">IssueType</span><span class="p">,</span> <span class="n">Prescription</span><span class="p">,</span> <span class="n">Severity</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">DeprecatedTableAnalyzer</span><span class="p">(</span><span class="n">BaseAnalyzer</span><span class="p">):</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Detect queries against deprecated database tables.&quot;&quot;&quot;</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;deprecated_table&quot;</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">DEPRECATED_TABLES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;legacy_users&quot;</span><span class="p">,</span> <span class="s2">&quot;old_orders&quot;</span><span class="p">,</span> <span class="s2">&quot;temp_cache&quot;</span><span class="p">}</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queries</span><span class="p">,</span> <span class="n">models_meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="n">prescriptions</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">:</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>            <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEPRECATED_TABLES</span><span class="p">:</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>                <span class="k">if</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>                    <span class="n">prescriptions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>                        <span class="n">Prescription</span><span class="p">(</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>                            <span class="n">issue_type</span><span class="o">=</span><span class="n">IssueType</span><span class="o">.</span><span class="n">QUERY_COMPLEXITY</span><span class="p">,</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>                            <span class="n">severity</span><span class="o">=</span><span class="n">Severity</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>                            <span class="n">description</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Query accesses deprecated table: </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>                            <span class="n">fix_suggestion</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Migrate away from </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"> to the new schema.&quot;</span><span class="p">,</span>
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>                            <span class="n">callsite</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">callsite</span><span class="p">,</span>
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>                            <span class="n">query_count</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>                        <span class="p">)</span>
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>                    <span class="p">)</span>
+</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>        <span class="k">return</span> <span class="n">prescriptions</span>
 </span></code></pre></div>
+<p>See the <a href="../../guides/custom-plugins/">Custom Plugins Guide</a> for registration via entry points.</p>
 <p>For more on the design rationale behind these choices, see <a href="../background/">Background &amp; Design</a>. For performance characteristics, see <a href="../performance/">Performance</a>.</p>
 
 
@@ -2949,7 +2965,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 19:43:08 UTC">July 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

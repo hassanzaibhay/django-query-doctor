@@ -1989,23 +1989,26 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>manage.py<span class="w"> </span>runserver
 </span></code></pre></div>
 <p>Browse your app as normal. Every request will now show query analysis in your console:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>══════════════════════════════════════════════════════
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a> Query Doctor Report
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a> Total queries: 53 | Time: 127.3ms | Issues: 3
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>══════════════════════════════════════════════════════
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>============================================================
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Query Doctor Report
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Total queries: 53 | Time: 127.3ms | Issues: 3
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>============================================================
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a> CRITICAL  N+1 detected: 47 queries for table &quot;myapp_author&quot;
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>CRITICAL: N+1 detected: 47 queries for table &quot;myapp_author&quot; (field: author)
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>   Location: myapp/views.py:83 in get_queryset
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>   Fix: Add .select_related(&#39;author&#39;) to your queryset
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>   Queries: 47 | Est. savings: ~89.0ms
 </span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a> WARNING  Duplicate query: 6 identical queries
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>WARNING: Duplicate query: 6 identical queries for table &quot;myapp_book&quot;
 </span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>   Location: myapp/views.py:91 in get_context_data
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>   Fix: Assign the queryset result to a variable and reuse it
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a> INFO  Column &quot;published_date&quot; has no index on &quot;myapp_book&quot;
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>   Fix: Add models.Index(fields=[&quot;published_date&quot;]) to Book&#39;s Meta.indexes
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>   Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>   Queries: 6 | Est. savings: ~4.2ms
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>INFO: Missing index: column &quot;published_date&quot; on Book (table &quot;myapp_book&quot;) is used in WHERE/ORDER BY but has no index
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>   Location: myapp/views.py:83 in get_queryset
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>   Fix: Add to Book&#39;s Meta.indexes: indexes = [models.Index(fields=[&quot;published_date&quot;], name=&quot;idx_myapp_book_published_date&quot;)]
 </span></code></pre></div>
+<p>(With <a href="https://github.com/Textualize/rich">Rich</a> installed, the same content renders with colors and panels.)</p>
 <p>Every issue includes the exact file, line number, and a ready-to-apply fix.</p>
 <h2 id="alternative-use-without-middleware">Alternative: Use Without Middleware<a class="headerlink" href="#alternative-use-without-middleware" title="Permanent link">&para;</a></h2>
 <p>If you prefer not to run analysis on every request, skip the middleware and use management commands instead:
@@ -2026,7 +2029,7 @@
 <ul>
 <li><a href="../configuration/">Configuration</a> — Customize which analyzers run, set thresholds, choose reporters</li>
 <li><a href="../../analyzers/overview/">Analyzers Overview</a> — Deep dive into what each analyzer detects</li>
-<li><a href="../../guides/management-commands/">Management Commands</a> — Full reference for all 4 commands</li>
+<li><a href="../../guides/management-commands/">Management Commands</a> — Full reference for all 6 commands</li>
 <li><a href="../../guides/pytest-plugin/">Pytest Plugin</a> — Catch query issues in your test suite</li>
 </ul>
 
@@ -2051,7 +2054,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 18:42:10 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

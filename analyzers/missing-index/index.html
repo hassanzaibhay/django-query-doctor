@@ -2071,10 +2071,13 @@
 
 <h1 id="missing-index-analyzer">Missing Index Analyzer<a class="headerlink" href="#missing-index-analyzer" title="Permanent link">&para;</a></h1>
 <h2 id="what-it-detects">What It Detects<a class="headerlink" href="#what-it-detects" title="Permanent link">&para;</a></h2>
-<p>The missing index analyzer inspects captured SQL for <code>WHERE</code>, <code>ORDER BY</code>, and
-<code>GROUP BY</code> clauses that reference columns without a corresponding database
-index. Filtering or sorting on unindexed columns forces the database to
-perform a full table scan, which degrades rapidly as row counts grow.</p>
+<p>The missing index analyzer inspects captured SQL for <code>WHERE</code> and <code>ORDER BY</code>
+clauses that reference columns without a corresponding database index.
+Filtering or sorting on unindexed columns forces the database to perform a
+full table scan, which degrades rapidly as row counts grow. Columns that are
+primary keys, <code>db_index=True</code>, <code>unique=True</code>, foreign keys, or covered by
+<code>Meta.indexes</code>, <code>unique_together</code>, or a <code>UniqueConstraint</code> are treated as
+indexed.</p>
 <h2 id="problem-code">Problem Code<a class="headerlink" href="#problem-code" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># models.py</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
@@ -2112,14 +2115,13 @@ perform a full table scan, which degrades rapidly as row counts grow.</p>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>migrate
 </span></code></pre></div>
 <h2 id="prescription-output">Prescription Output<a class="headerlink" href="#prescription-output" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[MEDIUM] Missing Index Detected
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  Location: views.py:6
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  Issue:    Column `published_date` on table `app_book` is used in a
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>            WHERE clause but has no database index.
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>  Fix:      Add models.Index(fields=[&quot;published_date&quot;]) to Book&#39;s Meta.indexes
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>            Then run: python manage.py makemigrations &amp;&amp; python manage.py migrate
+<p>Console output (severity is always INFO):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>INFO: Missing index: column &quot;published_date&quot; on Book (table &quot;app_book&quot;) is used in WHERE/ORDER BY but has no index
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>   Location: /app/myapp/views.py:6 in recent_books
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>   Fix: Add to Book&#39;s Meta.indexes: indexes = [models.Index(fields=[&quot;published_date&quot;], name=&quot;idx_app_book_published_date&quot;)]
 </span></code></pre></div>
+<p>After adding the index, generate and apply a migration
+(<code>python manage.py makemigrations &amp;&amp; python manage.py migrate</code>).</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2131,28 +2133,21 @@ perform a full table scan, which degrades rapidly as row counts grow.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>MISSING_INDEX_ENABLED</code></td>
+<td><code>ANALYZERS.missing_index.enabled</code></td>
 <td><code>True</code></td>
 <td>Set to <code>False</code> to skip index analysis entirely.</td>
-</tr>
-<tr>
-<td><code>MISSING_INDEX_IGNORE_TABLES</code></td>
-<td><code>[]</code></td>
-<td>List of table names to exclude from analysis (e.g., small lookup tables).</td>
-</tr>
-<tr>
-<td><code>MISSING_INDEX_IGNORE_COLUMNS</code></td>
-<td><code>["id", "pk"]</code></td>
-<td>Columns to skip. Primary keys are always indexed.</td>
 </tr>
 </tbody>
 </table>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># settings.py</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">&quot;MISSING_INDEX_IGNORE_TABLES&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;app_config&quot;</span><span class="p">,</span> <span class="s2">&quot;app_featureflag&quot;</span><span class="p">],</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="s2">&quot;MISSING_INDEX_IGNORE_COLUMNS&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;pk&quot;</span><span class="p">,</span> <span class="s2">&quot;uuid&quot;</span><span class="p">],</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">}</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">&quot;ANALYZERS&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="s2">&quot;missing_index&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="p">},</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>To suppress findings for specific tables or files, use a
+<a href="../../guides/query-ignore/"><code>.queryignore</code> file</a>.</p>
 <h2 id="common-scenarios">Common Scenarios<a class="headerlink" href="#common-scenarios" title="Permanent link">&para;</a></h2>
 <h3 id="filtering-by-status-or-type-fields">Filtering by Status or Type Fields<a class="headerlink" href="#filtering-by-status-or-type-fields" title="Permanent link">&para;</a></h3>
 <p>String fields used as filters are frequently overlooked for indexing:</p>
@@ -2218,7 +2213,7 @@ the write overhead.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 18:42:10 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

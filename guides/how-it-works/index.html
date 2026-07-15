@@ -2096,7 +2096,7 @@
 <h3 id="stage-2-fingerprint">Stage 2: Fingerprint<a class="headerlink" href="#stage-2-fingerprint" title="Permanent link">&para;</a></h3>
 <p>Every captured SQL query is normalized and hashed to produce a <strong>fingerprint</strong>:</p>
 <ol>
-<li><strong>Normalization</strong> -- Literal values (<code>WHERE id = 42</code>) are replaced with placeholders (<code>WHERE id = ?</code>). <code>IN</code> clauses are collapsed (<code>IN (?, ?, ?)</code> becomes <code>IN (?+)</code>).</li>
+<li><strong>Normalization</strong> -- Literal values (<code>WHERE id = 42</code>) are replaced with placeholders (<code>WHERE id = ?</code>). <code>IN</code> clauses are collapsed (<code>IN (?, ?, ?)</code> becomes <code>IN (?)</code>).</li>
 <li><strong>Hashing</strong> -- The normalized SQL string is hashed with SHA-256 to produce a compact, deterministic identifier.</li>
 <li><strong>Grouping</strong> -- Queries with the same fingerprint are grouped together. A group of 50 queries with the same fingerprint is a strong signal of an N+1 problem.</li>
 </ol>
@@ -2133,7 +2133,7 @@
 <td><a href="../../analyzers/fat-select/">Fat SELECT</a></td>
 </tr>
 <tr>
-<td><code>QuerysetEvalAnalyzer</code></td>
+<td><code>QuerySetEvalAnalyzer</code></td>
 <td>Unnecessary queryset evaluations (e.g., <code>len(qs)</code> instead of <code>qs.count()</code>, <code>if qs:</code> instead of <code>qs.exists()</code>)</td>
 <td><a href="../../analyzers/queryset-eval/">Queryset Evaluation</a></td>
 </tr>
@@ -2156,32 +2156,34 @@
 <thead>
 <tr>
 <th>Reporter</th>
+<th><code>REPORTERS</code> name</th>
 <th>Output</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>ConsoleReporter</code></td>
+<td><code>"console"</code></td>
 <td>Rich-formatted terminal output (falls back to plain text if Rich is not installed)</td>
 </tr>
 <tr>
-<td><code>JsonReporter</code></td>
-<td>Structured JSON for CI/CD pipelines and tooling</td>
-</tr>
-<tr>
-<td><code>HtmlReporter</code></td>
-<td>Self-contained HTML page for the admin dashboard</td>
+<td><code>JSONReporter</code></td>
+<td><code>"json"</code></td>
+<td>Structured JSON for CI/CD pipelines and tooling (written to <code>JSON_REPORT_PATH</code>)</td>
 </tr>
 <tr>
 <td><code>LogReporter</code></td>
+<td><code>"log"</code></td>
 <td>Python <code>logging</code> integration</td>
 </tr>
 <tr>
-<td><code>OtelReporter</code></td>
+<td><code>OTelReporter</code></td>
+<td>not dispatched by <code>REPORTERS</code> -- invoke directly</td>
 <td>OpenTelemetry spans and attributes</td>
 </tr>
 </tbody>
 </table>
+<p>HTML output comes from the management commands (<code>diagnose_project</code>, <code>query_doctor_report</code>) rather than the middleware reporter pipeline. See <a href="../../reporters/">Reporters</a>.</p>
 <hr />
 <h2 id="what-is-a-prescription">What Is a Prescription?<a class="headerlink" href="#what-is-a-prescription" title="Permanent link">&para;</a></h2>
 <p>Every issue detected by an analyzer is returned as a <strong>Prescription</strong> dataclass. This is the core data structure of django-query-doctor. A Prescription contains:</p>
@@ -2269,9 +2271,9 @@
     A3 --&gt; RX
     A4 --&gt; RX
     RX --&gt; R1["ConsoleReporter"]
-    RX --&gt; R2["JsonReporter"]
-    RX --&gt; R3["HtmlReporter"]
-    R1 --&gt; OUT["Terminal / Logs / Dashboard"]
+    RX --&gt; R2["JSONReporter"]
+    RX --&gt; R3["LogReporter"]
+    R1 --&gt; OUT["Terminal / JSON file / Logs"]
     R2 --&gt; OUT
     R3 --&gt; OUT</code></pre>
 <hr />
@@ -2303,7 +2305,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 19:43:08 UTC">July 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

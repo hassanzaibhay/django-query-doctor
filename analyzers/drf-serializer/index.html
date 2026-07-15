@@ -1457,10 +1457,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-it-detects_1" class="md-nav__link">
+  <a href="#detected-patterns" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What It Detects
+        Detected Patterns
       
     </span>
   </a>
@@ -1950,10 +1950,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-it-detects_1" class="md-nav__link">
+  <a href="#detected-patterns" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What It Detects
+        Detected Patterns
       
     </span>
   </a>
@@ -2063,7 +2063,7 @@ it does not run automatically in the middleware/request pipeline.</p>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># Fail CI on warnings or above</span>
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>python<span class="w"> </span>manage.py<span class="w"> </span>check_serializers<span class="w"> </span>--fail-on<span class="o">=</span>warning
 </span></code></pre></div>
-<h2 id="what-it-detects_1">What It Detects<a class="headerlink" href="#what-it-detects_1" title="Permanent link">&para;</a></h2>
+<h2 id="detected-patterns">Detected Patterns<a class="headerlink" href="#detected-patterns" title="Permanent link">&para;</a></h2>
 <p>The analyzer walks the AST of each <code>get_&lt;field&gt;</code> method and detects four patterns:</p>
 <table>
 <thead>
@@ -2129,15 +2129,13 @@ it does not run automatically in the middleware/request pipeline.</p>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">review_count</span>  <span class="c1"># no extra query -- uses annotation</span>
 </span></code></pre></div>
 <h2 id="prescription-output">Prescription Output<a class="headerlink" href="#prescription-output" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>WARNING  N+1 risk in BookSerializer.get_total(): &#39;obj.items.count()&#39; triggers a query per object
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  Location: myapp/serializers.py:45 (get_total)
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  Fix:      Use queryset.annotate() or prefetch_related(&#39;items&#39;) instead of
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>            accessing &#39;items&#39; in the serializer method
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>INFO     Possible N+1 in BookSerializer.get_author_name(): &#39;obj.author.name&#39; may
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>         trigger a query per object if &#39;author&#39; is not select_related
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>  Location: myapp/serializers.py:52 (get_author_name)
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>  Fix:      Add select_related(&#39;author&#39;) to the viewset queryset
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>WARNING: N+1 risk in BookSerializer.get_total(): &#39;obj.items.count()&#39; triggers a query per object
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>   Location: myapp/serializers.py:45 in get_total
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>   Fix: Use queryset.annotate() or prefetch_related(&#39;items&#39;) instead of accessing &#39;items&#39; in the serializer method
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>INFO: Possible N+1 in BookSerializer.get_author_name(): &#39;obj.author.name&#39; may trigger a query per object if &#39;author&#39; is not select_related
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>   Location: myapp/serializers.py:52 in get_author_name
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>   Fix: Add select_related(&#39;author&#39;) to the viewset queryset
 </span></code></pre></div>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <table>
@@ -2189,7 +2187,7 @@ without error.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 19:43:08 UTC">July 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

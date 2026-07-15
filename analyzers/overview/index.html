@@ -2085,29 +2085,26 @@ the problem, its severity, and the exact code change needed to fix it.</p>
 </tbody>
 </table>
 <h2 id="disabling-specific-analyzers">Disabling Specific Analyzers<a class="headerlink" href="#disabling-specific-analyzers" title="Permanent link">&para;</a></h2>
-<p>By default all analyzers are enabled. To disable one or more, set
-<code>QUERY_DOCTOR_DISABLED_ANALYZERS</code> in your Django settings:</p>
+<p>By default all analyzers are enabled. To disable one, set its <code>enabled</code> flag
+under <code>ANALYZERS</code> in your Django settings. The keys are the analyzer config
+names: <code>nplusone</code>, <code>duplicate</code>, <code>missing_index</code>, <code>fat_select</code>, <code>queryset_eval</code>,
+<code>complexity</code>, and <code>serializer_method</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># settings.py</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="s2">&quot;DISABLED_ANALYZERS&quot;</span><span class="p">:</span> <span class="p">[</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="s2">&quot;query_doctor.analyzers.fat_select.FatSelectAnalyzer&quot;</span><span class="p">,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="s2">&quot;query_doctor.analyzers.query_complexity.QueryComplexityAnalyzer&quot;</span><span class="p">,</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="p">],</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="s2">&quot;ANALYZERS&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="s2">&quot;fat_select&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="s2">&quot;complexity&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="p">},</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>You can also disable analyzers on a per-request basis using the
-<code>@diagnose</code> decorator or the <code>diagnose_queries()</code> context manager:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nd">@diagnose</span><span class="p">(</span><span class="n">disabled_analyzers</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FatSelectAnalyzer&quot;</span><span class="p">])</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="o">...</span>
-</span></code></pre></div>
+<p>There is no per-request disable mechanism: <code>@diagnose</code> and
+<code>diagnose_queries()</code> take no arguments and run every enabled analyzer.</p>
 <h2 id="custom-analyzer-plugins">Custom Analyzer Plugins<a class="headerlink" href="#custom-analyzer-plugins" title="Permanent link">&para;</a></h2>
-<p>You can write your own analyzer by subclassing <code>BaseAnalyzer</code> and registering it
-via the <code>QUERY_DOCTOR["EXTRA_ANALYZERS"]</code> setting. See the
-<a href="../../guides/custom-plugins/">Custom Plugins Guide</a> for a full walkthrough.</p>
+<p>You can write your own analyzer by subclassing <code>BaseAnalyzer</code> and registering
+it via the <code>query_doctor.analyzers</code> entry point group in your package's
+<code>pyproject.toml</code>. See the <a href="../../guides/custom-plugins/">Custom Plugins Guide</a>
+for a full walkthrough.</p>
 
 
 
@@ -2130,7 +2127,7 @@ via the <code>QUERY_DOCTOR["EXTRA_ANALYZERS"]</code> setting. See the
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 19:43:08 UTC">July 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

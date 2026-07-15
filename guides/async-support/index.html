@@ -1094,34 +1094,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#async-views-with-the-decorator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Async Views with the Decorator
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Async Views with the Decorator">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#class-based-async-views" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Class-Based Async Views
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#asgi-middleware-auto-detection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1141,30 +1113,24 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Django Async ORM Methods">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#async-iteration" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-context-manager-in-async-code" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Async Iteration
+        The Context Manager in Async Code
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
       
         <li class="md-nav__item">
-  <a href="#async-context-manager" class="md-nav__link">
+  <a href="#the-diagnose-decorator-and-async-views" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Async Context Manager
+        The @diagnose Decorator and Async Views
       
     </span>
   </a>
@@ -1951,34 +1917,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#async-views-with-the-decorator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Async Views with the Decorator
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Async Views with the Decorator">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#class-based-async-views" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Class-Based Async Views
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#asgi-middleware-auto-detection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1998,30 +1936,24 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Django Async ORM Methods">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#async-iteration" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-context-manager-in-async-code" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Async Iteration
+        The Context Manager in Async Code
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
       
         <li class="md-nav__item">
-  <a href="#async-context-manager" class="md-nav__link">
+  <a href="#the-diagnose-decorator-and-async-views" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Async Context Manager
+        The @diagnose Decorator and Async Views
       
     </span>
   </a>
@@ -2082,111 +2014,80 @@
 
 
 <h1 id="async-support">Async Support<a class="headerlink" href="#async-support" title="Permanent link">&para;</a></h1>
-<p>django-query-doctor fully supports Django's async views, async ORM methods, and ASGI deployments. This page covers how to use query analysis in async contexts.</p>
-<hr />
-<h2 id="async-views-with-the-decorator">Async Views with the Decorator<a class="headerlink" href="#async-views-with-the-decorator" title="Permanent link">&para;</a></h2>
-<p>Use the <code>@diagnose</code> decorator on async views the same way you would on sync views. The decorator automatically detects whether the wrapped function is a coroutine and adapts its behavior:</p>
-<div class="language-python highlight"><span class="filename">myapp/views.py</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nd">@diagnose</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">book_list</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Async view that lists books.&quot;&quot;&quot;</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">books</span> <span class="o">=</span> <span class="p">[</span><span class="n">book</span> <span class="k">async</span> <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()]</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">return</span> <span class="n">JsonResponse</span><span class="p">({</span><span class="s2">&quot;books&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">title</span><span class="p">}</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">books</span><span class="p">]})</span>
-</span></code></pre></div>
-<p>The decorator installs an async-compatible query interceptor that captures all database calls made within the coroutine, including those made by Django's async ORM methods.</p>
-<h3 id="class-based-async-views">Class-Based Async Views<a class="headerlink" href="#class-based-async-views" title="Permanent link">&para;</a></h3>
-<p>For async class-based views, apply the decorator to the <code>dispatch</code> method:</p>
-<div class="language-python highlight"><span class="filename">myapp/views.py</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.utils.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">method_decorator</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.views</span><span class="w"> </span><span class="kn">import</span> <span class="n">View</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nd">@method_decorator</span><span class="p">(</span><span class="n">diagnose</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dispatch&quot;</span><span class="p">)</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">AsyncBookListView</span><span class="p">(</span><span class="n">View</span><span class="p">):</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="n">books</span> <span class="o">=</span> <span class="p">[</span><span class="n">book</span> <span class="k">async</span> <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()]</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="k">return</span> <span class="n">JsonResponse</span><span class="p">({</span><span class="s2">&quot;books&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">title</span><span class="p">}</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">books</span><span class="p">]})</span>
-</span></code></pre></div>
+<p>django-query-doctor supports async Django views and ASGI deployments through its middleware. This page covers what works in async contexts -- and what does not.</p>
 <hr />
 <h2 id="asgi-middleware-auto-detection">ASGI Middleware Auto-Detection<a class="headerlink" href="#asgi-middleware-auto-detection" title="Permanent link">&para;</a></h2>
-<p>When your Django application is served via ASGI (using Daphne, Uvicorn, Hypercorn, or similar), <code>QueryDoctorMiddleware</code> automatically detects the ASGI environment and switches to its async implementation. No additional configuration is needed.</p>
-<div class="language-python highlight"><span class="filename">settings.py</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">MIDDLEWARE</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="o">...</span><span class="p">,</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="s2">&quot;query_doctor.middleware.QueryDoctorMiddleware&quot;</span><span class="p">,</span>  <span class="c1"># Works for both WSGI and ASGI</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">]</span>
+<p>When your Django application is served via ASGI (using Daphne, Uvicorn, Hypercorn, or similar), <code>QueryDoctorMiddleware</code> automatically detects the ASGI environment and switches to its async implementation (<code>sync_capable</code> and <code>async_capable</code> are both enabled). No additional configuration is needed:</p>
+<div class="language-python highlight"><span class="filename">settings.py</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">MIDDLEWARE</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">...</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="s2">&quot;query_doctor.middleware.QueryDoctorMiddleware&quot;</span><span class="p">,</span>  <span class="c1"># Works for both WSGI and ASGI</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">]</span>
 </span></code></pre></div>
 <p>Under ASGI, the middleware:</p>
 <ul>
-<li>Uses <code>contextvars.ContextVar</code> for async safety, ensuring correct isolation across concurrent coroutines. Both QueryTurbo context managers and the query interceptor use <code>contextvars.ContextVar</code>, making the full capture pipeline safe for ASGI deployments with concurrent requests on the same thread.</li>
-<li>Installs an async <code>execute_wrapper</code> on the database connection.</li>
+<li>Uses <code>contextvars.ContextVar</code> for async safety, ensuring correct isolation across concurrent coroutines on the same thread.</li>
 <li>Awaits the response before running analyzers.</li>
 <li>Works correctly with Django's async-to-sync and sync-to-async bridge functions.</li>
 </ul>
+<p>Async views analyzed by the middleware need nothing special:</p>
+<div class="language-python highlight"><span class="filename">myapp/views.py</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">book_list</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Async view -- queries captured by the middleware.&quot;&quot;&quot;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">books</span> <span class="o">=</span> <span class="p">[</span><span class="n">book</span> <span class="k">async</span> <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()]</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="k">return</span> <span class="n">JsonResponse</span><span class="p">({</span><span class="s2">&quot;books&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">title</span><span class="p">}</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">books</span><span class="p">]})</span>
+</span></code></pre></div>
 <hr />
 <h2 id="django-async-orm-methods">Django Async ORM Methods<a class="headerlink" href="#django-async-orm-methods" title="Permanent link">&para;</a></h2>
-<p>Django's async ORM methods (<code>aget</code>, <code>afilter</code>, <code>acreate</code>, <code>acount</code>, <code>aexists</code>, etc.) are fully supported. django-query-doctor captures queries made through these methods identically to their sync counterparts:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.context_managers</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose_queries</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process_books</span><span class="p">():</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">count</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">acount</span><span class="p">()</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">book</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">aget</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="n">exists</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">aexists</span><span class="p">()</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="c1"># report.query_count == 3</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="c1"># Prescriptions are generated normally</span>
-</span></code></pre></div>
-<h3 id="async-iteration">Async Iteration<a class="headerlink" href="#async-iteration" title="Permanent link">&para;</a></h3>
-<p>Async iteration over querysets is captured:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">async</span> <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="k">async</span> <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">book</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">book</span><span class="o">.</span><span class="n">author</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># All queries from the async iterator are captured</span>
-</span></code></pre></div>
+<p>Django's async ORM methods (<code>aget</code>, <code>acreate</code>, <code>acount</code>, <code>aexists</code>, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's <code>execute_wrapper</code> captures them identically. Async iteration over querysets is captured the same way.</p>
 <hr />
-<h2 id="async-context-manager">Async Context Manager<a class="headerlink" href="#async-context-manager" title="Permanent link">&para;</a></h2>
-<p>The <code>diagnose_queries()</code> context manager works as both a sync and async context manager:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Sync usage</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">books</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># Async usage</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">async</span> <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">books</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">async</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()]</span>
+<h2 id="the-context-manager-in-async-code">The Context Manager in Async Code<a class="headerlink" href="#the-context-manager-in-async-code" title="Permanent link">&para;</a></h2>
+<p><code>diagnose_queries()</code> is a <strong>synchronous</strong> context manager. Use it with a plain <code>with</code> statement -- including inside <code>async def</code> functions:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.context_managers</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose_queries</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process_books</span><span class="p">():</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">count</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">acount</span><span class="p">()</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">book</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">aget</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">exists</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">aexists</span><span class="p">()</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="c1"># report.total_queries == 3</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="c1"># Prescriptions are generated normally</span>
 </span></code></pre></div>
-<p>Both produce the same <code>report</code> object with the same attributes.</p>
+<blockquote>
+<p><strong>Not supported:</strong> <code>async with diagnose_queries()</code> raises a <code>TypeError</code> -- the context manager does not implement the async context manager protocol.</p>
+</blockquote>
+<hr />
+<h2 id="the-diagnose-decorator-and-async-views">The <code>@diagnose</code> Decorator and Async Views<a class="headerlink" href="#the-diagnose-decorator-and-async-views" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Not supported:</strong> <code>@diagnose</code> does not detect or await coroutine functions. Applied to an <code>async def</code> view, the wrapped call returns the coroutine object and the capture context exits before the view body runs, so nothing useful is captured.</p>
+</blockquote>
+<p>For async views, use the middleware (recommended) or a <code>with diagnose_queries():</code> block inside the view body.</p>
 <hr />
 <h2 id="mixed-syncasync-code">Mixed Sync/Async Code<a class="headerlink" href="#mixed-syncasync-code" title="Permanent link">&para;</a></h2>
-<p>Django allows mixing sync and async code using <code>sync_to_async</code> and <code>async_to_sync</code>. django-query-doctor handles these transitions correctly:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">asgiref.sync</span><span class="w"> </span><span class="kn">import</span> <span class="n">sync_to_async</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nd">@diagnose</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">mixed_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="c1"># Async ORM call</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">book</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">aget</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="c1"># Sync function called from async context</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">related_books</span> <span class="o">=</span> <span class="k">await</span> <span class="n">sync_to_async</span><span class="p">(</span><span class="n">get_related_books</span><span class="p">)(</span><span class="n">book</span><span class="p">)</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="k">return</span> <span class="n">JsonResponse</span><span class="p">({</span><span class="s2">&quot;book&quot;</span><span class="p">:</span> <span class="n">book</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="s2">&quot;related&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">related_books</span><span class="p">)})</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_related_books</span><span class="p">(</span><span class="n">book</span><span class="p">):</span>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Sync helper -- queries here are still captured.&quot;&quot;&quot;</span>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">author</span><span class="o">=</span><span class="n">book</span><span class="o">.</span><span class="n">author</span><span class="p">)</span><span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">book</span><span class="o">.</span><span class="n">pk</span><span class="p">))</span>
+<p>Django allows mixing sync and async code using <code>sync_to_async</code> and <code>async_to_sync</code>. Queries made in a <code>sync_to_async</code>-wrapped helper are captured because the interceptor is installed at the database connection level, which is shared across sync and async execution within the same request:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">asgiref.sync</span><span class="w"> </span><span class="kn">import</span> <span class="n">sync_to_async</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">mixed_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="c1"># Async ORM call -- captured</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">book</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">aget</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="c1"># Sync function called from async context -- also captured</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">related_books</span> <span class="o">=</span> <span class="k">await</span> <span class="n">sync_to_async</span><span class="p">(</span><span class="n">get_related_books</span><span class="p">)(</span><span class="n">book</span><span class="p">)</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">return</span> <span class="n">JsonResponse</span><span class="p">({</span><span class="s2">&quot;book&quot;</span><span class="p">:</span> <span class="n">book</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="s2">&quot;related&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">related_books</span><span class="p">)})</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_related_books</span><span class="p">(</span><span class="n">book</span><span class="p">):</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Sync helper -- queries here are still captured.&quot;&quot;&quot;</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">author</span><span class="o">=</span><span class="n">book</span><span class="o">.</span><span class="n">author</span><span class="p">)</span><span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">book</span><span class="o">.</span><span class="n">pk</span><span class="p">))</span>
 </span></code></pre></div>
-<p>Queries made in the <code>sync_to_async</code> wrapped function are captured because the interceptor is installed at the database connection level, which is shared across sync and async contexts within the same request.</p>
 <hr />
 <h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Connection pooling</strong>: If you use a third-party connection pooler (like <code>django-db-connection-pool</code>), ensure it is compatible with Django's <code>execute_wrapper</code> mechanism. Most poolers are compatible, but some may require configuration.</li>
-<li><strong>Multi-database</strong>: Async support works with Django's multi-database routing. The interceptor is installed on each database connection individually.</li>
+<li><strong><code>@diagnose</code> / <code>@query_budget</code> on coroutines</strong>: not supported (see above).</li>
+<li><strong>Connection pooling</strong>: If you use a third-party connection pooler (like <code>django-db-connection-pool</code>), ensure it is compatible with Django's <code>execute_wrapper</code> mechanism.</li>
+<li><strong>Raw async drivers</strong>: Queries issued directly through non-Django drivers (e.g. <code>asyncpg</code>) bypass Django's connection and are not captured.</li>
 </ul>
 <hr />
 <h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
@@ -2217,7 +2118,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 22, 2026 20:09:36 UTC">March 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

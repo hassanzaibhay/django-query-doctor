@@ -2262,7 +2262,7 @@
 <p><code>meta_index</code> and <code>cache_queryset</code> are not real fix types in the code — they were names used in an earlier draft of this page. The actual behavior for missing-index and duplicate-query issues is a <code># TODO</code> comment, shown below.</p>
 <hr />
 <h2 id="targeting-specific-fix-types">Targeting Specific Fix Types<a class="headerlink" href="#targeting-specific-fix-types" title="Permanent link">&para;</a></h2>
-<p>Use <code>--issue-type</code> (not <code>--fix-type</code>, which does not exist) to limit which issues are fixed. It accepts one or more <code>IssueType</code> values as strings, with no validation against the real set — a typo silently produces zero fixes:</p>
+<p>Use <code>--issue-type</code> (not <code>--fix-type</code>, which does not exist) to limit which issues are fixed. It accepts one or more values, validated with argparse <code>choices</code> — an unknown value (e.g. a typo, or the analyzer name <code>duplicate</code> instead of the issue-type value <code>duplicate_query</code>) is rejected with an error before anything runs:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Only apply N+1 fixes</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span>--issue-type<span class="w"> </span>n_plus_one<span class="w"> </span>--apply
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
@@ -2360,7 +2360,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 19:43:08 UTC">July 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

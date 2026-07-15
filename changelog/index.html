@@ -1823,7 +1823,18 @@ and rendered here automatically by MkDocs.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
-<h2 id="upgrading-to-210">Upgrading to 2.1.0<a class="headerlink" href="#upgrading-to-210" title="Permanent link">&para;</a></h2>
+<h2 id="210-unreleased">[2.1.0] - Unreleased<a class="headerlink" href="#210-unreleased" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>PyPI note:</strong> 2.1.0 is the first release published to PyPI since 2.0.0.
+The <code>[2.0.1]</code> and <code>[1.0.3]</code> entries below describe versions that were
+merged and tagged in this repository but never uploaded to PyPI (PyPI has
+only 1.0.0, 1.0.1, 1.0.2, and 2.0.0). If you are upgrading from 2.0.0,
+this release is therefore your first with the 2.0.1 <code>fix_queries --apply</code>
+corruption fix. If you ever ran <code>--apply</code> on 2.0.0, follow the damage
+detection steps in <code>UPGRADING.md</code> ("If you ran fix_queries --apply on
+2.0.0") before trusting that source.</p>
+</blockquote>
+<h3 id="upgrading-to-210">Upgrading to 2.1.0<a class="headerlink" href="#upgrading-to-210" title="Permanent link">&para;</a></h3>
 <p><code>nplusone</code>, <code>duplicate</code>, and <code>missing_index</code> now respect their
 <code>ANALYZERS.&lt;name&gt;.enabled</code> config setting, and every dispatch path
 (middleware, pytest plugin, Celery integration, context manager,
@@ -1833,8 +1844,7 @@ analyzers instead of a hardcoded subset. If you use <code>check_queries
 analyzer coverage means an old baseline will report newly-covered findings as
 regressions until it's refreshed. Comparing against a baseline saved with a
 different query-doctor version now prints a non-blocking warning rather than
-failing the check.</p>
-<h2 id="210-2026-07-14">[2.1.0] - 2026-07-14<a class="headerlink" href="#210-2026-07-14" title="Permanent link">&para;</a></h2>
+failing the check. See <code>UPGRADING.md</code> for the full 2.1.0 upgrade checklist.</p>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>IssueType.SERIALIZER_METHOD_FIELD</code> — findings from <code>SerializerMethodAnalyzer</code>
@@ -1857,9 +1867,11 @@ failing the check.</p>
 <li><code>serializer_method</code> now has a <code>DEFAULT_CONFIG</code> entry, so
   <code>ANALYZERS.serializer_method.enabled = False</code> actually disables it.
   Previously there was no config key to set, so the analyzer always ran.</li>
-<li><code>fat_select</code>'s column-count threshold is now configurable via
-  <code>ANALYZERS.fat_select.threshold</code> (previously only overridable by
-  constructing the analyzer directly; the config key didn't exist).</li>
+<li><code>fat_select</code>'s column-count threshold config key was <strong>renamed</strong> from
+  <code>ANALYZERS.fat_select.field_count_threshold</code> (the key 2.0.x read) to
+  <code>ANALYZERS.fat_select.threshold</code>, matching the other analyzers. The old
+  key is now <strong>silently ignored</strong> — if you set <code>field_count_threshold</code> in
+  your settings, rename it to <code>threshold</code> when upgrading.</li>
 <li><code>fix_queries --issue-type</code> now validates against the five fixer-backed
   issue types instead of silently accepting any string and producing zero
   fixes on a typo.</li>
@@ -1878,6 +1890,13 @@ failing the check.</p>
   built-in analyzer count is now 7.</li>
 </ul>
 <h2 id="201-2026-07-13">[2.0.1] - 2026-07-13<a class="headerlink" href="#201-2026-07-13" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Never published to PyPI.</strong> This version was merged and tagged in the
+repository but not uploaded; PyPI's latest remained 2.0.0. Its changes —
+including the <code>fix_queries --apply</code> corruption fix below — first reach
+PyPI in 2.1.0. To check whether a 2.0.0 <code>--apply</code> run already damaged
+your source, see <code>UPGRADING.md</code>.</p>
+</blockquote>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>.github/pull_request_template.md</code> — PR template (summary, type, changelog
@@ -2002,6 +2021,10 @@ failing the check.</p>
 <li>New config key: <code>VALIDATION_THRESHOLD</code> (default 3) controls trust promotion</li>
 </ul>
 <h2 id="103-2026-03-18">[1.0.3] - 2026-03-18<a class="headerlink" href="#103-2026-03-18" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Never published to PyPI.</strong> This version exists only in the repository
+history; its changes first shipped to PyPI as part of 2.0.0.</p>
+</blockquote>
 <h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Missing Index analyzer now recommends <code>Meta.indexes</code> with <code>models.Index()</code> instead of <code>db_index=True</code>, following Django's official recommendation since 4.2 (fixes #1)</li>
@@ -2031,6 +2054,17 @@ failing the check.</p>
 <li>Updated .gitignore with additional exclusions</li>
 </ul>
 <h2 id="100-2026-03-13">[1.0.0] - 2026-03-13<a class="headerlink" href="#100-2026-03-13" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Historical note (added during the 2.1.0 remediation):</strong> two features
+listed below never functioned in any release. The runtime "DRF Serializer
+N+1" analyzer returned no results through any reachable code path and was
+removed in 2.1.0 (see the [2.1.0] "Removed" entry; static DRF analysis via
+<code>check_serializers</code> replaces it). "Admin dashboard integration showing
+latest project scan results" never activated: <code>record_project_report</code> has
+no caller in any released version and the dashboard template does not
+render project-report data. The original entries are preserved unchanged
+below.</p>
+</blockquote>
 <h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
 <h4 id="core-pipeline">Core Pipeline<a class="headerlink" href="#core-pipeline" title="Permanent link">&para;</a></h4>
 <ul>

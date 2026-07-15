@@ -870,60 +870,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#markers" class="md-nav__link">
+  <a href="#the-query_doctor-fixture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Markers
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Markers">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#pytestmarkquery_budget" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        @pytest.mark.query_budget
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#pytestmarkno_nplusone" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        @pytest.mark.no_nplusone
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#combining-markers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Combining Markers
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-query_report-fixture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The query_report Fixture
+        The query_doctor Fixture
       
     </span>
   </a>
@@ -1962,60 +1912,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#markers" class="md-nav__link">
+  <a href="#the-query_doctor-fixture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Markers
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Markers">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#pytestmarkquery_budget" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        @pytest.mark.query_budget
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#pytestmarkno_nplusone" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        @pytest.mark.no_nplusone
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#combining-markers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Combining Markers
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-query_report-fixture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The query_report Fixture
+        The query_doctor Fixture
       
     </span>
   </a>
@@ -2104,91 +2004,22 @@
 
 
 <h1 id="pytest-plugin">Pytest Plugin<a class="headerlink" href="#pytest-plugin" title="Permanent link">&para;</a></h1>
-<p>django-query-doctor includes a pytest plugin that is <strong>automatically registered</strong> when the package is installed. No additional configuration is needed. The plugin provides markers, fixtures, and context managers for asserting query behavior in your test suite.</p>
+<p>django-query-doctor includes a pytest plugin that is <strong>automatically registered</strong> when the package is installed (via the <code>pytest11</code> entry point). No additional configuration is needed. The plugin provides one fixture, <code>query_doctor</code>; for in-test assertions, the <code>diagnose_queries()</code> context manager is the recommended tool.</p>
 <hr />
-<h2 id="markers">Markers<a class="headerlink" href="#markers" title="Permanent link">&para;</a></h2>
-<h3 id="pytestmarkquery_budget"><code>@pytest.mark.query_budget</code><a class="headerlink" href="#pytestmarkquery_budget" title="Permanent link">&para;</a></h3>
-<p>Assert that a test does not exceed a maximum number of database queries:</p>
+<h2 id="the-query_doctor-fixture">The <code>query_doctor</code> Fixture<a class="headerlink" href="#the-query_doctor-fixture" title="Permanent link">&para;</a></h2>
+<p>Requesting the <code>query_doctor</code> fixture in a test turns on query capture for that test. The fixture returns a <code>DiagnosisReport</code> object:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">query_budget</span><span class="p">(</span><span class="n">max_queries</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_book_list_view</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The book list endpoint should execute at most 5 queries.&quot;&quot;&quot;</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/api/books/&quot;</span><span class="p">)</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_book_list_view</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">query_doctor</span><span class="p">):</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/api/books/&quot;</span><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
 </span></code></pre></div>
-<p>If the test executes more than 5 queries, it <strong>fails</strong> with a detailed report:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>FAILED test_views.py::test_book_list_view - QueryBudgetExceeded:
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  Expected at most 5 queries, but 23 were executed.
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  Top query groups:
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    1. SELECT &quot;myapp_author&quot;.* FROM &quot;myapp_author&quot; WHERE ... (x18) — myapp/models.py:47
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    2. SELECT &quot;myapp_book&quot;.* FROM &quot;myapp_book&quot; (x1) — myapp/views.py:83
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    3. SELECT &quot;myapp_publisher&quot;.* FROM &quot;myapp_publisher&quot; WHERE ... (x3) — myapp/serializers.py:12
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    4. SELECT COUNT(*) FROM &quot;myapp_book&quot; (x1) — django/core/paginator.py:96
-</span></code></pre></div>
-<h3 id="pytestmarkno_nplusone"><code>@pytest.mark.no_nplusone</code><a class="headerlink" href="#pytestmarkno_nplusone" title="Permanent link">&para;</a></h3>
-<p>Assert that a test does not trigger any N+1 query patterns:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">no_nplusone</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_book_detail_serializer</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">book</span><span class="p">):</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The book detail endpoint should not have N+1 queries.&quot;&quot;&quot;</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/api/books/</span><span class="si">{</span><span class="n">book</span><span class="o">.</span><span class="n">pk</span><span class="si">}</span><span class="s2">/&quot;</span><span class="p">)</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
-</span></code></pre></div>
-<p>If an N+1 pattern is detected, the test fails with the prescription details:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>FAILED test_views.py::test_book_detail_serializer - NPlusOneDetected:
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  N+1 detected: 12 queries for table &quot;myapp_category&quot;
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  Location: myapp/serializers.py:34 in BookSerializer
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  Fix: Add .prefetch_related(&#39;categories&#39;) to the queryset in your view or serializer
-</span></code></pre></div>
-<h3 id="combining-markers">Combining Markers<a class="headerlink" href="#combining-markers" title="Permanent link">&para;</a></h3>
-<p>Markers can be combined on a single test:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">query_budget</span><span class="p">(</span><span class="n">max_queries</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">no_nplusone</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_dashboard_view</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">admin_user</span><span class="p">):</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">client</span><span class="o">.</span><span class="n">force_login</span><span class="p">(</span><span class="n">admin_user</span><span class="p">)</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/dashboard/&quot;</span><span class="p">)</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
-</span></code></pre></div>
-<hr />
-<h2 id="the-query_report-fixture">The <code>query_report</code> Fixture<a class="headerlink" href="#the-query_report-fixture" title="Permanent link">&para;</a></h2>
-<p>The <code>query_report</code> fixture gives you programmatic access to the full analysis results within a test:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_inspect_queries</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">query_report</span><span class="p">):</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Use the query_report fixture to inspect query details.&quot;&quot;&quot;</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/api/books/&quot;</span><span class="p">)</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="c1"># Access the captured data</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="k">assert</span> <span class="n">query_report</span><span class="o">.</span><span class="n">query_count</span> <span class="o">&lt;</span> <span class="mi">15</span>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="k">assert</span> <span class="n">query_report</span><span class="o">.</span><span class="n">total_time_ms</span> <span class="o">&lt;</span> <span class="mi">100</span>
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="c1"># Check for specific analyzer results</span>
-</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="n">nplusone_issues</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">query_report</span><span class="o">.</span><span class="n">prescriptions</span>
-</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">analyzer</span> <span class="o">==</span> <span class="s2">&quot;nplusone&quot;</span>
-</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="p">]</span>
-</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">nplusone_issues</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        <span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">nplusone_issues</span><span class="p">)</span><span class="si">}</span><span class="s2"> N+1 issues: &quot;</span>
-</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">issue</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">nplusone_issues</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>    <span class="p">)</span>
-</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>
-</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>    <span class="c1"># Inspect individual queries</span>
-</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>    <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">query_report</span><span class="o">.</span><span class="n">queries</span><span class="p">:</span>
-</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>        <span class="k">assert</span> <span class="n">query</span><span class="o">.</span><span class="n">time_ms</span> <span class="o">&lt;</span> <span class="mi">50</span><span class="p">,</span> <span class="p">(</span>
-</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>            <span class="sa">f</span><span class="s2">&quot;Slow query (</span><span class="si">{</span><span class="n">query</span><span class="o">.</span><span class="n">time_ms</span><span class="si">}</span><span class="s2">ms): </span><span class="si">{</span><span class="n">query</span><span class="o">.</span><span class="n">sql</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>        <span class="p">)</span>
-</span></code></pre></div>
-<p>The <code>query_report</code> object exposes:</p>
+<blockquote>
+<p><strong>Important:</strong> The report is populated in a test <em>finalizer</em> — after the test body has finished running. Assertions on <code>query_doctor</code> inside the test body see an empty report (<code>total_queries == 0</code>, <code>issues == 0</code>) and pass vacuously. Use the fixture to enable capture; use the <a href="#context-manager-in-tests"><code>diagnose_queries()</code> context manager</a> when you want to assert on results inside the test.</p>
+</blockquote>
+<p>The <code>DiagnosisReport</code> object exposes:</p>
 <table>
 <thead>
 <tr>
@@ -2199,12 +2030,12 @@
 </thead>
 <tbody>
 <tr>
-<td><code>queries</code></td>
+<td><code>captured_queries</code></td>
 <td><code>list[CapturedQuery]</code></td>
-<td>All captured SQL queries with timing and stack traces</td>
+<td>All captured SQL queries</td>
 </tr>
 <tr>
-<td><code>query_count</code></td>
+<td><code>total_queries</code></td>
 <td><code>int</code></td>
 <td>Total number of queries executed</td>
 </tr>
@@ -2219,75 +2050,99 @@
 <td>All prescriptions from all analyzers</td>
 </tr>
 <tr>
-<td><code>fingerprints</code></td>
-<td><code>dict[str, list]</code></td>
-<td>Queries grouped by their fingerprint hash</td>
+<td><code>issues</code></td>
+<td><code>int</code> (property)</td>
+<td>Number of diagnosed issues (<code>len(prescriptions)</code>)</td>
+</tr>
+<tr>
+<td><code>n_plus_one_count</code></td>
+<td><code>int</code> (property)</td>
+<td>Number of N+1 issues</td>
+</tr>
+<tr>
+<td><code>has_critical</code></td>
+<td><code>bool</code> (property)</td>
+<td>True if any issue is CRITICAL severity</td>
 </tr>
 </tbody>
 </table>
+<p>Each <code>CapturedQuery</code> has <code>sql</code>, <code>params</code>, <code>duration_ms</code>, <code>fingerprint</code>, <code>normalized_sql</code>, <code>callsite</code>, <code>is_select</code>, and <code>tables</code>. Each <code>Prescription</code> has <code>issue_type</code>, <code>severity</code>, <code>description</code>, <code>fix_suggestion</code>, <code>callsite</code>, <code>query_count</code>, <code>time_saved_ms</code>, and <code>fingerprint</code>.</p>
 <hr />
 <h2 id="context-manager-in-tests">Context Manager in Tests<a class="headerlink" href="#context-manager-in-tests" title="Permanent link">&para;</a></h2>
-<p>For fine-grained control, use the <code>diagnose_queries()</code> context manager directly in tests:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.context_managers</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose_queries</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_specific_code_path</span><span class="p">():</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Analyze only the queries within the context manager.&quot;&quot;&quot;</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="c1"># Queries outside the context manager are not captured</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="n">books</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">:</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>            <span class="n">_</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">author</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># Should NOT trigger N+1</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">query_count</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># Only the one SELECT with JOIN</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>  <span class="c1"># No issues</span>
+<p>For assertions on query behavior, use the <code>diagnose_queries()</code> context manager. Its report is populated as soon as the <code>with</code> block exits, so assertions after the block work as expected:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.context_managers</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose_queries</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Book</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_book_list_is_optimized</span><span class="p">():</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="n">books</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">:</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>            <span class="n">_</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">author</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># Should NOT trigger N+1</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">total_queries</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># Only the one SELECT with JOIN</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">issues</span> <span class="o">==</span> <span class="mi">0</span>  <span class="c1"># No prescriptions</span>
+</span></code></pre></div>
+<p>Enforce a query budget the same way:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_dashboard_query_budget</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/dashboard/&quot;</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">total_queries</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">,</span> <span class="p">(</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="sa">f</span><span class="s2">&quot;Query budget exceeded: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">total_queries</span><span class="si">}</span><span class="s2"> queries</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">sql</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">captured_queries</span><span class="p">)</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="p">)</span>
+</span></code></pre></div>
+<p>Or check for a specific issue type:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">IssueType</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_no_nplusone</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/api/books/&quot;</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">n_plus_one_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="n">p</span><span class="o">.</span><span class="n">description</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">issue_type</span> <span class="o">==</span> <span class="n">IssueType</span><span class="o">.</span><span class="n">N_PLUS_ONE</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <hr />
 <h2 id="ci-integration">CI Integration<a class="headerlink" href="#ci-integration" title="Permanent link">&para;</a></h2>
-<p>The pytest plugin works seamlessly in CI. Add the <code>--query-doctor</code> flag to your pytest invocation to enable additional output:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>pytest<span class="w"> </span>--query-doctor<span class="w"> </span>-v
+<p>Assertions written with <code>diagnose_queries()</code> fail the test when violated, which fails the CI job — no extra pytest flags are needed:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pytest<span class="w"> </span>-v
 </span></code></pre></div>
-<p>This flag:</p>
-<ul>
-<li>Prints a summary of all query issues found across the entire test run.</li>
-<li>Generates a <code>query-doctor-report.json</code> file in the current directory.</li>
-<li>Returns a non-zero exit code if any test fails due to query budget or N+1 violations.</li>
-</ul>
 <blockquote>
-<p><strong>Tip:</strong> Combine the pytest plugin with the <code>check_queries</code> management command in your CI pipeline. The pytest plugin catches issues in your test scenarios, while <code>check_queries</code> catches issues in endpoint responses that your tests might not cover. See <a href="../ci-integration/">CI Integration</a> for a complete workflow.</p>
+<p><strong>Tip:</strong> Combine test-level assertions with the <code>check_queries</code> management command in your CI pipeline. Test assertions catch issues in your test scenarios, while <code>check_queries</code> catches issues in endpoint responses that your tests might not cover. See <a href="../ci-integration/">CI Integration</a> for a complete workflow.</p>
 </blockquote>
 <h3 id="example-gradual-adoption">Example: Gradual Adoption<a class="headerlink" href="#example-gradual-adoption" title="Permanent link">&para;</a></h3>
-<p>If you are adding django-query-doctor to an existing project, you can adopt it incrementally:</p>
+<p>If you are adding django-query-doctor to an existing project, adopt it incrementally:</p>
 <ol>
-<li>Start by adding <code>@pytest.mark.no_nplusone</code> to your most critical view tests.</li>
-<li>Use <code>@pytest.mark.query_budget</code> with generous limits on new tests.</li>
+<li>Start by adding <code>diagnose_queries()</code> assertions to your most critical view tests.</li>
+<li>Use generous query budgets on legacy paths.</li>
 <li>Tighten the budgets over time as you optimize.</li>
 </ol>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Start generous</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">query_budget</span><span class="p">(</span><span class="n">max_queries</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_legacy_dashboard</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="o">...</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="c1"># After optimization</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">query_budget</span><span class="p">(</span><span class="n">max_queries</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_legacy_dashboard</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="o">...</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Start generous</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_legacy_dashboard</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/dashboard/&quot;</span><span class="p">)</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">total_queries</span> <span class="o">&lt;=</span> <span class="mi">50</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="c1"># After optimization: lower the limit to 8</span>
 </span></code></pre></div>
 <hr />
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>The pytest plugin respects all <code>QUERY_DOCTOR</code> settings from your Django settings file. You can also override settings per-test using the <code>settings</code> fixture:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_with_custom_config</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">settings</span><span class="p">):</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">settings</span><span class="o">.</span><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>        <span class="s2">&quot;ANALYZERS&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;nplusone&quot;</span><span class="p">],</span>  <span class="c1"># Only run N+1 detection</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>        <span class="s2">&quot;NPLUSONE_THRESHOLD&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>    <span class="c1"># Flag after 3 repeated queries</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="p">}</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/api/books/&quot;</span><span class="p">)</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
-</span></code></pre></div>
+<p>Analysis in tests respects the <code>QUERY_DOCTOR</code> setting from your Django settings file (see <a href="../../getting-started/configuration/">Configuration</a>).</p>
+<blockquote>
+<p><strong>Note:</strong> The configuration is read once and cached for the lifetime of the process (<code>get_config()</code> uses an LRU cache). Overriding <code>settings.QUERY_DOCTOR</code> inside an individual test does not take effect after the first configuration read.</p>
+</blockquote>
 <hr />
 <h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
 <ul>
@@ -2317,7 +2172,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 18:17:25 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

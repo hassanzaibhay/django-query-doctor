@@ -1096,23 +1096,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using the Decorator">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#decorator-options" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decorator Options
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1127,10 +1110,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#accessing-results" class="md-nav__link">
+  <a href="#example-shipping-findings-to-monitoring" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Accessing Results
+        Example: Shipping Findings to Monitoring
       
     </span>
   </a>
@@ -1142,17 +1125,6 @@
     <span class="md-ellipsis">
       
         Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-periodic-task-monitoring" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example: Periodic Task Monitoring
       
     </span>
   </a>
@@ -1975,23 +1947,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using the Decorator">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#decorator-options" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decorator Options
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -2006,10 +1961,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#accessing-results" class="md-nav__link">
+  <a href="#example-shipping-findings-to-monitoring" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Accessing Results
+        Example: Shipping Findings to Monitoring
       
     </span>
   </a>
@@ -2021,17 +1976,6 @@
     <span class="md-ellipsis">
       
         Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-periodic-task-monitoring" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example: Periodic Task Monitoring
       
     </span>
   </a>
@@ -2070,13 +2014,12 @@
 
 
 <h1 id="celery-support">Celery Support<a class="headerlink" href="#celery-support" title="Permanent link">&para;</a></h1>
-<p>django-query-doctor can analyze database queries inside Celery tasks. Since Celery tasks run outside the HTTP request/response cycle, the middleware is not active. Instead, use the <code>@diagnose</code> decorator or the <code>diagnose_queries()</code> context manager.</p>
+<p>django-query-doctor can analyze database queries inside Celery tasks. Since Celery tasks run outside the HTTP request/response cycle, the middleware is not active. Instead, use the <code>@diagnose_task</code> decorator or the <code>diagnose_queries()</code> context manager.</p>
 <hr />
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<p>Install django-query-doctor with the <code>celery</code> extras to pull in the Celery integration utilities:</p>
+<p>Celery support has no extra dependencies -- the decorator works on any callable. The optional extras group exists for version pinning:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;django-query-doctor[celery]&quot;</span>
 </span></code></pre></div>
-<p>This does not add Celery as a dependency -- it enables the Celery-aware task base class and signal hooks.</p>
 <hr />
 <h2 id="why-the-middleware-does-not-work">Why the Middleware Does Not Work<a class="headerlink" href="#why-the-middleware-does-not-work" title="Permanent link">&para;</a></h2>
 <p>The <code>QueryDoctorMiddleware</code> hooks into Django's request/response cycle. Celery tasks do not go through this cycle -- they are executed by Celery workers in a separate process. Therefore:</p>
@@ -2086,32 +2029,43 @@
 </ul>
 <hr />
 <h2 id="using-the-decorator">Using the Decorator<a class="headerlink" href="#using-the-decorator" title="Permanent link">&para;</a></h2>
-<p>The simplest approach is to apply the <code>@diagnose</code> decorator to your task function:</p>
-<div class="language-python highlight"><span class="filename">myapp/tasks.py</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">shared_task</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nd">@shared_task</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nd">@diagnose</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">generate_report</span><span class="p">(</span><span class="n">report_id</span><span class="p">):</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate a PDF report for the given report.&quot;&quot;&quot;</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">report</span> <span class="o">=</span> <span class="n">Report</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">report_id</span><span class="p">)</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">entries</span> <span class="o">=</span> <span class="n">ReportEntry</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">report</span><span class="o">=</span><span class="n">report</span><span class="p">)</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="n">process_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Report </span><span class="si">{</span><span class="n">report_id</span><span class="si">}</span><span class="s2"> generated&quot;</span>
+<p>Apply <code>@diagnose_task</code> beneath the task decorator, and pass an <code>on_report</code> callback to receive the results:</p>
+<div class="language-python highlight"><span class="filename">myapp/tasks.py</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">shared_task</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.celery_integration</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose_task</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">log_findings</span><span class="p">(</span><span class="n">report</span><span class="p">):</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="k">if</span> <span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span><span class="p">:</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Query issues in task: </span><span class="si">%d</span><span class="s2"> found&quot;</span><span class="p">,</span> <span class="n">report</span><span class="o">.</span><span class="n">issues</span><span class="p">)</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="k">for</span> <span class="n">rx</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span><span class="p">:</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;  </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">rx</span><span class="o">.</span><span class="n">severity</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">rx</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="nd">@shared_task</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nd">@diagnose_task</span><span class="p">(</span><span class="n">on_report</span><span class="o">=</span><span class="n">log_findings</span><span class="p">)</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="k">def</span><span class="w"> </span><span class="nf">generate_report</span><span class="p">(</span><span class="n">report_id</span><span class="p">):</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate a PDF report for the given report.&quot;&quot;&quot;</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="n">report</span> <span class="o">=</span> <span class="n">Report</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">report_id</span><span class="p">)</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    <span class="n">entries</span> <span class="o">=</span> <span class="n">ReportEntry</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">report</span><span class="o">=</span><span class="n">report</span><span class="p">)</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>        <span class="n">process_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Report </span><span class="si">{</span><span class="n">report_id</span><span class="si">}</span><span class="s2"> generated&quot;</span>
 </span></code></pre></div>
-<p>The decorator wraps the task execution in a query interceptor. When the task completes, any prescriptions are logged via the configured reporters.</p>
-<h3 id="decorator-options">Decorator Options<a class="headerlink" href="#decorator-options" title="Permanent link">&para;</a></h3>
-<p>You can pass options to control the analysis:</p>
+<p>The decorator wraps the task execution in a query interceptor, runs every enabled analyzer when the task completes (including when it raises), and passes the populated <code>DiagnosisReport</code> to <code>on_report</code>.</p>
+<blockquote>
+<p><strong>Important:</strong> <code>@diagnose_task</code> does not print or log anything by itself, and it does not dispatch to the <code>REPORTERS</code> setting. Without an <code>on_report</code> callback the analysis results are discarded -- always pass a callback (or use the context manager below) if you want to see the findings.</p>
+</blockquote>
+<p>The bare form also works when you only want capture wired in for a callback added later:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@shared_task</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nd">@diagnose</span><span class="p">(</span><span class="n">severity</span><span class="o">=</span><span class="s2">&quot;WARNING&quot;</span><span class="p">,</span> <span class="n">analyzers</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;nplusone&quot;</span><span class="p">,</span> <span class="s2">&quot;duplicate&quot;</span><span class="p">])</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">send_notifications</span><span class="p">(</span><span class="n">user_ids</span><span class="p">):</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Send email notifications. Only check for N+1 and duplicates.&quot;&quot;&quot;</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">users</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pk__in</span><span class="o">=</span><span class="n">user_ids</span><span class="p">)</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">users</span><span class="p">:</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">send_email</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="n">build_message</span><span class="p">(</span><span class="n">user</span><span class="p">))</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nd">@diagnose_task</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">cleanup_task</span><span class="p">():</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="o">...</span>
 </span></code></pre></div>
+<p>If Celery is not installed, <code>@diagnose_task</code> still works -- it wraps any plain callable.</p>
 <hr />
 <h2 id="using-the-context-manager">Using the Context Manager<a class="headerlink" href="#using-the-context-manager" title="Permanent link">&para;</a></h2>
 <p>For finer control, use <code>diagnose_queries()</code> to wrap specific sections of a task:</p>
@@ -2136,59 +2090,31 @@
 </span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>            <span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span><span class="p">),</span>
 </span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>        <span class="p">)</span>
 </span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>        <span class="k">for</span> <span class="n">rx</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span><span class="p">:</span>
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;  </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">rx</span><span class="o">.</span><span class="n">severity</span><span class="p">,</span> <span class="n">rx</span><span class="o">.</span><span class="n">issue</span><span class="p">,</span> <span class="n">rx</span><span class="o">.</span><span class="n">location</span><span class="p">)</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>            <span class="n">location</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rx</span><span class="o">.</span><span class="n">callsite</span><span class="o">.</span><span class="n">filepath</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">rx</span><span class="o">.</span><span class="n">callsite</span><span class="o">.</span><span class="n">line_number</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">rx</span><span class="o">.</span><span class="n">callsite</span> <span class="k">else</span> <span class="s2">&quot;?&quot;</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>            <span class="p">)</span>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;  </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">rx</span><span class="o">.</span><span class="n">severity</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">rx</span><span class="o">.</span><span class="n">description</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span>
 </span></code></pre></div>
 <p>This is useful when a task has multiple phases and you only want to analyze the database-intensive portion.</p>
 <hr />
-<h2 id="accessing-results">Accessing Results<a class="headerlink" href="#accessing-results" title="Permanent link">&para;</a></h2>
-<p>Both the decorator and context manager produce a report object. With the context manager, you get it directly via the <code>as</code> clause. With the decorator, prescriptions are sent to the configured reporters (console, JSON, log).</p>
-<p>To programmatically access results with the decorator, use the callback option:</p>
+<h2 id="example-shipping-findings-to-monitoring">Example: Shipping Findings to Monitoring<a class="headerlink" href="#example-shipping-findings-to-monitoring" title="Permanent link">&para;</a></h2>
+<p>The <code>on_report</code> callback is the integration point for metrics and alerting:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">on_diagnosis_complete</span><span class="p">(</span><span class="n">report</span><span class="p">):</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="k">if</span> <span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span><span class="p">:</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>        <span class="c1"># Send to monitoring, log, or store in DB</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        <span class="n">metrics</span><span class="o">.</span><span class="n">increment</span><span class="p">(</span><span class="s2">&quot;query_doctor.issues&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span><span class="p">))</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>        <span class="n">metrics</span><span class="o">.</span><span class="n">increment</span><span class="p">(</span><span class="s2">&quot;query_doctor.issues&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span><span class="p">))</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="nd">@shared_task</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="nd">@diagnose</span><span class="p">(</span><span class="n">callback</span><span class="o">=</span><span class="n">on_diagnosis_complete</span><span class="p">)</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">process_orders</span><span class="p">(</span><span class="n">order_ids</span><span class="p">):</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">orders</span> <span class="o">=</span> <span class="n">Order</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pk__in</span><span class="o">=</span><span class="n">order_ids</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;customer&quot;</span><span class="p">)</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">orders</span><span class="p">:</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="n">fulfill</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nd">@shared_task</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="nd">@diagnose_task</span><span class="p">(</span><span class="n">on_report</span><span class="o">=</span><span class="n">on_diagnosis_complete</span><span class="p">)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">process_orders</span><span class="p">(</span><span class="n">order_ids</span><span class="p">):</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">orders</span> <span class="o">=</span> <span class="n">Order</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pk__in</span><span class="o">=</span><span class="n">order_ids</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;customer&quot;</span><span class="p">)</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">orders</span><span class="p">:</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="n">fulfill</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
 </span></code></pre></div>
+<p>To persist results, render the report yourself inside the callback, e.g. with <code>query_doctor.reporters.json_reporter.JSONReporter(output_path=...).report(report)</code>.</p>
 <hr />
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>Celery tasks use the same <code>QUERY_DOCTOR</code> settings as the rest of your project. You can override settings per-task via decorator or context manager arguments:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@shared_task</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nd">@diagnose</span><span class="p">(</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">severity</span><span class="o">=</span><span class="s2">&quot;CRITICAL&quot;</span><span class="p">,</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">analyzers</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;nplusone&quot;</span><span class="p">],</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">reporters</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;log&quot;</span><span class="p">],</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">)</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">heavy_task</span><span class="p">():</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="o">...</span>
-</span></code></pre></div>
-<hr />
-<h2 id="example-periodic-task-monitoring">Example: Periodic Task Monitoring<a class="headerlink" href="#example-periodic-task-monitoring" title="Permanent link">&para;</a></h2>
-<p>Combine django-query-doctor with Celery Beat to periodically audit a critical task:</p>
-<div class="language-python highlight"><span class="filename">myapp/tasks.py</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">shared_task</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nd">@shared_task</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nd">@diagnose</span><span class="p">(</span><span class="n">reporters</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;json&quot;</span><span class="p">],</span> <span class="n">output</span><span class="o">=</span><span class="s2">&quot;/var/log/query-doctor/nightly-sync.json&quot;</span><span class="p">)</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">nightly_sync</span><span class="p">():</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Nightly data synchronization. Query analysis is logged to JSON.&quot;&quot;&quot;</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="o">...</span>
-</span></code></pre></div>
-<div class="language-python highlight"><span class="filename">settings.py</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">CELERY_BEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="s2">&quot;nightly-sync&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>        <span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="s2">&quot;myapp.tasks.nightly_sync&quot;</span><span class="p">,</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="s2">&quot;schedule&quot;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">hour</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">minute</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="p">},</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p">}</span>
-</span></code></pre></div>
-<p>The JSON report is written after each run, allowing you to track query patterns over time.</p>
+<p>Celery tasks use the same <code>QUERY_DOCTOR</code> settings as the rest of your project (analyzer toggles, thresholds). There are no per-task setting overrides; the decorator's only option is <code>on_report</code>.</p>
 <hr />
 <h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
 <ul>
@@ -2218,7 +2144,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 18:17:25 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

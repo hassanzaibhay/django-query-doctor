@@ -2389,9 +2389,9 @@ patterns.</p>
 <p>The primary cost is capturing stack traces for each query. You can reduce
 overhead by:</p>
 <ul>
-<li>Disabling stack trace capture: <code>"CAPTURE_TRACEBACKS": False</code></li>
+<li>Disabling stack trace capture: <code>"CAPTURE_STACK_TRACES": False</code></li>
 <li>Reducing the sample rate: <code>"SAMPLE_RATE": 0.1</code></li>
-<li>Excluding paths: <code>"EXCLUDE_PATHS": ["/admin/", "/static/"]</code></li>
+<li>Excluding paths: <code>"IGNORE_URLS": ["/admin/", "/static/"]</code></li>
 </ul>
 <h3 id="will-django-query-doctor-crash-my-application">Will django-query-doctor crash my application?<a class="headerlink" href="#will-django-query-doctor-crash-my-application" title="Permanent link">&para;</a></h3>
 <p>No. All analysis code is wrapped in <code>try/except</code>. If an error occurs in the
@@ -2422,10 +2422,10 @@ will point to the line in the property method where the related access occurs:</
 <code>select_related('author')</code> to the queryset that loads the books.</p>
 <h3 id="does-it-support-celery-tasks">Does it support Celery tasks?<a class="headerlink" href="#does-it-support-celery-tasks" title="Permanent link">&para;</a></h3>
 <p>Yes. Use the <code>@diagnose_task</code> decorator to analyze queries within Celery tasks:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose_task</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.celery_integration</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose_task</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nd">@diagnose_task</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nd">@app</span><span class="o">.</span><span class="n">task</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nd">@app</span><span class="o">.</span><span class="n">task</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nd">@diagnose_task</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">process_orders</span><span class="p">():</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">orders</span> <span class="o">=</span> <span class="n">Order</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">orders</span><span class="p">:</span>
@@ -2452,6 +2452,8 @@ calls still go through the execute wrapper.</p>
 </div>
 <hr />
 <h2 id="comparison-with-other-tools">Comparison with Other Tools<a class="headerlink" href="#comparison-with-other-tools" title="Permanent link">&para;</a></h2>
+<p>Comparative claims current as of 2026-07-14; versions and sources are listed
+in the <a href="../deep-dive/comparison/">full comparison</a>.</p>
 <h3 id="how-does-it-compare-to-django-debug-toolbar">How does it compare to django-debug-toolbar?<a class="headerlink" href="#how-does-it-compare-to-django-debug-toolbar" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2573,12 +2575,12 @@ prescriptive fixes. They can be used together.</p>
 </tr>
 <tr>
 <td>Multiple reporters</td>
-<td>5</td>
+<td>3 (console, JSON, log)</td>
 <td>1 (logging)</td>
 </tr>
 <tr>
 <td>Management commands</td>
-<td>4</td>
+<td>6</td>
 <td>0</td>
 </tr>
 <tr>
@@ -2591,55 +2593,56 @@ prescriptive fixes. They can be used together.</p>
 <hr />
 <h2 id="analyzers">Analyzers<a class="headerlink" href="#analyzers" title="Permanent link">&para;</a></h2>
 <h3 id="can-i-write-custom-analyzers">Can I write custom analyzers?<a class="headerlink" href="#can-i-write-custom-analyzers" title="Permanent link">&para;</a></h3>
-<p>Yes. Subclass <code>BaseAnalyzer</code> and register your analyzer through Django settings
-or Python entry points:</p>
-<div class="language-python highlight"><span class="filename">myapp/analyzers.py</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.analyzers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAnalyzer</span><span class="p">,</span> <span class="n">Prescription</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<p>Yes. Subclass <code>BaseAnalyzer</code> and register your analyzer via Python entry
+points:</p>
+<div class="language-python highlight"><span class="filename">myapp/analyzers.py</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.analyzers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAnalyzer</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">IssueType</span><span class="p">,</span> <span class="n">Prescription</span><span class="p">,</span> <span class="n">Severity</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">SlowJoinAnalyzer</span><span class="p">(</span><span class="n">BaseAnalyzer</span><span class="p">):</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Detects queries with slow JOIN patterns.&quot;&quot;&quot;</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queries</span><span class="p">):</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="n">prescriptions</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">:</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_slow_join</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>                <span class="n">prescriptions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Prescription</span><span class="p">(</span>
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>                    <span class="n">severity</span><span class="o">=</span><span class="s2">&quot;warning&quot;</span><span class="p">,</span>
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>                    <span class="n">issue</span><span class="o">=</span><span class="s2">&quot;Query uses a slow cross-join pattern&quot;</span><span class="p">,</span>
-</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>                    <span class="n">location</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
-</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>                    <span class="n">suggestion</span><span class="o">=</span><span class="s2">&quot;Rewrite using subquery or EXISTS&quot;</span><span class="p">,</span>
-</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>                    <span class="n">analyzer</span><span class="o">=</span><span class="s2">&quot;SlowJoinAnalyzer&quot;</span><span class="p">,</span>
-</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>                <span class="p">))</span>
-</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>        <span class="k">return</span> <span class="n">prescriptions</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">SlowJoinAnalyzer</span><span class="p">(</span><span class="n">BaseAnalyzer</span><span class="p">):</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Detects queries with slow JOIN patterns.&quot;&quot;&quot;</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;slow_join&quot;</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queries</span><span class="p">,</span> <span class="n">models_meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>        <span class="n">prescriptions</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">:</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_slow_join</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>                <span class="n">prescriptions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Prescription</span><span class="p">(</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>                    <span class="n">issue_type</span><span class="o">=</span><span class="n">IssueType</span><span class="o">.</span><span class="n">QUERY_COMPLEXITY</span><span class="p">,</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>                    <span class="n">severity</span><span class="o">=</span><span class="n">Severity</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>                    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Query uses a slow cross-join pattern&quot;</span><span class="p">,</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>                    <span class="n">fix_suggestion</span><span class="o">=</span><span class="s2">&quot;Rewrite using subquery or EXISTS&quot;</span><span class="p">,</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>                    <span class="n">callsite</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">callsite</span><span class="p">,</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>                <span class="p">))</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        <span class="k">return</span> <span class="n">prescriptions</span>
 </span></code></pre></div>
-<p>Register it in settings:</p>
-<div class="language-python highlight"><span class="filename">settings.py</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="s2">&quot;EXTRA_ANALYZERS&quot;</span><span class="p">:</span> <span class="p">[</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>        <span class="s2">&quot;myapp.analyzers.SlowJoinAnalyzer&quot;</span><span class="p">,</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="p">],</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">}</span>
+<p>Register via entry points in <code>pyproject.toml</code>:</p>
+<div class="language-toml highlight"><span class="filename">pyproject.toml</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;query_doctor.analyzers&quot;</span><span class="k">]</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">slow_join</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myapp.analyzers:SlowJoinAnalyzer&quot;</span>
 </span></code></pre></div>
-<p>Or register via entry points in <code>pyproject.toml</code>:</p>
-<div class="language-toml highlight"><span class="filename">pyproject.toml</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;query_doctor.analyzers&quot;</span><span class="k">]</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">slow_join</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myapp.analyzers:SlowJoinAnalyzer&quot;</span>
-</span></code></pre></div>
-<p>See <a href="../contributing/">Contributing</a> for a full walkthrough of adding an
-analyzer.</p>
+<p>See the <a href="../guides/custom-plugins/">Custom Plugins Guide</a> for a full
+walkthrough.</p>
 <h3 id="does-auto-fix-modify-my-code-automatically">Does auto-fix modify my code automatically?<a class="headerlink" href="#does-auto-fix-modify-my-code-automatically" title="Permanent link">&para;</a></h3>
 <p>The <code>fix_queries</code> management command can apply fixes, but it operates with
 safety guardrails:</p>
 <ol>
 <li><strong>Dry run by default</strong> -- you must explicitly pass <code>--apply</code> to make changes</li>
-<li><strong>Backup files</strong> -- <code>.bak</code> files are created before any modifications</li>
-<li><strong>Limited scope</strong> -- only <code>select_related</code> and <code>prefetch_related</code> additions
-   are auto-applied. Complex fixes (annotations, restructuring) are suggested
-   but not auto-applied.</li>
+<li><strong>Backup files</strong> -- <code>.bak</code> files are created before any modifications
+   (disable with <code>--no-backup</code>)</li>
+<li><strong>Allowlisted issue types</strong> -- only <code>queryset_eval</code>, <code>duplicate_query</code>,
+   and <code>missing_index</code> fixes are written to disk. N+1 and fat-SELECT fixes
+   (which would edit the in-loop access line rather than the queryset
+   definition) are shown in the diff as <code>[MANUAL FIX ONLY]</code> and never
+   auto-applied.</li>
+<li><strong>Syntax validation</strong> -- the modified file must parse as valid Python
+   before it is written; otherwise the fix is rejected.</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Preview what would change</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--dry-run
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Apply changes with backups</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--apply
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Preview what would change</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--dry-run
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Apply changes with backups</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--apply
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Review auto-fixes</p>
@@ -2654,8 +2657,8 @@ manual adjustment.</p>
 <ol>
 <li><strong>Middleware not installed</strong> -- verify <code>"query_doctor.middleware.QueryDoctorMiddleware"</code> is in your <code>MIDDLEWARE</code> setting</li>
 <li><strong>Package disabled</strong> -- check that <code>QUERY_DOCTOR["ENABLED"]</code> is <code>True</code> (or not set, as it defaults to <code>True</code>)</li>
-<li><strong>Path excluded</strong> -- check <code>QUERY_DOCTOR["EXCLUDE_PATHS"]</code> does not match your URL</li>
-<li><strong>Severity filter too high</strong> -- lower <code>MIN_SEVERITY</code> to <code>"DEBUG"</code> to see all issues</li>
+<li><strong>Path excluded</strong> -- check <code>QUERY_DOCTOR["IGNORE_URLS"]</code> does not match your URL</li>
+<li><strong>Findings suppressed</strong> -- check your <code>.queryignore</code> file for rules that match</li>
 <li><strong>No issues exist</strong> -- your code may already be well-optimized</li>
 </ol>
 <h3 id="prescriptions-point-to-the-wrong-fileline">Prescriptions point to the wrong file/line<a class="headerlink" href="#prescriptions-point-to-the-wrong-fileline" title="Permanent link">&para;</a></h3>
@@ -2663,12 +2666,9 @@ manual adjustment.</p>
 the first frame in your application code. If the reported location seems wrong:</p>
 <ol>
 <li>Check if the query originates from a middleware or signal handler</li>
-<li>Verify your project's source root is correctly detected</li>
-<li>Try enabling verbose mode to see the full stack trace:
-   <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="s2">&quot;CONSOLE_VERBOSITY&quot;</span><span class="p">:</span> <span class="s2">&quot;verbose&quot;</span><span class="p">,</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="p">}</span>
-</span></code></pre></div></li>
+<li>Verify your project's source root is correctly detected -- the tracer
+   reports the first stack frame outside Django, django-query-doctor, and
+   the standard library</li>
 </ol>
 <h3 id="too-many-prescriptions-in-a-large-project">Too many prescriptions in a large project<a class="headerlink" href="#too-many-prescriptions-in-a-large-project" title="Permanent link">&para;</a></h3>
 <p>See <a href="../examples/">Examples</a> for techniques
@@ -2696,7 +2696,7 @@ rollout.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 23, 2026 20:07:50 UTC">March 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

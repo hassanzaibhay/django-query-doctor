@@ -2100,15 +2100,13 @@ actually necessary.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;categories&quot;</span><span class="p">)</span>  <span class="c1"># 2 queries total</span>
 </span></code></pre></div>
 <h2 id="prescription-output">Prescription Output<a class="headerlink" href="#prescription-output" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[HIGH] N+1 Query Detected
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  Location: views.py:8
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  Issue:    Query fingerprint `SELECT &quot;app_author&quot;...` executed 100 times.
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>            Likely N+1 caused by accessing `author` on each `Book` instance.
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  Fix:      Add `select_related(&quot;author&quot;)` to the queryset in views.py:5.
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>            - books = Book.objects.all()
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>            + books = Book.objects.select_related(&quot;author&quot;)
+<p>Console output for a detected N+1:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>CRITICAL: N+1 detected: 100 queries for table &quot;app_author&quot; (field: author)
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>   Location: /app/myapp/views.py:8 in book_list
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>   Fix: Add .select_related(&#39;author&#39;) to your queryset
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>   Queries: 100 | Est. savings: ~99.0ms
 </span></code></pre></div>
+<p>Severity is CRITICAL when the repeated query count is 10 or more, WARNING below that.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2120,16 +2118,23 @@ actually necessary.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>NPLUSONE_THRESHOLD</code></td>
+<td><code>ANALYZERS.nplusone.threshold</code></td>
 <td><code>3</code></td>
-<td>Minimum number of repeated fingerprints before reporting an N+1. Set higher to reduce noise in views that legitimately issue a small number of similar queries.</td>
+<td>Minimum number of same-fingerprint queries before reporting an N+1. Set higher to reduce noise in views that legitimately issue a small number of similar queries.</td>
+</tr>
+<tr>
+<td><code>ANALYZERS.nplusone.enabled</code></td>
+<td><code>True</code></td>
+<td>Set to <code>False</code> to disable this analyzer.</td>
 </tr>
 </tbody>
 </table>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># settings.py</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">&quot;NPLUSONE_THRESHOLD&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">}</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">&quot;ANALYZERS&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        <span class="s2">&quot;nplusone&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;threshold&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="p">},</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
 </span></code></pre></div>
 <h2 id="common-scenarios">Common Scenarios<a class="headerlink" href="#common-scenarios" title="Permanent link">&para;</a></h2>
 <h3 id="drf-serializers-with-nested-relations">DRF Serializers with Nested Relations<a class="headerlink" href="#drf-serializers-with-nested-relations" title="Permanent link">&para;</a></h3>
@@ -2176,8 +2181,9 @@ hide inside <code>{{ book.author.name }}</code> in a <code>{% for %}</code> loop
 <p>The N+1 analyzer does <strong>not</strong> rely on heuristics around model field
 definitions. Instead it normalizes each SQL query into a fingerprint by
 replacing literal values with placeholders, then groups by fingerprint.
-If the same fingerprint appears more than <code>NPLUSONE_THRESHOLD</code> times and
-the SQL pattern matches a foreign-key lookup, it is flagged as an N+1.
+If the same fingerprint appears at least <code>ANALYZERS.nplusone.threshold</code>
+times and the SQL pattern matches a foreign-key lookup, it is flagged
+as an N+1.
 This approach catches N+1 patterns regardless of how the ORM call is
 constructed.</p>
 </div>
@@ -2203,7 +2209,7 @@ constructed.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 18:17:25 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     

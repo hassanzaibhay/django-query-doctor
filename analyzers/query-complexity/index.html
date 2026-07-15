@@ -2082,105 +2082,106 @@ benefit from being broken apart or restructured.</p>
 <thead>
 <tr>
 <th>SQL Feature</th>
-<th>Points per Occurrence</th>
+<th>Points</th>
 <th>Example ORM Usage</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>JOIN</code> (each)</td>
-<td>5</td>
+<td>2</td>
 <td><code>select_related()</code>, <code>annotate()</code> with relations</td>
 </tr>
 <tr>
-<td>Subquery (each)</td>
-<td>10</td>
+<td>Subquery (each additional <code>SELECT</code>)</td>
+<td>3</td>
 <td><code>Subquery()</code>, <code>qs.filter(id__in=other_qs)</code></td>
 </tr>
 <tr>
-<td>Aggregation (<code>COUNT</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code>)</td>
-<td>3</td>
-<td><code>.annotate(total=Sum(...))</code></td>
-</tr>
-<tr>
-<td><code>CASE / WHEN</code> (each)</td>
-<td>4</td>
-<td><code>Case(When(...))</code></td>
-</tr>
-<tr>
-<td><code>DISTINCT</code></td>
-<td>3</td>
-<td><code>.distinct()</code></td>
-</tr>
-<tr>
-<td><code>UNION</code> / <code>INTERSECT</code> / <code>EXCEPT</code></td>
-<td>8</td>
-<td><code>qs1.union(qs2)</code></td>
+<td><code>OR</code> (each)</td>
+<td>1</td>
+<td><code>Q(...) \| Q(...)</code></td>
 </tr>
 <tr>
 <td><code>GROUP BY</code></td>
-<td>3</td>
+<td>2</td>
 <td><code>.values().annotate()</code></td>
 </tr>
 <tr>
 <td><code>HAVING</code></td>
-<td>4</td>
+<td>2</td>
 <td><code>.annotate().filter()</code> after group</td>
 </tr>
 <tr>
-<td><code>ORDER BY</code> on expression</td>
-<td>2</td>
-<td><code>.order_by(F("field").desc())</code></td>
+<td><code>DISTINCT</code></td>
+<td>1</td>
+<td><code>.distinct()</code></td>
 </tr>
 <tr>
-<td>Window function</td>
-<td>8</td>
-<td><code>Window(expression=..., partition_by=...)</code></td>
+<td><code>ORDER BY</code></td>
+<td>1</td>
+<td><code>.order_by(...)</code></td>
+</tr>
+<tr>
+<td><code>CASE / WHEN</code> (each <code>WHEN</code>)</td>
+<td>1</td>
+<td><code>Case(When(...))</code></td>
+</tr>
+<tr>
+<td><code>UNION</code> / <code>INTERSECT</code> / <code>EXCEPT</code></td>
+<td>3</td>
+<td><code>qs1.union(qs2)</code></td>
+</tr>
+<tr>
+<td><code>LIKE</code> with leading <code>%</code></td>
+<td>2</td>
+<td><code>.filter(name__contains=...)</code></td>
+</tr>
+<tr>
+<td><code>COUNT(*)</code> combined with <code>JOIN</code></td>
+<td>2</td>
+<td><code>.annotate(n=Count(...))</code> over relations</td>
 </tr>
 </tbody>
 </table>
-<p>The total score is the sum of all points. The default threshold is <strong>50</strong>.</p>
+<p>The total score is the sum of all points. The default threshold is <strong>8</strong>; a
+query scoring 8 or more is flagged (WARNING severity, CRITICAL at 12 or more).</p>
 <h2 id="problem-code">Problem Code<a class="headerlink" href="#problem-code" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># views.py</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">Case</span><span class="p">,</span> <span class="n">Count</span><span class="p">,</span> <span class="n">F</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">Subquery</span><span class="p">,</span> <span class="n">OuterRef</span><span class="p">,</span> <span class="n">Sum</span><span class="p">,</span> <span class="n">When</span><span class="p">,</span> <span class="n">Window</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">Avg</span><span class="p">,</span> <span class="n">Case</span><span class="p">,</span> <span class="n">Count</span><span class="p">,</span> <span class="n">OuterRef</span><span class="p">,</span> <span class="n">Subquery</span><span class="p">,</span> <span class="n">Sum</span><span class="p">,</span> <span class="n">Value</span><span class="p">,</span> <span class="n">When</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Rank</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">complex_report</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">subquery</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">Review</span><span class="o">.</span><span class="n">objects</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">book</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;pk&quot;</span><span class="p">))</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;book&quot;</span><span class="p">)</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">avg_rating</span><span class="o">=</span><span class="n">Avg</span><span class="p">(</span><span class="s2">&quot;rating&quot;</span><span class="p">))</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;avg_rating&quot;</span><span class="p">)</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="p">)</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">books</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="n">Book</span><span class="o">.</span><span class="n">objects</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>        <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">,</span> <span class="s2">&quot;publisher&quot;</span><span class="p">)</span>                  <span class="c1"># 2 JOINs = 10</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>        <span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;categories&quot;</span><span class="p">)</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>            <span class="n">review_count</span><span class="o">=</span><span class="n">Count</span><span class="p">(</span><span class="s2">&quot;reviews&quot;</span><span class="p">),</span>                      <span class="c1"># aggregation = 3</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>            <span class="n">avg_rating</span><span class="o">=</span><span class="n">Subquery</span><span class="p">(</span><span class="n">subquery</span><span class="p">),</span>                      <span class="c1"># subquery = 10</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>            <span class="n">revenue</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;sales__amount&quot;</span><span class="p">),</span>                       <span class="c1"># aggregation = 3, JOIN = 5</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>            <span class="n">tier</span><span class="o">=</span><span class="n">Case</span><span class="p">(</span>                                          <span class="c1"># CASE = 4</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>                <span class="n">When</span><span class="p">(</span><span class="n">revenue__gte</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">then</span><span class="o">=</span><span class="n">Value</span><span class="p">(</span><span class="s2">&quot;gold&quot;</span><span class="p">)),</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>                <span class="n">When</span><span class="p">(</span><span class="n">revenue__gte</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">then</span><span class="o">=</span><span class="n">Value</span><span class="p">(</span><span class="s2">&quot;silver&quot;</span><span class="p">)),</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>                <span class="n">default</span><span class="o">=</span><span class="n">Value</span><span class="p">(</span><span class="s2">&quot;bronze&quot;</span><span class="p">),</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>            <span class="p">),</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>            <span class="n">rank</span><span class="o">=</span><span class="n">Window</span><span class="p">(</span>                                        <span class="c1"># window = 8</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>                <span class="n">expression</span><span class="o">=</span><span class="n">Rank</span><span class="p">(),</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>                <span class="n">partition_by</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">),</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>                <span class="n">order_by</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s2">&quot;revenue&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>            <span class="p">),</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>        <span class="p">)</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">review_count__gte</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>                            <span class="c1"># HAVING = 4</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>        <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>                                              <span class="c1"># DISTINCT = 3</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;-rank&quot;</span><span class="p">)</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>    <span class="p">)</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>    <span class="c1"># Total score: 10 + 3 + 10 + 3 + 5 + 4 + 8 + 4 + 3 = 50 (at threshold)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">complex_report</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">subquery</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">Review</span><span class="o">.</span><span class="n">objects</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">book</span><span class="o">=</span><span class="n">OuterRef</span><span class="p">(</span><span class="s2">&quot;pk&quot;</span><span class="p">))</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;book&quot;</span><span class="p">)</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">avg_rating</span><span class="o">=</span><span class="n">Avg</span><span class="p">(</span><span class="s2">&quot;rating&quot;</span><span class="p">))</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;avg_rating&quot;</span><span class="p">)</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="p">)</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">books</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="n">Book</span><span class="o">.</span><span class="n">objects</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">,</span> <span class="s2">&quot;publisher&quot;</span><span class="p">)</span>                  <span class="c1"># 2 JOINs = 4</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>        <span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;categories&quot;</span><span class="p">)</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>        <span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>            <span class="n">review_count</span><span class="o">=</span><span class="n">Count</span><span class="p">(</span><span class="s2">&quot;reviews&quot;</span><span class="p">),</span>                      <span class="c1"># JOIN = 2, COUNT+JOIN = 2</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>            <span class="n">avg_rating</span><span class="o">=</span><span class="n">Subquery</span><span class="p">(</span><span class="n">subquery</span><span class="p">),</span>                      <span class="c1"># subquery = 3</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>            <span class="n">revenue</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="s2">&quot;sales__amount&quot;</span><span class="p">),</span>                       <span class="c1"># JOIN = 2</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>            <span class="n">tier</span><span class="o">=</span><span class="n">Case</span><span class="p">(</span>                                          <span class="c1"># 2 WHENs = 2</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>                <span class="n">When</span><span class="p">(</span><span class="n">revenue__gte</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">then</span><span class="o">=</span><span class="n">Value</span><span class="p">(</span><span class="s2">&quot;gold&quot;</span><span class="p">)),</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>                <span class="n">When</span><span class="p">(</span><span class="n">revenue__gte</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">then</span><span class="o">=</span><span class="n">Value</span><span class="p">(</span><span class="s2">&quot;silver&quot;</span><span class="p">)),</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>                <span class="n">default</span><span class="o">=</span><span class="n">Value</span><span class="p">(</span><span class="s2">&quot;bronze&quot;</span><span class="p">),</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>            <span class="p">),</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>        <span class="p">)</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">review_count__gte</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>                            <span class="c1"># HAVING = 2</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>        <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>                                              <span class="c1"># DISTINCT = 1</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;-revenue&quot;</span><span class="p">)</span>                                    <span class="c1"># ORDER BY = 1</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    <span class="p">)</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>    <span class="c1"># GROUP BY from the annotations = 2</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>    <span class="c1"># Total score: 4 + 2 + 2 + 3 + 2 + 2 + 2 + 1 + 1 + 2 = 21 (over threshold 8)</span>
 </span></code></pre></div>
 <h2 id="fix-code">Fix Code<a class="headerlink" href="#fix-code" title="Permanent link">&para;</a></h2>
 <p>Break the query into smaller, focused queries:</p>
@@ -2222,18 +2223,15 @@ express the operation as a <code>JOIN</code>:</p>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">avg_rating</span><span class="o">=</span><span class="n">Avg</span><span class="p">(</span><span class="s2">&quot;reviews__rating&quot;</span><span class="p">))</span>
 </span></code></pre></div>
 <h2 id="prescription-output">Prescription Output<a class="headerlink" href="#prescription-output" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[LOW] High Query Complexity (score: 54)
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  Location: views.py:12
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  Issue:    Query has a complexity score of 54 (threshold: 50).
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>            Breakdown: 2 JOINs (10), 1 subquery (10), 2 aggregations (6),
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>            1 CASE/WHEN (4), 1 window function (8), 1 DISTINCT (3),
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>            1 HAVING (4), expression ORDER BY (2), GROUP BY (3).
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  Fix:      Consider breaking this into multiple simpler queries.
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>            - Extract the subquery into a separate query and join in Python.
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>            - Move the window function to a dedicated annotation query.
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>            - Use .annotate() with JOIN-based aggregation instead of Subquery
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>              where possible.
+<p>Console output for a flagged query:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>CRITICAL: Query complexity score 21 exceeds threshold 8
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>   Location: /app/myapp/views.py:12 in complex_report
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>   Fix: Replace subqueries with JOINs or annotate() where possible.
 </span></code></pre></div>
+<p>The fix suggestion is contextual: with more than 3 JOINs it recommends
+splitting the query and using <code>select_related</code>/<code>prefetch_related</code>; with
+subqueries it suggests JOIN-based rewrites; with multiple <code>OR</code> conditions
+it points at index-friendly alternatives.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2245,22 +2243,23 @@ express the operation as a <code>JOIN</code>:</p>
 </thead>
 <tbody>
 <tr>
-<td><code>COMPLEXITY_THRESHOLD</code></td>
-<td><code>50</code></td>
-<td>Total score above which a query is flagged. Lower values catch more queries but may produce noise.</td>
+<td><code>ANALYZERS.complexity.threshold</code></td>
+<td><code>8</code></td>
+<td>Total score at or above which a query is flagged. Lower values catch more queries but may produce noise.</td>
 </tr>
 <tr>
-<td><code>COMPLEXITY_IGNORE_TABLES</code></td>
-<td><code>[]</code></td>
-<td>Tables to exclude from analysis. Reporting queries against analytics tables are often intentionally complex.</td>
+<td><code>ANALYZERS.complexity.enabled</code></td>
+<td><code>True</code></td>
+<td>Set to <code>False</code> to disable this analyzer.</td>
 </tr>
 </tbody>
 </table>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># settings.py</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">&quot;COMPLEXITY_THRESHOLD&quot;</span><span class="p">:</span> <span class="mi">40</span><span class="p">,</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="s2">&quot;COMPLEXITY_IGNORE_TABLES&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;analytics_report&quot;</span><span class="p">],</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">}</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">&quot;ANALYZERS&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        <span class="s2">&quot;complexity&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;threshold&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">},</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="p">},</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
 </span></code></pre></div>
 <h2 id="common-scenarios">Common Scenarios<a class="headerlink" href="#common-scenarios" title="Permanent link">&para;</a></h2>
 <h3 id="dashboard-views-with-multiple-aggregations">Dashboard Views with Multiple Aggregations<a class="headerlink" href="#dashboard-views-with-multiple-aggregations" title="Permanent link">&para;</a></h3>
@@ -2350,7 +2349,7 @@ despite query complexity.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 18:17:25 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
   </span>
 
     
