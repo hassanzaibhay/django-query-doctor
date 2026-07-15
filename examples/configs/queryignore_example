@@ -2,32 +2,48 @@
 # ==========================================
 # Place this file in your project root (same level as manage.py)
 #
-# Supported rule types:
-#   sql:<pattern>                         — Ignore queries matching SQL pattern (% = wildcard)
-#   file:<pattern>                        — Ignore queries from matching file paths (* = glob)
-#   callsite:<file>:<line>                — Ignore a specific callsite
-#   ignore:<issue_type>:<path>:<context>  — Ignore specific issue type in specific context
+# SCOPE: these rules are honored ONLY by the middleware and the fix_queries
+# command (the two call sites of ignore.load_queryignore/filter_prescriptions:
+# middleware.py:210-214 and management/commands/fix_queries.py:164-168).
+# check_queries and diagnose_project do NOT apply .queryignore — findings
+# suppressed here will still appear in those commands' output.
 #
-# Lines starting with # are comments. Blank lines are ignored.
+# Supported rule types (see docs/guides/query-ignore.md for full semantics):
+#   sql:<pattern>       — Ignore findings whose DESCRIPTION matches the pattern
+#                         (substring glob; % = wildcard). Descriptions contain
+#                         table names, not full SQL — match on the table name.
+#   file:<pattern>      — Ignore findings from matching file paths (fnmatch glob
+#                         against the FULL path, so start patterns with *)
+#   callsite:<file>:<line> — Ignore one exact callsite. Must equal the path
+#                         exactly as printed in the report (usually absolute).
+#   ignore:<issue_type>:<path>[:<note>] — Ignore one issue type where the path
+#                         CONTAINS the given substring (not a glob). Issue types
+#                         are the enum values: n_plus_one, duplicate_query,
+#                         missing_index, fat_select, queryset_eval, complexity,
+#                         serializer_method_field.
+#
+# Lines starting with # are comments. Blank lines are ignored. Malformed
+# lines are silently dropped — double-check spelling.
 
-# Django internals — these are fine
-sql:SELECT * FROM django_session%
-sql:SELECT * FROM django_content_type%
-sql:SELECT * FROM auth_permission%
+# Django internals — these are fine (matches the table name in descriptions)
+sql:%django_session%
+sql:%django_content_type%
+sql:%auth_permission%
 
-# Migration queries
-file:*/migrations/*
+# Migration modules
+file:*migrations*
 
 # Management commands that do bulk operations
-file:myapp/management/commands/import_data.py
-file:myapp/management/commands/seed_data.py
+file:*myapp/management/commands/import_data.py
+file:*myapp/management/commands/seed_data.py
 
 # Known acceptable N+1 in admin (Django admin does this by design)
-ignore:nplusone:django/contrib/admin/*
+ignore:n_plus_one:django/contrib/admin
 
 # Legacy view we can't refactor until Q3
-callsite:myapp/views.py:287
-ignore:nplusone:myapp/views.py:LegacyOrderExportView
+# (callsite must match the reported path exactly — copy it from the report)
+callsite:/app/myapp/views.py:287
+ignore:n_plus_one:myapp/views.py:LegacyOrderExportView
 
 # Third-party library queries we can't control
-file:*/site-packages/*
+file:*site-packages*

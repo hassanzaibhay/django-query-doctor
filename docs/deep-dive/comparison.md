@@ -2,6 +2,20 @@
 
 This document provides a detailed feature comparison between django-query-doctor and other Django query analysis tools, along with guidance on when to use each tool and how they can work together.
 
+> **Comparisons current as of 2026-07-14**, against these releases (per each
+> project's PyPI page):
+>
+> | Package | Version | Released |
+> |---|---|---|
+> | [django-debug-toolbar](https://pypi.org/project/django-debug-toolbar/) | 7.0.0 | 2026-06-19 |
+> | [django-silk](https://pypi.org/project/django-silk/) | 5.5.0 | 2026-03-08 |
+> | [nplusone](https://pypi.org/project/nplusone/) | 1.0.0 | 2018-05-21 |
+> | [django-auto-prefetch](https://pypi.org/project/django-auto-prefetch/) | 1.14.0 | 2025-09-18 |
+>
+> Cells marked "—" are capabilities the project's own documentation does not
+> address. If a project has since gained a feature listed as missing here,
+> please open an issue.
+
 ---
 
 ## Feature Matrix
@@ -28,9 +42,9 @@ This document provides a detailed feature comparison between django-query-doctor
 | Zero required dependencies | Yes | No | No | No | No |
 | **Integration** | | | | | |
 | Management commands | Yes | No | No | No | No |
-| Pytest plugin | Yes | No | No | Partial | No |
-| Celery task support | Yes | No | Yes | Yes (`nplusone.ext.celery`) | No |
-| Async Django support | Yes | Partial (experimental) | No | No | Yes |
+| Pytest plugin | Fixture only² | No | No | No¹ | No |
+| Celery task support | Yes | No | Partial (profiling decorators usable in tasks) | Partial (generic `Profiler` context manager) | — |
+| Async Django support | Yes | Partial (experimental, no concurrent requests) | — | No (predates async Django) | — |
 | CI/CD integration | Yes | No | No | No | No |
 | Git diff-aware filtering | Yes | No | No | No | No |
 | Query budgets (per-view) | Yes | No | No | No | No |
@@ -38,15 +52,25 @@ This document provides a detailed feature comparison between django-query-doctor
 | Console output | Yes | No (browser only) | No (browser only) | Yes (warnings) | No |
 | JSON output | Yes | No | Yes (API) | No | No |
 | HTML dashboard | Yes | Yes | Yes | No | No |
-| OpenTelemetry export | Yes | No | No | No | No |
+| OpenTelemetry export | Yes (manual invocation) | No | No | No | No |
 | **Extensibility** | | | | | |
 | Custom analyzer plugins | Yes | No | No | No | No |
-| Custom reporter plugins | Yes | Yes (panels) | No | No | No |
+| Custom reporter plugins | No | Yes (panels) | No | No | No |
 | Ignore rules | Yes | No | Yes | Yes | No |
 | **Configuration** | | | | | |
 | Zero-config setup | Yes | Partial | No | Yes | Yes |
-| Per-view configuration | Yes | No | No | No | No |
+| Per-view configuration | Partial (per-view `@query_budget`; analyzer config is global) | No | No | No | No |
 | Sampling support | Yes | No | Yes | No | No |
+
+¹ nplusone ships no pytest plugin or fixtures; failing automated tests on N+1 is
+supported first-party via `NPLUSONE_RAISE = True` (raises `NPlusOneError`, "to force
+all automated tests involving unnecessary queries to fail") or the core `Profiler`
+context manager ([README](https://github.com/jmcarp/nplusone)).
+
+² django-query-doctor registers a `pytest11` entry point providing a `query_doctor`
+fixture, but the fixture's report is populated at test teardown — in-test assertions
+on it see an empty report. For working in-test assertions, use `diagnose_queries()`
+(see the [pytest guide](../guides/pytest-plugin.md)).
 
 ---
 
@@ -95,8 +119,9 @@ This document provides a detailed feature comparison between django-query-doctor
 **Strengths of nplusone:**
 - Focused, simple implementation
 - Low overhead for its specific use case
-- Integrates with pytest via warnings
-- Has Celery integration (`nplusone.ext.celery`) and configurable whitelist/ignore rules
+- Can fail automated tests via `NPLUSONE_RAISE` (raises `NPlusOneError`)
+- Configurable whitelist (`NPLUSONE_WHITELIST`, exact names or fnmatch patterns) and a generic `Profiler` context manager for use outside HTTP requests
+- Also detects *unused* eager loading (related data loaded but never accessed)
 
 **Where django-query-doctor adds value:**
 - Six additional detection categories beyond N+1
@@ -107,7 +132,7 @@ This document provides a detailed feature comparison between django-query-doctor
 - Git diff-aware filtering for incremental adoption
 - Designed to run in production; nplusone's own documentation says it should only be used in development
 
-> **Note:** nplusone's last release was over a year ago and the project sees low development activity, though it remains functional and available on PyPI.
+> **Note:** nplusone's most recent release is 1.0.0, published in May 2018 (per its PyPI page) — the project has been unmaintained for years, though it remains installable and functional on the ORMs of its era.
 
 ### vs. django-auto-prefetch
 
@@ -117,7 +142,7 @@ This document provides a detailed feature comparison between django-query-doctor
 - Zero developer effort after initial setup
 - Immediate performance improvement for ForeignKey/OneToOne N+1
 - No reports to read or fixes to apply
-- Actively maintained (Adam Johnson), supports current Django and Python versions
+- Written by Gordon Wrigley (GitHub: `tolomea`) and maintained by Adam Johnson (`adamchainz`), per [its PyPI page](https://pypi.org/project/django-auto-prefetch/) — as of 1.14.0 it supports Django 4.2-6.0 and Python 3.9-3.14
 
 **Where django-query-doctor adds value:**
 - Visibility into what queries ran and why (auto-prefetch's mitigation happens silently)
@@ -126,7 +151,7 @@ This document provides a detailed feature comparison between django-query-doctor
 - Per-view control instead of a global model-level behavior change
 - Helps developers learn to write better querysets, since it reports rather than silently mitigates
 
-> **Note:** django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off — automatic mitigation instead of manual `select_related()` calls — and the same on-demand-prefetch idea now ships in Django itself as [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/) (`FETCH_PEERS`), landing in Django 6.1. django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.
+> **Note:** django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off — automatic mitigation instead of manual `select_related()` calls — and the same on-demand-prefetch idea is coming to Django core as [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/) (`FETCH_PEERS`), new in [Django 6.1](https://docs.djangoproject.com/en/dev/releases/6.1/) — under development and unreleased as of 2026-07-14 (Django 6.0 is the latest stable release). django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.
 
 ---
 
@@ -195,11 +220,11 @@ Use debug-toolbar for interactive exploration and django-query-doctor for automa
 ```yaml
 # .github/workflows/ci.yml
 steps:
-  - name: Run tests with query analysis
-    run: pytest --query-doctor --fail-on-query-issues
+  - name: Run tests with query assertions
+    run: pytest -v
 
-  - name: Full project scan
-    run: python manage.py diagnose_queries --format=json --fail-on-issues
+  - name: Endpoint scan
+    run: python manage.py check_queries --url /api/books/ --format json --fail-on warning
 ```
 
 In CI, only django-query-doctor and nplusone can run (debug-toolbar and silk require a browser/server). django-query-doctor provides the most comprehensive CI analysis.
@@ -210,8 +235,8 @@ In CI, only django-query-doctor and nplusone can run (debug-toolbar and silk req
 # settings/production.py
 QUERY_DOCTOR = {
     "ENABLED": True,
-    "SAMPLE_RATE": 0.01,           # 1% of requests
-    "REPORT_FORMAT": "json",
+    "SAMPLE_RATE": 0.01,            # 1% of requests
+    "REPORTERS": ["log"],           # Route findings into your log pipeline
     "CAPTURE_STACK_TRACES": False,  # Minimize overhead
 }
 ```
@@ -236,7 +261,7 @@ MIDDLEWARE = [
 
 ### From nplusone to django-query-doctor
 
-1. Replace `nplusone.middleware.NPlusOneMiddleware` with `query_doctor.middleware.QueryDoctorMiddleware`.
+1. Replace `nplusone.ext.django.NPlusOneMiddleware` with `query_doctor.middleware.QueryDoctorMiddleware`.
 2. Remove `nplusone` from `INSTALLED_APPS` and `MIDDLEWARE`.
 3. django-query-doctor covers all of nplusone's detection and more.
 

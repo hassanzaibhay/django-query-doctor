@@ -1,196 +1,79 @@
 {
-  "version": "1.0.0",
-  "timestamp": "2026-03-15T18:24:01.885067+00:00",
+  "version": "2.1.0",
+  "timestamp": "2026-07-15T05:02:36.263557+00:00",
   "summary": {
-    "total_queries": 51,
-    "total_time_ms": 273.69130053557456,
-    "issues_found": 14,
+    "total_queries": 43,
+    "total_time_ms": 0.7993998005986214,
+    "issues_found": 5,
     "critical": 2,
-    "warnings": 12,
-    "info": 0
+    "warnings": 1,
+    "info": 2
   },
   "prescriptions": [
     {
       "issue_type": "n_plus_one",
       "severity": "critical",
-      "description": "N+1 detected: 25 queries for table \"sample_project_author\" (field: project_author)",
-      "fix_suggestion": "Add .select_related('project_author') to your queryset",
+      "description": "N+1 detected: 20 queries for table \"testapp_author\" (field: author)",
+      "fix_suggestion": "Add .select_related('author') to your queryset",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
+        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
+        "line": 64,
+        "function": "test_regenerate_outputs"
       },
-      "query_count": 25,
-      "estimated_savings_ms": 40.483968034386635
+      "query_count": 20,
+      "estimated_savings_ms": 0.32432981533929706
     },
     {
       "issue_type": "n_plus_one",
       "severity": "critical",
-      "description": "N+1 detected: 25 queries for table \"sample_project_publisher\" (field: project_publisher)",
-      "fix_suggestion": "Add .select_related('project_publisher') to your queryset",
+      "description": "N+1 detected: 20 queries for table \"testapp_publisher\" (field: publisher)",
+      "fix_suggestion": "Add .select_related('publisher') to your queryset",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
+        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
+        "line": 65,
+        "function": "test_regenerate_outputs"
       },
-      "query_count": 25,
-      "estimated_savings_ms": 24.80448044836521
+      "query_count": 20,
+      "estimated_savings_ms": 0.3148299641907215
     },
     {
       "issue_type": "duplicate_query",
       "severity": "warning",
-      "description": "Duplicate query: 5 identical queries for table \"sample_project_author\"",
+      "description": "Duplicate query: 2 identical queries for table \"testapp_book\"",
       "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
-      },
-      "query_count": 5,
-      "estimated_savings_ms": 16.756319999694824
-    },
-    {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 5 identical queries for table \"sample_project_publisher\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
-      "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
-      },
-      "query_count": 5,
-      "estimated_savings_ms": 5.278719961643219
-    },
-    {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 4 identical queries for table \"sample_project_author\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
-      "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
-      },
-      "query_count": 4,
-      "estimated_savings_ms": 3.4397250856272876
-    },
-    {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 6 identical queries for table \"sample_project_publisher\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
-      "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
-      },
-      "query_count": 6,
-      "estimated_savings_ms": 5.267750044974188
-    },
-    {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 7 identical queries for table \"sample_project_publisher\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
-      "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
-      },
-      "query_count": 7,
-      "estimated_savings_ms": 5.9150573797523975
-    },
-    {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 2 identical queries for table \"sample_project_author\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
-      "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
+        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
+        "line": 67,
+        "function": "test_regenerate_outputs"
       },
       "query_count": 2,
-      "estimated_savings_ms": 0.8119000121951103
+      "estimated_savings_ms": 0.04444998921826482
     },
     {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 4 identical queries for table \"sample_project_author\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
+      "issue_type": "missing_index",
+      "severity": "info",
+      "description": "Missing index: column \"title\" on Book (table \"testapp_book\") is used in WHERE/ORDER BY but has no index",
+      "fix_suggestion": "Add to Book's Meta.indexes: indexes = [models.Index(fields=[\"title\"], name=\"idx_testapp_book_title\")]",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
+        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
+        "line": 67,
+        "function": "test_regenerate_outputs"
       },
-      "query_count": 4,
-      "estimated_savings_ms": 2.6587499887682498
+      "query_count": 1,
+      "estimated_savings_ms": 0
     },
     {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 5 identical queries for table \"sample_project_publisher\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
+      "issue_type": "fat_select",
+      "severity": "info",
+      "description": "Fat SELECT: 8 columns from \"testapp_book\" including large fields: description",
+      "fix_suggestion": "Use .defer('description') to skip loading large fields, or .values()/.values_list() if you don't need model instances",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
+        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
+        "line": 62,
+        "function": "test_regenerate_outputs"
       },
-      "query_count": 5,
-      "estimated_savings_ms": 3.4750401973724365
-    },
-    {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 2 identical queries for table \"sample_project_author\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
-      "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
-      },
-      "query_count": 2,
-      "estimated_savings_ms": 1.5920499572530389
-    },
-    {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 3 identical queries for table \"sample_project_author\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
-      "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
-      },
-      "query_count": 3,
-      "estimated_savings_ms": 2.308866629997889
-    },
-    {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 4 identical queries for table \"sample_project_author\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
-      "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
-      },
-      "query_count": 4,
-      "estimated_savings_ms": 2.506274962797761
-    },
-    {
-      "issue_type": "duplicate_query",
-      "severity": "warning",
-      "description": "Duplicate query: 2 identical queries for table \"sample_project_publisher\"",
-      "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
-      "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\examples\\sample_project\\views.py",
-        "line": 19,
-        "function": "book_list"
-      },
-      "query_count": 2,
-      "estimated_savings_ms": 0.8367999689653516
+      "query_count": 1,
+      "estimated_savings_ms": 0
     }
   ]
 }

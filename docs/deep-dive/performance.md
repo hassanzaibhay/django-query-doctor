@@ -189,7 +189,7 @@ Use the full feature set. The overhead is negligible compared to development ser
 # settings/local.py
 QUERY_DOCTOR = {
     "ENABLED": True,
-    "REPORT_FORMAT": "console",
+    "REPORTERS": ["console"],
     "CAPTURE_STACK_TRACES": True,
 }
 ```
@@ -201,20 +201,21 @@ Run the management command or pytest plugin to catch regressions. Overhead does 
 ```yaml
 # .github/workflows/ci.yml
 - name: Query Doctor Check
-  run: python manage.py diagnose_queries --format=json --fail-on-issues
+  run: python manage.py check_queries --url /api/books/ --format json --fail-on warning
 ```
 
 ### Staging Environment
 
-Enable with full features for targeted debugging. Consider using path-based filtering to reduce noise:
+Enable with full features for targeted debugging. Use `IGNORE_URLS` to skip noisy paths (static assets, health checks):
 
 ```python
 # settings/staging.py
 QUERY_DOCTOR = {
     "ENABLED": True,
-    "REPORT_FORMAT": "json",
+    "REPORTERS": ["json"],
+    "JSON_REPORT_PATH": "reports/query-doctor.json",
     "CAPTURE_STACK_TRACES": True,
-    "INCLUDE_PATHS": ["/api/v2/", "/dashboard/"],  # Only analyze these paths
+    "IGNORE_URLS": ["/static/", "/health/"],
 }
 ```
 
@@ -229,7 +230,7 @@ import random
 QUERY_DOCTOR = {
     "ENABLED": True,
     "SAMPLE_RATE": 0.01,  # Analyze 1% of requests
-    "REPORT_FORMAT": "json",
+    "REPORTERS": ["log"],
     "CAPTURE_STACK_TRACES": False,  # Minimize overhead
 }
 ```
@@ -279,7 +280,7 @@ from query_doctor.context_managers import diagnose_queries
 times_with = []
 for _ in range(100):
     start = time.perf_counter()
-    with diagnose_queries(report=False):  # Suppress output
+    with diagnose_queries():  # capture + analyze; produces no output itself
         BookListView.as_view()(request)
     times_with.append(time.perf_counter() - start)
 

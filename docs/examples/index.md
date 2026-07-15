@@ -20,12 +20,15 @@ class OrderListView(ListAPIView):
 Prescription output:
 
 ```
-[CRITICAL] N+1 Query — 50 queries fetching Customer for each Order
-  Location: orders/views.py:9
-  Fix: select_related('customer')
+CRITICAL: N+1 detected: 50 queries for table "orders_customer" (field: customer)
+   Location: orders/views.py:9 in get_queryset
+   Fix: Add .select_related('customer') to your queryset
+   Queries: 50 | Est. savings: ~110.0ms
 
-[CRITICAL] N+1 Query — 150 queries fetching Product for each OrderItem
-  Fix: Prefetch('orderitem_set', queryset=OrderItem.objects.select_related('product'))
+CRITICAL: N+1 detected: 150 queries for table "orders_orderitem" (field: orderitem)
+   Location: orders/serializers.py:14 in get_items
+   Fix: Add .prefetch_related('orderitem') to your queryset. For advanced filtering, use Prefetch('orderitem', queryset=...)
+   Queries: 150 | Est. savings: ~320.0ms
 ```
 
 The fix:
@@ -101,7 +104,7 @@ For large projects, avoid overwhelming developers with hundreds of prescriptions
 | Middleware off + CI commands | Large existing codebases — analysis in CI only |
 | `--diff origin/main` | Active development — analyze only changed files |
 | `.queryignore` | Suppress accepted trade-offs and false positives |
-| `--app orders` | Monoliths — scan one Django app at a time |
+| `diagnose_project --apps orders` | Monoliths — scan one Django app at a time |
 | `@query_budget(max_queries=10)` | Enforce hard limits on critical endpoints |
 
 Recommended rollout timeline:

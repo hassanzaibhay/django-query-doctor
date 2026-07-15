@@ -12,22 +12,22 @@ The `--group` flag accepts an optional strategy name. If no strategy is specifie
 
 Groups prescriptions by `{file_path}:{issue_type}`. All prescriptions from the same file with the same issue type are combined into one group.
 
-**Before grouping:**
+**Before grouping** -- five individual prescriptions:
 
 ```
-WARNING  N+1 detected in myapp/views.py:83
-WARNING  N+1 detected in myapp/views.py:91
-WARNING  N+1 detected in myapp/views.py:105
-WARNING  Duplicate query in myapp/views.py:83
-INFO     Fat SELECT in otherapp/api.py:42
+WARNING: N+1 detected: 4 queries for table "myapp_author" (field: author)
+WARNING: N+1 detected: 3 queries for table "myapp_publisher" (field: publisher)
+WARNING: N+1 detected: 3 queries for table "myapp_tag" (field: tags)
+WARNING: Duplicate query: 2 identical queries for table "myapp_book"
+INFO: Fat SELECT: 12 columns from "otherapp_report"
 ```
 
-**After grouping (`--group file_analyzer`):**
+**After grouping (`--group file_analyzer`)** -- one line per group; single-member groups keep their original description:
 
 ```
-WARNING  3 related issues in myapp/views.py: N+1 detected (and 2 more)
-WARNING  1 related issue in myapp/views.py: Duplicate query
-INFO     1 related issue in otherapp/api.py: Fat SELECT
+WARNING: 3 related issues in myapp/views.py: N+1 detected: 4 queries for table "myapp_author" (field: author) (and 2 more)
+WARNING: Duplicate query: 2 identical queries for table "myapp_book"
+INFO: Fat SELECT: 12 columns from "otherapp_report"
 ```
 
 ### `root_cause`

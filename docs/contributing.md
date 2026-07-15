@@ -262,30 +262,45 @@ Create a test file in `tests/`:
 ```python title="tests/test_my_analyzer.py"
 from __future__ import annotations
 
-import pytest
+# my_analyzer is the module you are about to create in step 2
 from query_doctor.analyzers.my_analyzer import MyAnalyzer
+from query_doctor.types import CallSite, CapturedQuery, Severity
+
+
+def _make_query(sql: str) -> CapturedQuery:
+    """Build a CapturedQuery for testing (see tests/test_complexity.py)."""
+    return CapturedQuery(
+        sql=sql,
+        params=None,
+        duration_ms=1.0,
+        fingerprint="abc123",
+        normalized_sql=sql.lower(),
+        callsite=CallSite(filepath="myapp/views.py", line_number=10, function_name="view"),
+        is_select=True,
+        tables=["books"],
+    )
 
 
 class TestMyAnalyzer:
     """Tests for the MyAnalyzer."""
 
-    def test_detects_issue(self, captured_queries_with_issue):
+    def test_detects_issue(self):
         """Positive case: issue is detected."""
         analyzer = MyAnalyzer()
-        prescriptions = analyzer.analyze(captured_queries_with_issue)
+        prescriptions = analyzer.analyze([_make_query("SELECT ... problematic ...")])
         assert len(prescriptions) == 1
-        assert prescriptions[0].severity == "high"
+        assert prescriptions[0].severity == Severity.WARNING
 
-    def test_no_false_positive(self, captured_queries_without_issue):
+    def test_no_false_positive(self):
         """Negative case: no issue reported when none exists."""
         analyzer = MyAnalyzer()
-        prescriptions = analyzer.analyze(captured_queries_without_issue)
+        prescriptions = analyzer.analyze([_make_query("SELECT id FROM books")])
         assert len(prescriptions) == 0
 
-    def test_threshold_boundary(self, captured_queries_at_threshold):
+    def test_threshold_boundary(self):
         """Edge case: behavior at exactly the threshold."""
         analyzer = MyAnalyzer()
-        prescriptions = analyzer.analyze(captured_queries_at_threshold)
+        prescriptions = analyzer.analyze([_make_query("SELECT ... at threshold ...")])
         assert len(prescriptions) == 0  # At threshold, not over
 ```
 
@@ -297,30 +312,44 @@ Create the analyzer in `src/query_doctor/analyzers/`:
 """Analyzer that detects [specific issue type]."""
 from __future__ import annotations
 
-from query_doctor.analyzers.base import BaseAnalyzer, Prescription
+from typing import Any
+
+from query_doctor.analyzers.base import BaseAnalyzer
+from query_doctor.types import CapturedQuery, Prescription
 
 
 class MyAnalyzer(BaseAnalyzer):
     """Detects [specific issue] in captured queries."""
 
-    def analyze(self, queries: list[CapturedQuery]) -> list[Prescription]:
+    name = "my_analyzer"
+
+    def analyze(
+        self,
+        queries: list[CapturedQuery],
+        models_meta: dict[str, Any] | None = None,
+    ) -> list[Prescription]:
         """Examine queries for [specific issue].
 
         Args:
             queries: List of captured and fingerprinted queries.
+            models_meta: Optional Django model metadata.
 
         Returns:
             List of prescriptions for any detected issues.
         """
-        prescriptions = []
+        if not self.is_enabled():
+            return []
+        prescriptions: list[Prescription] = []
         # Detection logic here
         return prescriptions
 ```
 
 ### 3. Register the Analyzer
 
-Add your analyzer to the default list in `src/query_doctor/conf.py` and
-update the documentation in `docs/analyzers/`.
+Add a `{"enabled": True}` entry for your analyzer's name under
+`DEFAULT_CONFIG["ANALYZERS"]` in `src/query_doctor/conf.py`, instantiate it in
+`plugin_api.get_builtin_analyzers()`, and update the documentation in
+`docs/analyzers/`.
 
 ### 4. Submit
 

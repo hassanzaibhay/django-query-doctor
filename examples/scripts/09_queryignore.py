@@ -13,28 +13,30 @@ print("""
 # .queryignore
 # ============
 
-# Ignore Django internal queries
-sql:SELECT * FROM django_session%
-sql:SELECT * FROM django_content_type%
+# Ignore findings mentioning Django internal tables
+# (sql rules match the finding DESCRIPTION, which contains table names)
+sql:%django_session%
+sql:%django_content_type%
 
-# Ignore queries from migrations
-file:*/migrations/*
+# Ignore findings from migration modules
+# (file rules glob against the FULL path — start with *)
+file:*migrations*
 
 # Ignore a specific known-acceptable callsite
-callsite:myapp/views.py:142
+# (must equal the path exactly as printed in the report)
+callsite:/app/myapp/views.py:142
 
 # Ignore N+1 in a legacy view we can't refactor yet
-ignore:nplusone:myapp/views.py:LegacyReportView
+# (issue types are enum values: n_plus_one, duplicate_query, ...)
+ignore:n_plus_one:myapp/views.py:LegacyReportView
 
-# Ignore all queries from management commands
-file:myapp/management/commands/*
+# Ignore all findings from management commands
+file:*myapp/management/commands/*
 
 # Lines starting with # are comments
 # Blank lines are ignored
 
-
-# Optional: set custom path in settings
-QUERY_DOCTOR = {
-    "QUERYIGNORE_PATH": "/path/to/custom/.queryignore",
-}
+# The file location is not configurable — query-doctor looks for
+# .queryignore next to manage.py (or the current working directory).
+# Rules apply in the middleware and fix_queries.
 """)

@@ -5,10 +5,13 @@ integration with observability platforms (Datadog, Grafana, Jaeger, etc.).
 
 OpenTelemetry is NOT required. If not installed, the reporter is a no-op.
 
-Configuration:
-    QUERY_DOCTOR = {
-        "REPORTERS": ["console", "otel"],
-    }
+NOTE: This reporter is not dispatched by the middleware's REPORTERS setting
+(which recognizes only "console", "json", and "log"). Instantiate and call
+it directly:
+
+    from query_doctor.reporters.otel_exporter import OTelReporter
+
+    OTelReporter().report(report)
 """
 
 from __future__ import annotations

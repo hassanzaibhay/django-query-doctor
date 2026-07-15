@@ -12,17 +12,23 @@ from celery import shared_task
 from query_doctor.celery_integration import diagnose_task
 from query_doctor import diagnose_queries
 
-# --- Option A: Decorator ---
+# --- Option A: Decorator with callback (recommended) ---
+# diagnose_task does NOT print or dispatch to the REPORTERS setting;
+# results are delivered only via the on_report callback.
+def log_findings(report):
+    for rx in report.prescriptions:
+        logger.warning("%s: %s", rx.severity.value, rx.description)
+
+
 @shared_task
-@diagnose_task
+@diagnose_task(on_report=log_findings)
 def send_weekly_report():
     users = User.objects.all()
     for user in users:
-        # N+1 — will be detected and reported via configured reporters
-        send_email(user.profile.email, generate_report(user))
+        send_email(user.profile.email, generate_report(user))  # N+1 detected
 
 
-# --- Option B: Decorator with callback ---
+# --- Option B: Inline callback ---
 @shared_task
 @diagnose_task(on_report=lambda r: logger.warning(f"Issues: {len(r.prescriptions)}"))
 def process_orders():
@@ -43,6 +49,6 @@ def cleanup_old_data():
         logger.warning(f"Query issues in cleanup: {report.issues}")
 
 
-# Celery is NOT a required dependency.
-# If not installed, @diagnose_task is a no-op passthrough.
+# Celery is NOT a required dependency — @diagnose_task wraps any
+# callable and works the same with or without Celery installed.
 """)

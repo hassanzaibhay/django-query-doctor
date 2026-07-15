@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## Upgrading to 2.1.0
+## [2.1.0] - Unreleased
+
+> **PyPI note:** 2.1.0 is the first release published to PyPI since 2.0.0.
+> The `[2.0.1]` and `[1.0.3]` entries below describe versions that were
+> merged and tagged in this repository but never uploaded to PyPI (PyPI has
+> only 1.0.0, 1.0.1, 1.0.2, and 2.0.0). If you are upgrading from 2.0.0,
+> this release is therefore your first with the 2.0.1 `fix_queries --apply`
+> corruption fix. If you ever ran `--apply` on 2.0.0, follow the damage
+> detection steps in `UPGRADING.md` ("If you ran fix_queries --apply on
+> 2.0.0") before trusting that source.
+
+### Upgrading to 2.1.0
 
 `nplusone`, `duplicate`, and `missing_index` now respect their
 `ANALYZERS.<name>.enabled` config setting, and every dispatch path
@@ -18,9 +29,7 @@ analyzers instead of a hardcoded subset. If you use `check_queries
 analyzer coverage means an old baseline will report newly-covered findings as
 regressions until it's refreshed. Comparing against a baseline saved with a
 different query-doctor version now prints a non-blocking warning rather than
-failing the check.
-
-## [2.1.0] - 2026-07-14
+failing the check. See `UPGRADING.md` for the full 2.1.0 upgrade checklist.
 
 ### Added
 - `IssueType.SERIALIZER_METHOD_FIELD` — findings from `SerializerMethodAnalyzer`
@@ -42,9 +51,11 @@ failing the check.
 - `serializer_method` now has a `DEFAULT_CONFIG` entry, so
   `ANALYZERS.serializer_method.enabled = False` actually disables it.
   Previously there was no config key to set, so the analyzer always ran.
-- `fat_select`'s column-count threshold is now configurable via
-  `ANALYZERS.fat_select.threshold` (previously only overridable by
-  constructing the analyzer directly; the config key didn't exist).
+- `fat_select`'s column-count threshold config key was **renamed** from
+  `ANALYZERS.fat_select.field_count_threshold` (the key 2.0.x read) to
+  `ANALYZERS.fat_select.threshold`, matching the other analyzers. The old
+  key is now **silently ignored** — if you set `field_count_threshold` in
+  your settings, rename it to `threshold` when upgrading.
 - `fix_queries --issue-type` now validates against the five fixer-backed
   issue types instead of silently accepting any string and producing zero
   fixes on a typo.
@@ -62,6 +73,12 @@ failing the check.
   built-in analyzer count is now 7.
 
 ## [2.0.1] - 2026-07-13
+
+> **Never published to PyPI.** This version was merged and tagged in the
+> repository but not uploaded; PyPI's latest remained 2.0.0. Its changes —
+> including the `fix_queries --apply` corruption fix below — first reach
+> PyPI in 2.1.0. To check whether a 2.0.0 `--apply` run already damaged
+> your source, see `UPGRADING.md`.
 
 ### Added
 - `.github/pull_request_template.md` — PR template (summary, type, changelog
@@ -186,6 +203,9 @@ failing the check.
 
 ## [1.0.3] - 2026-03-18
 
+> **Never published to PyPI.** This version exists only in the repository
+> history; its changes first shipped to PyPI as part of 2.0.0.
+
 ### Fixed
 - Missing Index analyzer now recommends `Meta.indexes` with `models.Index()` instead of `db_index=True`, following Django's official recommendation since 4.2 (fixes #1)
 - Auto-fix for missing indexes now generates `Meta.indexes` suggestion instead of `db_index=True`
@@ -213,6 +233,16 @@ failing the check.
 - Updated .gitignore with additional exclusions
 
 ## [1.0.0] - 2026-03-13
+
+> **Historical note (added during the 2.1.0 remediation):** two features
+> listed below never functioned in any release. The runtime "DRF Serializer
+> N+1" analyzer returned no results through any reachable code path and was
+> removed in 2.1.0 (see the [2.1.0] "Removed" entry; static DRF analysis via
+> `check_serializers` replaces it). "Admin dashboard integration showing
+> latest project scan results" never activated: `record_project_report` has
+> no caller in any released version and the dashboard template does not
+> render project-report data. The original entries are preserved unchanged
+> below.
 
 ### Added
 

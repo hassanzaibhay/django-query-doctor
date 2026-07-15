@@ -47,7 +47,20 @@ QUERY_DOCTOR = {
     },
 
     # Admin-integrated dashboard showing recent diagnosis reports.
+    # NOTE: max_reports is present in the defaults but the buffer size is
+    # currently fixed at 50 - changing it has no effect.
     "ADMIN_DASHBOARD": {"enabled": False, "max_reports": 50},
+
+    # Module suffixes check_serializers imports from each app when
+    # discovering DRF serializers for static analysis.
+    "AST_ANALYSIS": {
+        "SERIALIZER_MODULES": [
+            "serializers",
+            "api.serializers",
+            "api.v1.serializers",
+            "api.v2.serializers",
+        ],
+    },
 }
 ```
 

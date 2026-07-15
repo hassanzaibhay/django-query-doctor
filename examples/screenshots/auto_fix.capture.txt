@@ -1,0 +1,23 @@
+Dry run: showing proposed changes:
+
+--- C:\Users\hassa\AppData\Local\Temp\pytest-of-Hassan Zaib\pytest-46\test_capture_fix_queries_dry_r0\views.py
++++ C:\Users\hassa\AppData\Local\Temp\pytest-of-Hassan Zaib\pytest-46\test_capture_fix_queries_dry_r0\views.py
+@@ -2,1 +2,1 @@
+  [N+1 detected: 12 queries for table "myapp_author" (field: author)] [MANUAL FIX ONLY]
+-     books = Book.objects.all()
++     books = Book.objects.all().select_related('author')
+--- C:\Users\hassa\AppData\Local\Temp\pytest-of-Hassan Zaib\pytest-46\test_capture_fix_queries_dry_r0\views.py
++++ C:\Users\hassa\AppData\Local\Temp\pytest-of-Hassan Zaib\pytest-46\test_capture_fix_queries_dry_r0\views.py
+@@ -5,1 +5,1 @@
+  [Inefficient queryset evaluation: len(qs)]
+-     total = len(books)
++     total = books.count()
+--- C:\Users\hassa\AppData\Local\Temp\pytest-of-Hassan Zaib\pytest-46\test_capture_fix_queries_dry_r0\views.py
++++ C:\Users\hassa\AppData\Local\Temp\pytest-of-Hassan Zaib\pytest-46\test_capture_fix_queries_dry_r0\views.py
+@@ -6,1 +6,1 @@
+  [Missing index: column "published_date" on Book (table "myapp_book") is used in WHERE/ORDER BY but has no index]
+-     recent = Book.objects.filter(published_date__gte=cutoff)
++     # TODO: Consider adding an index via Meta.indexes - Add db_index=True to the 'published_date' field
++     recent = Book.objects.filter(published_date__gte=cutoff)
+
+3 fix(es) available. Run with --apply to write changes.

@@ -153,7 +153,7 @@ class QueryComplexityAnalyzer(BaseAnalyzer):
         join_count = len(_RE_JOIN.findall(upper))
         if join_count > 3:
             suggestions.append(
-                f"Consider breaking this query into smaller queries — "
+                f"Consider breaking this query into smaller queries: "
                 f"{join_count} JOINs detected. Use select_related for 1-2 "
                 f"FKs and prefetch_related for the rest."
             )

@@ -33,7 +33,7 @@ python manage.py check_serializers --format=json
 python manage.py check_serializers --fail-on=warning
 ```
 
-## What It Detects
+## Detected Patterns
 
 The analyzer walks the AST of each `get_<field>` method and detects four patterns:
 
@@ -88,15 +88,13 @@ def get_review_count(self, obj):
 ## Prescription Output
 
 ```
-WARNING  N+1 risk in BookSerializer.get_total(): 'obj.items.count()' triggers a query per object
-  Location: myapp/serializers.py:45 (get_total)
-  Fix:      Use queryset.annotate() or prefetch_related('items') instead of
-            accessing 'items' in the serializer method
+WARNING: N+1 risk in BookSerializer.get_total(): 'obj.items.count()' triggers a query per object
+   Location: myapp/serializers.py:45 in get_total
+   Fix: Use queryset.annotate() or prefetch_related('items') instead of accessing 'items' in the serializer method
 
-INFO     Possible N+1 in BookSerializer.get_author_name(): 'obj.author.name' may
-         trigger a query per object if 'author' is not select_related
-  Location: myapp/serializers.py:52 (get_author_name)
-  Fix:      Add select_related('author') to the viewset queryset
+INFO: Possible N+1 in BookSerializer.get_author_name(): 'obj.author.name' may trigger a query per object if 'author' is not select_related
+   Location: myapp/serializers.py:52 in get_author_name
+   Fix: Add select_related('author') to the viewset queryset
 ```
 
 ## Configuration

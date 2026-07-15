@@ -1,18 +1,17 @@
 """Pytest plugin for django-query-doctor.
 
-Provides a ``query_doctor`` fixture that automatically captures and analyzes
-SQL queries during each test. Enable with ``--query-doctor`` on the pytest
-command line or by setting ``query_doctor = true`` in pytest.ini.
+Provides a ``query_doctor`` fixture that captures SQL queries during a
+test. The fixture is opt-in by usage: request it as a test argument and
+capture runs for that test only.
+
+NOTE: The returned DiagnosisReport is populated in a test *finalizer*,
+i.e. after the test body has finished. Assertions on it inside the test
+body see an empty report. For in-test assertions, use the
+``diagnose_queries()`` context manager instead.
 
 Registration:
     The plugin is auto-discovered via the ``pytest11`` entry point
     defined in pyproject.toml.
-
-Usage:
-    def test_my_view(query_doctor):
-        response = client.get('/api/books/')
-        assert query_doctor.issues == 0
-        assert query_doctor.total_queries <= 10
 """
 
 from __future__ import annotations
@@ -28,32 +27,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger("query_doctor")
 
 
-def pytest_addoption(parser: Any) -> None:
-    """Add --query-doctor command-line option to pytest.
-
-    Args:
-        parser: The pytest argument parser.
-    """
-    group = parser.getgroup("query_doctor", "Django Query Doctor")
-    group.addoption(
-        "--query-doctor",
-        action="store_true",
-        default=False,
-        help="Enable query doctor analysis for all tests",
-    )
-
-
 @pytest.fixture()
 def query_doctor(request: pytest.FixtureRequest) -> DiagnosisReport:
-    """Fixture that captures and analyzes SQL queries during a test.
+    """Fixture that captures SQL queries during a test.
 
-    Returns a DiagnosisReport that is populated with query data.
-    The report is available during the test for assertions.
+    Returns a DiagnosisReport that is populated in a test finalizer,
+    i.e. AFTER the test body finishes. Assertions on it inside the test
+    body see an empty report (they pass vacuously). For in-test
+    assertions, use the diagnose_queries() context manager instead:
 
-    Usage:
-        def test_optimized(query_doctor):
-            list(Book.objects.select_related('author').all())
-            assert query_doctor.issues == 0
+        from query_doctor.context_managers import diagnose_queries
+
+        def test_optimized():
+            with diagnose_queries() as report:
+                list(Book.objects.select_related('author').all())
+            assert report.issues == 0
     """
     from query_doctor.interceptor import QueryInterceptor
     from query_doctor.types import DiagnosisReport

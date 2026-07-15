@@ -7,14 +7,14 @@ or inefficient queryset evaluation. Django querysets are lazy -- they only hit
 the database when evaluated. Certain Python idioms inadvertently trigger full
 evaluation when a more efficient ORM method exists.
 
-The analyzer flags four main patterns:
+The analyzer inspects the captured call-site code context and flags three
+patterns:
 
 | Pattern | Inefficient | Efficient |
 |---------|-------------|-----------|
 | Counting rows | `len(queryset)` | `queryset.count()` |
 | Checking existence | `if queryset:` / `bool(queryset)` | `queryset.exists()` |
-| Iterating multiple times | looping over the same queryset twice | evaluate once into a list, or restructure |
-| Slicing after evaluation | `list(qs)[5:10]` | `qs[5:10]` (database LIMIT/OFFSET) |
+| First element via list | `list(qs)[0]` | `qs.first()` |
 
 ## Problem Code
 
@@ -40,25 +40,13 @@ def dashboard(request):
         send_alert()
 ```
 
-### Iterating a QuerySet Multiple Times
+### `list(qs)[0]` Instead of `.first()`
 
 ```python
 # views.py
 
-def report(request):
-    books = Book.objects.all()
-    titles = [b.title for b in books]   # query 1 -- full evaluation
-    authors = [b.author for b in books] # query 2 -- evaluates again
-```
-
-### Slicing After Evaluation
-
-```python
-# views.py
-
-def paginated(request):
-    all_books = list(Book.objects.all())  # loads ALL rows
-    page = all_books[20:30]               # slices in Python
+def latest(request):
+    newest = list(Book.objects.order_by("-created_at"))[0]  # loads ALL rows
 ```
 
 ## Fix Code
@@ -79,57 +67,48 @@ def dashboard(request):
         send_alert()
 ```
 
-### Evaluate Once
+### Use `.first()`
 
 ```python
-def report(request):
-    books = list(Book.objects.select_related("author"))  # one query
-    titles = [b.title for b in books]
-    authors = [b.author for b in books]  # no extra query -- already loaded
-```
-
-### Slice at the Database Level
-
-```python
-def paginated(request):
-    page = Book.objects.all()[20:30]  # SELECT ... LIMIT 10 OFFSET 20
+def latest(request):
+    newest = Book.objects.order_by("-created_at").first()  # SELECT ... LIMIT 1
 ```
 
 ## Prescription Output
 
+Console output (severity is always INFO):
+
 ```
-[MEDIUM] Inefficient QuerySet Evaluation
-  Location: views.py:5
-  Issue:    `len()` called on a queryset. This loads all rows into memory
-            to count them. Use `.count()` for a database-level COUNT.
-  Fix:
-            - total = len(books)
-            + total = books.count()
+INFO: Inefficient queryset evaluation: len(qs)
+   Location: /app/myapp/views.py:5 in stats
+   Code: total = len(books)
+   Fix: Use .count() instead of len() to let the database count rows. If iterating afterward, consider .iterator() for large querysets
 ```
 
 ```
-[MEDIUM] Inefficient QuerySet Evaluation
-  Location: views.py:4
-  Issue:    QuerySet used in a boolean context (`if queryset:`). This evaluates
-            the full queryset. Use `.exists()` to check with a LIMIT 1 query.
-  Fix:
-            - if pending:
-            + if pending.exists():
+INFO: Inefficient queryset evaluation: bool(qs)
+   Location: /app/myapp/views.py:4 in dashboard
+   Code: if pending:
+   Fix: Use .exists() instead of bool()/if to check for rows without loading them
 ```
 
 ## Configuration
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `QUERYSET_EVAL_ENABLED` | `True` | Set to `False` to disable this analyzer. |
-| `QUERYSET_EVAL_IGNORE_SMALL` | `False` | When `True`, skip reporting for querysets that return fewer than 10 rows. Useful for reducing noise on small lookup tables. |
+| `ANALYZERS.queryset_eval.enabled` | `True` | Set to `False` to disable this analyzer. |
 
 ```python
 # settings.py
 QUERY_DOCTOR = {
-    "QUERYSET_EVAL_IGNORE_SMALL": True,
+    "ANALYZERS": {
+        "queryset_eval": {"enabled": False},
+    },
 }
 ```
+
+> **Note:** Detection relies on the captured stack trace's code context, so
+> `CAPTURE_STACK_TRACES` must remain enabled (it is by default).
 
 ## Common Scenarios
 
@@ -187,9 +166,10 @@ for item in items:
 !!! warning "Evaluated QuerySets Are Cached"
     After a queryset is fully evaluated (e.g., by iterating it), Django caches
     the results internally. A second iteration of the **same Python object**
-    does not hit the database again. The analyzer detects cases where a
-    **new queryset** is constructed with identical SQL, or where `.count()` /
-    `.exists()` would avoid the initial full evaluation entirely.
+    does not hit the database again. Repeated identical SQL from **new**
+    queryset objects is the [Duplicate Query analyzer](duplicate.md)'s
+    territory; this analyzer flags call sites where `.count()`, `.exists()`,
+    or `.first()` would avoid the full evaluation entirely.
 
 !!! info "When `len()` Is Acceptable"
     If you need both the count and the rows, evaluating the queryset into a

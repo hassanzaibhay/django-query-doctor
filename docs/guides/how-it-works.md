@@ -34,7 +34,7 @@ The interceptor is installed by the middleware at the start of each request and 
 
 Every captured SQL query is normalized and hashed to produce a **fingerprint**:
 
-1. **Normalization** -- Literal values (`WHERE id = 42`) are replaced with placeholders (`WHERE id = ?`). `IN` clauses are collapsed (`IN (?, ?, ?)` becomes `IN (?+)`).
+1. **Normalization** -- Literal values (`WHERE id = 42`) are replaced with placeholders (`WHERE id = ?`). `IN` clauses are collapsed (`IN (?, ?, ?)` becomes `IN (?)`).
 2. **Hashing** -- The normalized SQL string is hashed with SHA-256 to produce a compact, deterministic identifier.
 3. **Grouping** -- Queries with the same fingerprint are grouped together. A group of 50 queries with the same fingerprint is a strong signal of an N+1 problem.
 
@@ -50,7 +50,7 @@ Grouped queries are passed through a chain of **analyzers**, each responsible fo
 | `DuplicateAnalyzer` | Exact-duplicate queries (same SQL + params) within one request | [Duplicates](../analyzers/duplicate.md) |
 | `MissingIndexAnalyzer` | `WHERE`/`ORDER BY` on columns without indexes | [Missing Indexes](../analyzers/missing-index.md) |
 | `FatSelectAnalyzer` | `SELECT *` when only a few columns are used | [Fat SELECT](../analyzers/fat-select.md) |
-| `QuerysetEvalAnalyzer` | Unnecessary queryset evaluations (e.g., `len(qs)` instead of `qs.count()`, `if qs:` instead of `qs.exists()`) | [Queryset Evaluation](../analyzers/queryset-eval.md) |
+| `QuerySetEvalAnalyzer` | Unnecessary queryset evaluations (e.g., `len(qs)` instead of `qs.count()`, `if qs:` instead of `qs.exists()`) | [Queryset Evaluation](../analyzers/queryset-eval.md) |
 | `QueryComplexityAnalyzer` | Overly complex queries (too many JOINs, subqueries) | [Query Complexity](../analyzers/query-complexity.md) |
 | `SerializerMethodAnalyzer` | N+1 patterns inside DRF `SerializerMethodField` methods (static AST analysis) | [SerializerMethodField](../analyzers/drf-serializer.md) |
 
@@ -60,13 +60,14 @@ Analyzers are independent and stateless. You can enable or disable each one indi
 
 Prescriptions from all analyzers are collected and passed to one or more **reporters**. Reporters format the results for different consumption targets:
 
-| Reporter | Output |
-|---|---|
-| `ConsoleReporter` | Rich-formatted terminal output (falls back to plain text if Rich is not installed) |
-| `JsonReporter` | Structured JSON for CI/CD pipelines and tooling |
-| `HtmlReporter` | Self-contained HTML page for the admin dashboard |
-| `LogReporter` | Python `logging` integration |
-| `OtelReporter` | OpenTelemetry spans and attributes |
+| Reporter | `REPORTERS` name | Output |
+|---|---|---|
+| `ConsoleReporter` | `"console"` | Rich-formatted terminal output (falls back to plain text if Rich is not installed) |
+| `JSONReporter` | `"json"` | Structured JSON for CI/CD pipelines and tooling (written to `JSON_REPORT_PATH`) |
+| `LogReporter` | `"log"` | Python `logging` integration |
+| `OTelReporter` | not dispatched by `REPORTERS` -- invoke directly | OpenTelemetry spans and attributes |
+
+HTML output comes from the management commands (`diagnose_project`, `query_doctor_report`) rather than the middleware reporter pipeline. See [Reporters](../reporters/index.md).
 
 ---
 
@@ -121,9 +122,9 @@ flowchart TD
     A3 --> RX
     A4 --> RX
     RX --> R1["ConsoleReporter"]
-    RX --> R2["JsonReporter"]
-    RX --> R3["HtmlReporter"]
-    R1 --> OUT["Terminal / Logs / Dashboard"]
+    RX --> R2["JSONReporter"]
+    RX --> R3["LogReporter"]
+    R1 --> OUT["Terminal / JSON file / Logs"]
     R2 --> OUT
     R3 --> OUT
 ```

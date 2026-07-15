@@ -28,23 +28,27 @@ python manage.py runserver
 Browse your app as normal. Every request will now show query analysis in your console:
 
 ```
-══════════════════════════════════════════════════════
- Query Doctor Report
- Total queries: 53 | Time: 127.3ms | Issues: 3
-══════════════════════════════════════════════════════
+============================================================
+Query Doctor Report
+Total queries: 53 | Time: 127.3ms | Issues: 3
+============================================================
 
- CRITICAL  N+1 detected: 47 queries for table "myapp_author"
+CRITICAL: N+1 detected: 47 queries for table "myapp_author" (field: author)
    Location: myapp/views.py:83 in get_queryset
    Fix: Add .select_related('author') to your queryset
    Queries: 47 | Est. savings: ~89.0ms
 
- WARNING  Duplicate query: 6 identical queries
+WARNING: Duplicate query: 6 identical queries for table "myapp_book"
    Location: myapp/views.py:91 in get_context_data
-   Fix: Assign the queryset result to a variable and reuse it
+   Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+   Queries: 6 | Est. savings: ~4.2ms
 
- INFO  Column "published_date" has no index on "myapp_book"
-   Fix: Add models.Index(fields=["published_date"]) to Book's Meta.indexes
+INFO: Missing index: column "published_date" on Book (table "myapp_book") is used in WHERE/ORDER BY but has no index
+   Location: myapp/views.py:83 in get_queryset
+   Fix: Add to Book's Meta.indexes: indexes = [models.Index(fields=["published_date"], name="idx_myapp_book_published_date")]
 ```
+
+(With [Rich](https://github.com/Textualize/rich) installed, the same content renders with colors and panels.)
 
 Every issue includes the exact file, line number, and a ready-to-apply fix.
 
@@ -69,5 +73,5 @@ python manage.py fix_queries --url /api/books/
 
 - [Configuration](configuration.md) — Customize which analyzers run, set thresholds, choose reporters
 - [Analyzers Overview](../analyzers/overview.md) — Deep dive into what each analyzer detects
-- [Management Commands](../guides/management-commands.md) — Full reference for all 4 commands
+- [Management Commands](../guides/management-commands.md) — Full reference for all 6 commands
 - [Pytest Plugin](../guides/pytest-plugin.md) — Catch query issues in your test suite

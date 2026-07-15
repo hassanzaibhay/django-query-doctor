@@ -38,13 +38,25 @@ assert report.issues > 0
 print(f"Found {report.issues} issues in {report.total_queries} queries")
 ```
 
-Output:
+Console output (plain-text renderer; Rich adds colors and panels):
 
 ```
-[CRITICAL] N+1 Query
-  50 queries fetching Author for each Book.
-  Location: views.py:42
-  Fix: Add select_related('author') to queryset
+============================================================
+Query Doctor Report
+Total queries: 13 | Time: 0.2ms | Issues: 2
+============================================================
+
+CRITICAL: N+1 detected: 12 queries for table "myapp_author" (field: author)
+   Location: myapp/views.py:12 in list_books
+   Code: _ = book.author.name  # triggers N+1
+   Fix: Add .select_related('author') to your queryset
+   Queries: 12 | Est. savings: ~0.2ms
+
+INFO: Fat SELECT: 8 columns from "myapp_book" including large fields: description
+   Location: myapp/views.py:10 in list_books
+   Code: books = list(Book.objects.all())
+   Fix: Use .defer('description') to skip loading large fields, or .values()/.values_list() if you don't need model instances
+   Queries: 1 | Est. savings: ~0.0ms
 ```
 
 ## What It Detects

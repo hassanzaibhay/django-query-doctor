@@ -6,7 +6,7 @@ The `.queryignore` file lets you suppress specific django-query-doctor findings.
 
 ## Setup
 
-Create a `.queryignore` file in your project root (the same directory as `manage.py`):
+Create a `.queryignore` file in your project root (the directory containing `manage.py`; if none is found, the current working directory is used):
 
 ```bash
 touch .queryignore
@@ -16,82 +16,91 @@ django-query-doctor checks for this file automatically. No settings changes are 
 
 ---
 
-## Syntax
+## Where It Applies
 
-Each line in `.queryignore` specifies a **file pattern** and an **analyzer name**, separated by whitespace:
+`.queryignore` rules are applied by:
 
-```text title=".queryignore"
-# Syntax: file_pattern  analyzer_name
+- the **middleware** (per-request reports), and
+- the **`fix_queries`** management command.
 
-myapp/views.py  nplusone
-myapp/serializers.py  duplicate
-```
-
-This suppresses:
-
-- All N+1 prescriptions originating from `myapp/views.py`.
-- All duplicate query prescriptions originating from `myapp/serializers.py`.
-
-### Wildcards
-
-Standard glob wildcards are supported in file patterns:
-
-```text title=".queryignore"
-# All files in the legacy app
-legacy_app/*  nplusone
-legacy_app/*  duplicate
-
-# All serializers in any app
-*/serializers.py  drf_serializer
-
-# All Python files in a specific directory
-reports/**/*.py  fat_select
-
-# A specific file, all analyzers
-myapp/views.py  *
-```
-
-| Pattern | Matches |
-|---|---|
-| `myapp/views.py` | Exactly `myapp/views.py` |
-| `myapp/*.py` | All `.py` files directly in `myapp/` |
-| `myapp/**/*.py` | All `.py` files in `myapp/` and subdirectories |
-| `*/views.py` | `views.py` in any top-level app directory |
-| `*` (as analyzer) | All analyzers |
-
-### Comments
-
-Lines starting with `#` are comments. Blank lines are ignored:
-
-```text title=".queryignore"
-# Known N+1 in the legacy dashboard — will fix in Q3
-dashboard/views.py  nplusone
-
-# Third-party integration we cannot modify
-vendor/api_client.py  *
-
-# Intentional: we want SELECT * here for caching
-cache/warmers.py  fat_select
-```
+They are **not** applied by `check_queries`, `diagnose_project`, the pytest fixture, or the `diagnose_queries()` context manager. Suppressed prescriptions are removed before reporting, so they do not appear in middleware console/JSON output and do not produce fixes.
 
 ---
 
-## Analyzer Names
+## Syntax
 
-Use the analyzer's `name` attribute as the second field:
+Each rule is one line in the form `type: pattern`. Four rule types exist: `file`, `callsite`, `ignore`, and `sql`. Lines starting with `#` and blank lines are skipped. Any line that does not contain a `:` is silently ignored — there is no error for a malformed rule, so double-check your spelling.
 
-| Analyzer Name | What It Detects |
+```text title=".queryignore"
+# Suppress every finding whose callsite is in this file (glob, full path)
+file: *myapp/views.py
+
+# Suppress findings at one exact file:line
+callsite: /app/myapp/views.py:42
+
+# Suppress one issue type in files whose path contains a substring
+ignore: n_plus_one:legacy_app
+
+# Suppress findings whose description contains a SQL fragment
+sql: %myapp_author%
+```
+
+### `file:` rules
+
+The pattern is matched against the prescription's callsite file path with [`fnmatch`](https://docs.python.org/3/library/fnmatch.html) glob matching. The path recorded at capture time is the **full path** from the Python stack frame, so patterns usually need a leading `*`:
+
+```text title=".queryignore"
+# All findings from views.py in myapp
+file: *myapp/views.py
+
+# All findings anywhere under legacy_app/
+file: *legacy_app/*
+```
+
+### `callsite:` rules
+
+The pattern must equal the prescription's `filepath:line_number` exactly — no globbing. Use the file path exactly as django-query-doctor prints it in its reports:
+
+```text title=".queryignore"
+callsite: /app/blog/views.py:87
+```
+
+### `ignore:` rules
+
+The pattern has the form `issue_type:path_substring` (an optional third `:`-separated part is accepted and ignored). It suppresses prescriptions whose issue type matches **and** whose callsite path **contains** the given substring (plain substring, not a glob):
+
+```text title=".queryignore"
+# Known N+1 in the legacy dashboard - tracked in JIRA-1234
+ignore: n_plus_one:dashboard
+
+# Duplicate queries in test fixtures are intentional
+ignore: duplicate_query:tests/
+```
+
+The issue type must be one of the values below (these are the `IssueType` enum values, not the analyzer names):
+
+| Issue type value | Produced by |
 |---|---|
-| `nplusone` | N+1 query patterns |
-| `duplicate` | Duplicate queries |
-| `missing_index` | Missing database indexes |
-| `fat_select` | Unnecessary `SELECT *` |
-| `queryset_eval` | Redundant queryset evaluations |
-| `drf_serializer` | N+1 in DRF serializers |
-| `query_complexity` | Overly complex queries |
-| `*` | All analyzers |
+| `n_plus_one` | nplusone analyzer |
+| `duplicate_query` | duplicate analyzer |
+| `missing_index` | missing_index analyzer |
+| `fat_select` | fat_select analyzer |
+| `queryset_eval` | queryset_eval analyzer |
+| `complexity` | complexity analyzer |
+| `serializer_method_field` | serializer_method analyzer (`check_serializers`) |
 
-For custom analyzers, use the name specified in the analyzer's `name` class attribute.
+> **Note:** It is `n_plus_one`, not `nplusone`, and `duplicate_query`, not `duplicate`. A rule written with the analyzer name instead of the issue type value never matches — and no warning is printed.
+
+### `sql:` rules
+
+Best-effort matching against the prescription's **description text**: the pattern is glob-matched as a substring of the description, and SQL `%` wildcards are treated as `*`:
+
+```text title=".queryignore"
+# Suppress findings that mention the author table
+sql: %myapp_author%
+```
+
+Because prescription descriptions contain table names rather than full SQL, `sql:` rules are mostly useful for table-name matching. Prefer `file:` or `ignore:` rules where possible.
 
 ---
 
@@ -100,54 +109,23 @@ For custom analyzers, use the name specified in the analyzer's `name` class attr
 ### Suppress a Known N+1 in a Legacy View
 
 ```text title=".queryignore"
-# Legacy view has N+1 on author — tracked in JIRA-1234
-blog/views.py  nplusone
+# Legacy view has N+1 on author - tracked in JIRA-1234
+ignore: n_plus_one:blog/views.py
 ```
 
 ### Suppress All Issues in Generated Code
 
 ```text title=".queryignore"
-# Auto-generated admin views
-*/admin.py  *
+# Auto-generated admin modules
+file: *admin.py
 ```
 
-### Suppress Duplicate Queries in Tests
-
-```text title=".queryignore"
-# Test fixtures create duplicate queries intentionally
-tests/**/*.py  duplicate
-```
-
-### Suppress Missing Index Warnings for Small Tables
+### Suppress Missing Index Warnings for a Small Table
 
 ```text title=".queryignore"
 # settings table has <100 rows, index would add overhead
-config/models.py  missing_index
+ignore: missing_index:config/models.py
 ```
-
----
-
-## How Matching Works
-
-When django-query-doctor generates a prescription, it checks the prescription's `location` (file path) against each line in `.queryignore`:
-
-1. The file path from the prescription is made relative to the project root.
-2. Each `.queryignore` entry's file pattern is matched against this relative path using glob matching.
-3. If the file pattern matches **and** the analyzer name matches (or is `*`), the prescription is suppressed.
-
-Suppressed prescriptions are not shown in console output, not included in JSON reports, and do not cause `--fail` to trigger.
-
----
-
-## Viewing Suppressed Issues
-
-To see what is being suppressed, use the `--show-ignored` flag with any management command:
-
-```bash
-python manage.py check_queries --url /api/books/ --show-ignored
-```
-
-This prints suppressed prescriptions separately, so you can review whether your ignore rules are still appropriate.
 
 ---
 
@@ -166,6 +144,5 @@ Best practices:
 
 ## Further Reading
 
-- [CI Integration](ci-integration.md) -- How `.queryignore` interacts with CI pipelines.
 - [Auto-Fix](auto-fix.md) -- Fix issues instead of ignoring them.
-- [Custom Plugins](custom-plugins.md) -- Custom analyzers respect `.queryignore` automatically.
+- [Middleware](middleware.md) -- Where per-request suppression happens.

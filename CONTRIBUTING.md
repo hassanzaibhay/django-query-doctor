@@ -111,6 +111,10 @@ should add a line under `[Unreleased]` (in `### Added` / `### Changed` /
 renamed to the version heading and a new empty `[Unreleased]` is added above
 it.
 
+Version headings carry the actual PyPI upload date. A version that is staged
+but not yet published uses `- Unreleased` in place of the date; setting the
+real date is part of the publish step.
+
 ## TDD
 
 We follow test-driven development:

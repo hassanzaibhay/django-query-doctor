@@ -1,204 +1,134 @@
 # Pytest Plugin
 
-django-query-doctor includes a pytest plugin that is **automatically registered** when the package is installed. No additional configuration is needed. The plugin provides markers, fixtures, and context managers for asserting query behavior in your test suite.
+django-query-doctor includes a pytest plugin that is **automatically registered** when the package is installed (via the `pytest11` entry point). No additional configuration is needed. The plugin provides one fixture, `query_doctor`; for in-test assertions, the `diagnose_queries()` context manager is the recommended tool.
 
 ---
 
-## Markers
+## The `query_doctor` Fixture
 
-### `@pytest.mark.query_budget`
-
-Assert that a test does not exceed a maximum number of database queries:
+Requesting the `query_doctor` fixture in a test turns on query capture for that test. The fixture returns a `DiagnosisReport` object:
 
 ```python
 import pytest
 
 
 @pytest.mark.django_db
-@pytest.mark.query_budget(max_queries=5)
-def test_book_list_view(client):
-    """The book list endpoint should execute at most 5 queries."""
+def test_book_list_view(client, query_doctor):
     response = client.get("/api/books/")
     assert response.status_code == 200
 ```
 
-If the test executes more than 5 queries, it **fails** with a detailed report:
+> **Important:** The report is populated in a test *finalizer* — after the test body has finished running. Assertions on `query_doctor` inside the test body see an empty report (`total_queries == 0`, `issues == 0`) and pass vacuously. Use the fixture to enable capture; use the [`diagnose_queries()` context manager](#context-manager-in-tests) when you want to assert on results inside the test.
 
-```
-FAILED test_views.py::test_book_list_view - QueryBudgetExceeded:
-  Expected at most 5 queries, but 23 were executed.
-
-  Top query groups:
-    1. SELECT "myapp_author".* FROM "myapp_author" WHERE ... (x18) — myapp/models.py:47
-    2. SELECT "myapp_book".* FROM "myapp_book" (x1) — myapp/views.py:83
-    3. SELECT "myapp_publisher".* FROM "myapp_publisher" WHERE ... (x3) — myapp/serializers.py:12
-    4. SELECT COUNT(*) FROM "myapp_book" (x1) — django/core/paginator.py:96
-```
-
-### `@pytest.mark.no_nplusone`
-
-Assert that a test does not trigger any N+1 query patterns:
-
-```python
-import pytest
-
-
-@pytest.mark.django_db
-@pytest.mark.no_nplusone
-def test_book_detail_serializer(client, book):
-    """The book detail endpoint should not have N+1 queries."""
-    response = client.get(f"/api/books/{book.pk}/")
-    assert response.status_code == 200
-```
-
-If an N+1 pattern is detected, the test fails with the prescription details:
-
-```
-FAILED test_views.py::test_book_detail_serializer - NPlusOneDetected:
-  N+1 detected: 12 queries for table "myapp_category"
-  Location: myapp/serializers.py:34 in BookSerializer
-  Fix: Add .prefetch_related('categories') to the queryset in your view or serializer
-```
-
-### Combining Markers
-
-Markers can be combined on a single test:
-
-```python
-@pytest.mark.django_db
-@pytest.mark.query_budget(max_queries=10)
-@pytest.mark.no_nplusone
-def test_dashboard_view(client, admin_user):
-    client.force_login(admin_user)
-    response = client.get("/dashboard/")
-    assert response.status_code == 200
-```
-
----
-
-## The `query_report` Fixture
-
-The `query_report` fixture gives you programmatic access to the full analysis results within a test:
-
-```python
-import pytest
-
-
-@pytest.mark.django_db
-def test_inspect_queries(client, query_report):
-    """Use the query_report fixture to inspect query details."""
-    response = client.get("/api/books/")
-
-    # Access the captured data
-    assert query_report.query_count < 15
-    assert query_report.total_time_ms < 100
-
-    # Check for specific analyzer results
-    nplusone_issues = [
-        p for p in query_report.prescriptions
-        if p.analyzer == "nplusone"
-    ]
-    assert len(nplusone_issues) == 0, (
-        f"Found {len(nplusone_issues)} N+1 issues: "
-        f"{[p.issue for p in nplusone_issues]}"
-    )
-
-    # Inspect individual queries
-    for query in query_report.queries:
-        assert query.time_ms < 50, (
-            f"Slow query ({query.time_ms}ms): {query.sql[:100]}"
-        )
-```
-
-The `query_report` object exposes:
+The `DiagnosisReport` object exposes:
 
 | Attribute | Type | Description |
 |---|---|---|
-| `queries` | `list[CapturedQuery]` | All captured SQL queries with timing and stack traces |
-| `query_count` | `int` | Total number of queries executed |
+| `captured_queries` | `list[CapturedQuery]` | All captured SQL queries |
+| `total_queries` | `int` | Total number of queries executed |
 | `total_time_ms` | `float` | Total query execution time in milliseconds |
 | `prescriptions` | `list[Prescription]` | All prescriptions from all analyzers |
-| `fingerprints` | `dict[str, list]` | Queries grouped by their fingerprint hash |
+| `issues` | `int` (property) | Number of diagnosed issues (`len(prescriptions)`) |
+| `n_plus_one_count` | `int` (property) | Number of N+1 issues |
+| `has_critical` | `bool` (property) | True if any issue is CRITICAL severity |
+
+Each `CapturedQuery` has `sql`, `params`, `duration_ms`, `fingerprint`, `normalized_sql`, `callsite`, `is_select`, and `tables`. Each `Prescription` has `issue_type`, `severity`, `description`, `fix_suggestion`, `callsite`, `query_count`, `time_saved_ms`, and `fingerprint`.
 
 ---
 
 ## Context Manager in Tests
 
-For fine-grained control, use the `diagnose_queries()` context manager directly in tests:
+For assertions on query behavior, use the `diagnose_queries()` context manager. Its report is populated as soon as the `with` block exits, so assertions after the block work as expected:
 
 ```python
+import pytest
+
 from query_doctor.context_managers import diagnose_queries
+from myapp.models import Book
 
 
 @pytest.mark.django_db
-def test_specific_code_path():
-    """Analyze only the queries within the context manager."""
-    # Queries outside the context manager are not captured
-    User.objects.count()
-
+def test_book_list_is_optimized():
     with diagnose_queries() as report:
         books = list(Book.objects.select_related("author").all())
         for book in books:
             _ = book.author.name  # Should NOT trigger N+1
 
-    assert report.query_count == 1  # Only the one SELECT with JOIN
-    assert len(report.prescriptions) == 0  # No issues
+    assert report.total_queries == 1  # Only the one SELECT with JOIN
+    assert report.issues == 0  # No prescriptions
+```
+
+Enforce a query budget the same way:
+
+```python
+@pytest.mark.django_db
+def test_dashboard_query_budget(client):
+    with diagnose_queries() as report:
+        response = client.get("/dashboard/")
+        assert response.status_code == 200
+
+    assert report.total_queries <= 10, (
+        f"Query budget exceeded: {report.total_queries} queries\n"
+        + "\n".join(q.sql[:100] for q in report.captured_queries)
+    )
+```
+
+Or check for a specific issue type:
+
+```python
+from query_doctor.types import IssueType
+
+
+@pytest.mark.django_db
+def test_no_nplusone(client):
+    with diagnose_queries() as report:
+        client.get("/api/books/")
+
+    assert report.n_plus_one_count == 0, "\n".join(
+        p.description
+        for p in report.prescriptions
+        if p.issue_type == IssueType.N_PLUS_ONE
+    )
 ```
 
 ---
 
 ## CI Integration
 
-The pytest plugin works seamlessly in CI. Add the `--query-doctor` flag to your pytest invocation to enable additional output:
+Assertions written with `diagnose_queries()` fail the test when violated, which fails the CI job — no extra pytest flags are needed:
 
 ```bash
-pytest --query-doctor -v
+pytest -v
 ```
 
-This flag:
-
-- Prints a summary of all query issues found across the entire test run.
-- Generates a `query-doctor-report.json` file in the current directory.
-- Returns a non-zero exit code if any test fails due to query budget or N+1 violations.
-
-> **Tip:** Combine the pytest plugin with the `check_queries` management command in your CI pipeline. The pytest plugin catches issues in your test scenarios, while `check_queries` catches issues in endpoint responses that your tests might not cover. See [CI Integration](ci-integration.md) for a complete workflow.
+> **Tip:** Combine test-level assertions with the `check_queries` management command in your CI pipeline. Test assertions catch issues in your test scenarios, while `check_queries` catches issues in endpoint responses that your tests might not cover. See [CI Integration](ci-integration.md) for a complete workflow.
 
 ### Example: Gradual Adoption
 
-If you are adding django-query-doctor to an existing project, you can adopt it incrementally:
+If you are adding django-query-doctor to an existing project, adopt it incrementally:
 
-1. Start by adding `@pytest.mark.no_nplusone` to your most critical view tests.
-2. Use `@pytest.mark.query_budget` with generous limits on new tests.
+1. Start by adding `diagnose_queries()` assertions to your most critical view tests.
+2. Use generous query budgets on legacy paths.
 3. Tighten the budgets over time as you optimize.
 
 ```python
 # Start generous
-@pytest.mark.query_budget(max_queries=50)
+@pytest.mark.django_db
 def test_legacy_dashboard(client):
-    ...
+    with diagnose_queries() as report:
+        client.get("/dashboard/")
+    assert report.total_queries <= 50
 
-# After optimization
-@pytest.mark.query_budget(max_queries=8)
-def test_legacy_dashboard(client):
-    ...
+# After optimization: lower the limit to 8
 ```
 
 ---
 
 ## Configuration
 
-The pytest plugin respects all `QUERY_DOCTOR` settings from your Django settings file. You can also override settings per-test using the `settings` fixture:
+Analysis in tests respects the `QUERY_DOCTOR` setting from your Django settings file (see [Configuration](../getting-started/configuration.md)).
 
-```python
-@pytest.mark.django_db
-def test_with_custom_config(client, settings):
-    settings.QUERY_DOCTOR = {
-        "ANALYZERS": ["nplusone"],  # Only run N+1 detection
-        "NPLUSONE_THRESHOLD": 3,    # Flag after 3 repeated queries
-    }
-    response = client.get("/api/books/")
-    assert response.status_code == 200
-```
+> **Note:** The configuration is read once and cached for the lifetime of the process (`get_config()` uses an LRU cache). Overriding `settings.QUERY_DOCTOR` inside an individual test does not take effect after the first configuration read.
 
 ---
 
