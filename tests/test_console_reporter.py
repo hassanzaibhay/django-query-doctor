@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from query_doctor.reporters.console import ConsoleReporter
 from query_doctor.types import (
     CallSite,
@@ -342,22 +340,16 @@ class TestConsoleReporterRichPath:
             total_queries=25,
             total_time_ms=80.0,
         )
-        try:
-            output = reporter._render_rich(report)
-            assert len(output) > 0
-            assert "author" in output
-        except ImportError:
-            pytest.skip("Rich not installed")
+        output = reporter._render_rich(report)
+        assert len(output) > 0
+        assert "author" in output
 
     def test_rich_empty_report(self) -> None:
         """Rich rendering with no prescriptions shows no issues."""
         reporter = ConsoleReporter()
         report = DiagnosisReport(total_queries=0, total_time_ms=0.0)
-        try:
-            output = reporter._render_rich(report)
-            assert "No issues" in output or "0" in output
-        except ImportError:
-            pytest.skip("Rich not installed")
+        output = reporter._render_rich(report)
+        assert "No issues" in output or "0" in output
 
     def test_rich_warning_severity(self) -> None:
         """Rich rendering applies yellow style for WARNING severity."""
@@ -376,11 +368,8 @@ class TestConsoleReporterRichPath:
             total_queries=5,
             total_time_ms=10.0,
         )
-        try:
-            output = reporter._render_rich(report)
-            assert "WARNING" in output
-        except ImportError:
-            pytest.skip("Rich not installed")
+        output = reporter._render_rich(report)
+        assert "WARNING" in output
 
     def test_rich_info_severity(self) -> None:
         """Rich rendering handles INFO severity."""
@@ -398,11 +387,8 @@ class TestConsoleReporterRichPath:
             total_queries=2,
             total_time_ms=5.0,
         )
-        try:
-            output = reporter._render_rich(report)
-            assert "INFO" in output
-        except ImportError:
-            pytest.skip("Rich not installed")
+        output = reporter._render_rich(report)
+        assert "INFO" in output
 
 
 class TestConsoleReporterGrouped:

@@ -5,9 +5,10 @@ those are regressions introduced by that work — all are pre-existing
 conditions the audit surfaced. Entries 5, 6, and 10 were found by the final
 directed checks, and entry 12 by the post-review pass, i.e. the audit was
 still finding items on its last passes; treat this list as a floor, not a
-ceiling. Entries 13-14 were surfaced during the 2.1.1 follow-up work
+ceiling. Entries 13-15 were surfaced during the 2.1.1 follow-up work
 (2026-07-16): 13 by the stream-encoding investigation, 14 by the fixture
-analysis (14 is filed alongside the 2.1.1 fixture change).
+analysis (filed alongside the 2.1.1 fixture change), 15 by the review of
+the Rich-path test corrections.
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -234,6 +235,10 @@ zero in-src references. Classification:
   investigation surfaced is filed as entry 13.
 - Pre-existing condition surfaced by PR #7's review, not a regression -
   the Rich path has always behaved this way.
+- **Resolved (partial):** 2.1.1 - closed: `rich` added to the `dev` extra, CI now
+  exercises the Rich path on utf-8; `test_ascii_output.py` extension moot by the
+  box=box.ASCII decline. Open: CI is ubuntu-only (`ci.yml:11,45,59`), so the
+  legacy-Windows/cp1252 substitution branch is still exercised by no CI run.
 
 ## 13. ConsoleReporter probes stdout but writes to a different stream
 
@@ -304,3 +309,25 @@ zero in-src references. Classification:
   wanted instead, the report must be wired somewhere observable (e.g. a
   pytest terminal-summary hook). Decision deferred to 2.2 planning; 2.1.1
   ships the warning only (entry 1).
+
+## 15. Unfalsifiable assertion in a direct Rich-path test
+
+- **Evidence:** `tests/test_console_reporter.py:352`
+  (`test_rich_empty_report`, def at `:347`): `assert "No issues" in
+  output or "0" in output`, run against
+  `DiagnosisReport(total_queries=0, total_time_ms=0.0)`. The rendered
+  header always contains a `0` ("Total queries: 0", "Time: 0.0ms"), so
+  the `or` branch is unconditionally true and the assertion cannot fail.
+  The other three direct Rich tests were checked for the same shape and
+  are falsifiable: `test_rich_renders_nonempty_string` (`:320`) asserts
+  prescription content ("author"), `test_rich_warning_severity` (`:354`)
+  and `test_rich_info_severity` (`:374`) assert severity labels a broken
+  renderer would drop. One instance, not four.
+- **Impact:** the empty-report branch of `_render_rich`
+  (`reporters/console.py:119-120`, the green "No issues detected." line)
+  is effectively untested - the test passes whether or not that line
+  renders.
+- **Disposition:** 2.2 - strengthen the assertion to the actual marker
+  (`"No issues detected"`), or delete the test as redundant with
+  `test_render_empty_report_content` (`tests/test_coverage_gaps.py`).
+  Out of scope for 2.1.1: correctness-only release, not a test refactor.

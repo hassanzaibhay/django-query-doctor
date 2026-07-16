@@ -5,6 +5,12 @@ a file written by the tool, or argparse help text can break ASCII-locale
 CI pipelines and produce mojibake on cp1252 consoles. The worst case is
 ``fix_queries --apply`` writing an em dash into the user's own source
 file. These tests pin every such surface to ASCII.
+
+Scope: strings this package authors (descriptions, fix suggestions,
+comments the fixer writes). Rich's box decoration in ``_render_rich`` is
+deliberately NOT pinned - it is Unicode on utf-8 terminals and ASCII on
+legacy ones, and Rich's ``safe_box`` owns that degradation (decision
+recorded in FOLLOWUPS #12: ``box=box.ASCII`` declined).
 """
 
 from __future__ import annotations
