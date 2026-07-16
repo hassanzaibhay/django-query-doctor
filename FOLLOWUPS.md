@@ -1,11 +1,13 @@
 # Follow-ups
 
-This list came out of the 2.1.0 documentation remediation (PR #7). None of
-these are regressions introduced by that work — all are pre-existing
+Entries 1-12 came out of the 2.1.0 documentation remediation (PR #7). None of
+those are regressions introduced by that work — all are pre-existing
 conditions the audit surfaced. Entries 5, 6, and 10 were found by the final
 directed checks, and entry 12 by the post-review pass, i.e. the audit was
 still finding items on its last passes; treat this list as a floor, not a
-ceiling.
+ceiling. Entries 13-14 were surfaced during the 2.1.1 follow-up work
+(2026-07-16): 13 by the stream-encoding investigation, 14 by the fixture
+analysis (14 is filed alongside the 2.1.1 fixture change).
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -184,14 +186,87 @@ zero in-src references. Classification:
   claimed. The backed finding is the smaller problem: console output
   silently differs by platform, and CI exercises NEITHER branch, so a
   regression on the default (Rich) path cannot be caught.
-- **Disposition** (deliberately not implemented in this recording commit):
-  add `rich` to the `dev` extra so CI runs the four Rich tests; extend
-  `test_ascii_output.py` to cover `_render_rich` (expect RED in
-  box-drawing environments); then decide deliberately whether Unicode
-  box-drawing is acceptable console output or the Panel should use
-  `box=box.ASCII` - given Rich's own downgrade behavior, that is a design
-  choice about output consistency, not a crash fix. Pair with the entry-1
-  fixture warning as a fast-follow before the r/django announcement -
-  both are small.
+- **Additional finding (2.1.1 work, 2026-07-16):** the skip guard is not
+  the only gap. `tests/test_coverage_gaps.py::TestConsoleReporterRich`
+  (tests at `:81`, `:88`, `:117`) goes through the public `render()`, which
+  swallows `ImportError` and falls back (`reporters/console.py:49-52`);
+  with `rich` absent the three tests pass vacuously against
+  `_render_plain`, asserting only strings both renderers emit. Unlike the
+  four skipping tests, these emit no CI signal at all. The fourth test in
+  the class (`:138`, `test_plain_fallback_when_rich_unavailable`) patches
+  `_render_rich` to raise and is correct.
+- **Disposition (decided 2026-07-16, shipping in 2.1.1):**
+  1. `rich` goes into the `dev` extra so CI executes the four direct
+     `_render_rich` tests (the skip disappears) and `render()` exercises
+     the Rich path.
+  2. The three `render()` tests are renamed to state what they cover
+     (content common to both renderers), and a distinguishing test is
+     added: with rich importable, `render(report) != _render_plain(report)`
+     - `_render_plain` emits the `"=" * 60` header
+     (`reporters/console.py:156,163`); `_render_rich` renders a Panel and
+     never does, on both the ASCII-box and unicode-box branches.
+  3. `box=box.ASCII` is **declined**, not deferred: no shipped document
+     claims ASCII console output (every ASCII claim in shipped docs is
+     `UPGRADING.md:120-147`, about bytes written into user source files),
+     and Rich's `safe_box` already degrades to ASCII on terminals that
+     cannot render box-drawing, so pinning ASCII would only degrade the
+     terminals that can. Decided: keep Rich's default box behavior;
+     `safe_box` owns platform degradation.
+
+  Note for whoever revisits box behavior: on a legacy-Windows dev session
+  (`legacy_windows=True`, cp1252) `_render_rich` emits zero non-ASCII, so
+  a box-drawing assertion is GREEN there for platform reasons; a
+  deterministic RED requires monkeypatching `rich.console.Console` with a
+  real subclass forcing `legacy_windows=False` and a utf-8 encoding (a
+  lambda or partial breaks the `isinstance` check at
+  `reporters/console.py:129`). The encoding-divergence question this
+  investigation surfaced is filed as entry 13.
 - Pre-existing condition surfaced by PR #7's review, not a regression -
   the Rich path has always behaved this way.
+
+## 13. ConsoleReporter probes stdout but writes to a different stream
+
+- **Evidence:** `reporters/console.py:37` sets the destination
+  (`stream or sys.stderr`); `console.py:102` builds
+  `Console(file=None, force_terminal=False)`, whose encoding and
+  legacy-Windows detection probe **stdout**; `console.py:63` prints the
+  captured string to the **destination**. The renderer decides
+  Unicode-vs-ASCII from one stream and writes to a different one.
+  Repro (2026-07-16, rich 15.0.0, in-process;
+  `rich.console.detect_legacy_windows` patched to return `False` to
+  simulate the non-legacy branch - the piped dev session genuinely detects
+  legacy Windows - with stdout replaced by a utf-8 wrapper):
+  - sanity: `_render_rich` emits U+2500, U+2502, U+256D-U+2570;
+  - destination `TextIOWrapper(..., encoding='cp1252')` (strict errors -
+    the shape of `open('report.txt', 'w')` on a cp1252 locale):
+    `report()` raises `UnicodeEncodeError: 'charmap' codec can't encode
+    characters in position 0-32`;
+  - destination cp1252 with `errors='backslashreplace'` (CPython's
+    unconditional default for `sys.stderr`): no raise; the stream receives
+    the literal text `\u256d\u2500...` (Python backslash escapes as plain
+    characters in place of the box drawing).
+- **Impact:** the default path can never raise - `sys.stderr` is
+  `backslashreplace` - so divergent stream encodings garble the report
+  (mojibake) rather than crash it. A crash needs an API user passing their
+  own strict non-utf8 stream (the constructor documents accepting "any
+  writable stream", `reporters/console.py:32-33`) while stdout probes
+  utf-8/non-legacy. Shipped constructors do not diverge: `middleware.py:47`
+  uses the default; `management/commands/check_queries.py:225` and
+  `management/commands/check_serializers.py:176` pass
+  `OutputWrapper(sys.stdout)` - the same underlying stream the Console
+  probes. Latent through 2.0.0 and 2.1.0; not a regression.
+- **Disposition:** ruled out of 2.1.1 (2026-07-16) - latent for two
+  releases, nothing shipped constructs the crashing stream, and the 2.1.1
+  PR already carries enough behavior change. Candidate fix:
+  `Console(file=self._stream)` - probe the stream actually written to;
+  with one stream the encodings cannot disagree, and `safe_box` resolves
+  the box choice automatically. (`box=box.ASCII` would have masked this
+  bug by making output unconditionally encodable - a green light for the
+  wrong reason.) Verified on Django 6.0.7/Linux: the candidate is safe
+  with Django's `OutputWrapper` - its MRO is `['OutputWrapper', 'object']`
+  (nothing shadows), it defines no `encoding` (`__getattr__` delegates),
+  `w.encoding == sys.stdout.encoding == 'utf-8'`, `w.isatty()` matches
+  `sys.stdout.isatty()`, `w.fileno() == 1`. **Open question:** the package
+  supports `django>=4.2`; whether `OutputWrapper.isatty` and the
+  `__getattr__` encoding delegation hold across 4.2-5.x is unverified - a
+  CI-matrix question, part of why this is not a one-line change.
