@@ -50,6 +50,7 @@ dev = [
     "pytest-django>=4.7",
     "pytest-cov>=4.0",
     "factory-boy>=3.3",
+    "rich>=13.0",
     "ruff>=0.4",
     "mypy>=1.8",
     "django-stubs>=4.2",
