@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   fixture use — that is the intended signal; suppress just this category
   with `ignore::query_doctor.QueryDoctorWarning`.
 
+### Fixed
+- The CI integration guide prescribed in-test assertions on the
+  `query_doctor` fixture object and claimed they gate CI — those
+  assertions pass vacuously (see the fixture warning above; users who
+  copied that sample are exactly who the warning fires on). The sample was
+  removed in favour of the pytest guide's `diagnose_queries()` patterns,
+  which do fail the test when violated.
+
 ## [2.1.0] - 2026-07-16
 
 > **PyPI note:** 2.1.0 is the first release published to PyPI since 2.0.0.

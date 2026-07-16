@@ -158,22 +158,15 @@ Use the `query_budget` command to enforce a hard limit on query count (and optio
 
 > **Warning:** `--execute` runs the given string with `exec()`. Only run trusted code.
 
-There is no per-endpoint budget file; to budget several code paths, run the command once per path, or assert budgets inside your test suite with the [pytest fixture](pytest-plugin.md).
+There is no per-endpoint budget file; to budget several code paths, run the command once per path, or assert budgets inside your test suite with the [`diagnose_queries()` context manager](pytest-plugin.md#context-manager-in-tests).
 
 ---
 
 ## Using with Pytest
 
-The pytest plugin provides a `query_doctor` fixture. Any test that requests the fixture gets query capture and analysis for that test, and can assert on the result:
+The pytest plugin provides a `query_doctor` fixture. Requesting it enables query capture for that test, but its report is populated in a test finalizer — after the test body — so it is not the tool for in-test assertions; since 2.1.1 the fixture emits a `QueryDoctorWarning` at use saying exactly that. For assertions, use the [`diagnose_queries()` context manager](pytest-plugin.md#context-manager-in-tests) — the [pytest guide](pytest-plugin.md) has the patterns, including query budgets.
 
-```python
-def test_book_list_has_no_issues(client, query_doctor):
-    client.get("/api/books/")
-    assert query_doctor.issues == 0
-    assert query_doctor.total_queries <= 10
-```
-
-Failing assertions fail the test, which fails the CI job — no extra flags needed:
+`diagnose_queries()` assertions fail the test when violated, which fails the CI job — no extra flags needed:
 
 ```yaml
       - name: Run tests with query analysis

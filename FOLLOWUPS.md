@@ -31,8 +31,13 @@ Each entry: evidence, current user-visible impact, proposed disposition.
   `exceptions.py`, exported from `__init__`) emitted at fixture use
   (`pytest_plugin.py:61`), naming the vacuous-pass failure mode, embedding
   the requesting test's nodeid, and steering to `diagnose_queries()`;
-  suppressible via `ignore::query_doctor.QueryDoctorWarning`. The
-  deprecation question continues as entry 14.
+  suppressible via `ignore::query_doctor.QueryDoctorWarning`. Also in
+  2.1.1: `docs/guides/ci-integration.md` prescribed the exact pattern the
+  warning flags (in-test assertions on the fixture object) and claimed
+  those assertions gate CI; the sample was removed in favour of the pytest
+  guide's `diagnose_queries()` patterns, so the warning and the shipped
+  docs now steer the same direction. The deprecation question continues as
+  entry 14.
 
 ## 2. `OTelReporter` / `HTMLReporter` unreachable via settings
 
