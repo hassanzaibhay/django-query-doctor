@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [2.1.0] - Unreleased
+## [2.1.0] - 2026-07-16
 
 > **PyPI note:** 2.1.0 is the first release published to PyPI since 2.0.0.
 > The `[2.0.1]` and `[1.0.3]` entries below describe versions that were
