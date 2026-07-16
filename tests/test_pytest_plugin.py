@@ -44,8 +44,16 @@ class TestFixtureWarnsVacuousReport:
         already-resolved fixture; getfixturevalue() triggers setup inside
         the pytest.warns block instead.
         """
-        with pytest.warns(QueryDoctorWarning, match="diagnose_queries"):
+        with pytest.warns(QueryDoctorWarning, match="diagnose_queries") as rec:
             report = request.getfixturevalue("query_doctor")
+        # rec records every warning raised in the block, not only matching
+        # ones - filter by category before asserting on the message.
+        attributed = [w for w in rec if issubclass(w.category, QueryDoctorWarning)]
+        assert len(attributed) == 1  # exactly one warning per fixture request
+        # The embedded nodeid is the half of attribution this package
+        # controls (the summary heading is pytest's); pin it to the
+        # requesting test's own nodeid, never a hardcoded string.
+        assert request.node.nodeid in str(attributed[0].message)
         assert isinstance(report, DiagnosisReport)  # positive control: fixture resolved
 
 
