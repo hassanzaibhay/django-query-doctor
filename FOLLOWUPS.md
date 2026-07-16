@@ -243,8 +243,11 @@ zero in-src references. Classification:
     characters in position 0-32`;
   - destination cp1252 with `errors='backslashreplace'` (CPython's
     unconditional default for `sys.stderr`): no raise; the stream receives
-    the literal text `\u256d\u2500...` (Python backslash escapes as plain
-    characters in place of the box drawing).
+    the literal text `\u256d\u2500...` in place of the box drawing. The
+    escape text is the observed artifact - it is what
+    `errors='backslashreplace'` writes to the stream - and it is
+    recorded verbatim here because rendering it as box characters would
+    document the opposite of the finding.
 - **Impact:** the default path can never raise - `sys.stderr` is
   `backslashreplace` - so divergent stream encodings garble the report
   (mojibake) rather than crash it. A crash needs an API user passing their
