@@ -27,6 +27,12 @@ Each entry: evidence, current user-visible impact, proposed disposition.
   scoped as a **fast-follow before the r/django announcement** — a warning
   at the point of use is the only signal that reaches users who don't read
   the docs. Behavior change, so it gets its own TDD commit.
+- **Resolved:** 2.1.1 - `QueryDoctorWarning` (new public category,
+  `exceptions.py`, exported from `__init__`) emitted at fixture use
+  (`pytest_plugin.py:61`), naming the vacuous-pass failure mode, embedding
+  the requesting test's nodeid, and steering to `diagnose_queries()`;
+  suppressible via `ignore::query_doctor.QueryDoctorWarning`. The
+  deprecation question continues as entry 14.
 
 ## 2. `OTelReporter` / `HTMLReporter` unreachable via settings
 
@@ -273,3 +279,23 @@ zero in-src references. Classification:
   supports `django>=4.2`; whether `OutputWrapper.isatty` and the
   `__getattr__` encoding delegation hold across 4.2-5.x is unverified - a
   CI-matrix question, part of why this is not a one-line change.
+
+## 14. `query_doctor` fixture has zero observable effect - deprecation case for 2.2
+
+- **Evidence:** `src/query_doctor/pytest_plugin.py:81-104` - the finalizer
+  populates the report and runs analyzers after the test body, and nothing
+  consumes the result: no hook prints it, no summary line is emitted, and
+  user code cannot read it after teardown (finalizers run LIFO - the
+  fixture's own finalizer, registered during setup at `:104`, runs after
+  any finalizer or fixture teardown the test could register later, so no
+  user code observes the populated report). Found 2026-07-16 during the
+  2.1.1 fixture work.
+- **Impact:** every use of the fixture is either vacuous (in-test reads
+  see the empty report - entry 1) or invisible (the populated report is
+  discarded unread). The 2.1.1 `QueryDoctorWarning` makes the vacuous half
+  audible; it does not give the fixture a purpose.
+- **Disposition:** argue deprecation for 2.2 - a warning is a signpost on
+  a road that likely should be closed. If a real in-test use case is
+  wanted instead, the report must be wired somewhere observable (e.g. a
+  pytest terminal-summary hook). Decision deferred to 2.2 planning; 2.1.1
+  ships the warning only (entry 1).

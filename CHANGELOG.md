@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.1] - Unreleased
+
+### Added
+- `QueryDoctorWarning` (subclass of `UserWarning`), exported from
+  `query_doctor` — the package's warning category for runtime advisories,
+  filterable by category (`ignore::query_doctor.QueryDoctorWarning`)
+  without touching other `UserWarning`s.
+
+### Changed
+- The `query_doctor` pytest fixture now emits a `QueryDoctorWarning` when
+  requested: its `DiagnosisReport` is populated only during test teardown,
+  so assertions on it inside the test body pass vacuously. Use the
+  `diagnose_queries()` context manager for in-test assertions. Suites
+  running `-W error` (or `filterwarnings = error`) will start failing on
+  fixture use — that is the intended signal; suppress just this category
+  with `ignore::query_doctor.QueryDoctorWarning`.
+
 ## [2.1.0] - 2026-07-16
 
 > **PyPI note:** 2.1.0 is the first release published to PyPI since 2.0.0.
