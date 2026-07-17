@@ -18,7 +18,7 @@ def test_book_list_view(client, query_doctor):
     assert response.status_code == 200
 ```
 
-> **Important:** The report is populated in a test *finalizer* — after the test body has finished running. Assertions on `query_doctor` inside the test body see an empty report (`total_queries == 0`, `issues == 0`) and pass vacuously. Use the fixture to enable capture; use the [`diagnose_queries()` context manager](#context-manager-in-tests) when you want to assert on results inside the test.
+> **Important:** The report is populated in a test *finalizer* — after the test body has finished running. Assertions on `query_doctor` inside the test body see an empty report (`total_queries == 0`, `issues == 0`) and pass vacuously. Since 2.1.1 the package says so at runtime: requesting the fixture emits a `QueryDoctorWarning` naming the requesting test. Suites that escalate warnings to errors (`-W error`, or `filterwarnings = error` in pytest configuration) will therefore fail on every test that requests the fixture; suppress the category with `ignore::query_doctor.QueryDoctorWarning` if you accept this behavior. Use the fixture to enable capture; use the [`diagnose_queries()` context manager](#context-manager-in-tests) when you want to assert on results inside the test.
 
 The `DiagnosisReport` object exposes:
 
