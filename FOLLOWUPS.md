@@ -8,7 +8,8 @@ still finding items on its last passes; treat this list as a floor, not a
 ceiling. Entries 13-15 were surfaced during the 2.1.1 follow-up work
 (2026-07-16): 13 by the stream-encoding investigation, 14 by the fixture
 analysis (filed alongside the 2.1.1 fixture change), 15 by the review of
-the Rich-path test corrections.
+the Rich-path test corrections. Entry 16 was surfaced by the 2.1.1
+version-bump sweep (2026-07-17).
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -333,3 +334,32 @@ zero in-src references. Classification:
   (`"No issues detected"`), or delete the test as redundant with
   `test_render_empty_report_content` (`tests/test_coverage_gaps.py`).
   Out of scope for 2.1.1: correctness-only release, not a test refactor.
+
+## 16. Version is declared in two places with no cross-check
+
+- **Evidence:** `pyproject.toml:7` declares `version = "2.1.0"` statically;
+  `src/query_doctor/__init__.py:18` declares `__version__ = "2.1.0"`
+  statically. There is no `[tool.hatch.version]` and no `dynamic = ["version"]`
+  - `pyproject.toml` carries only `[tool.hatch.build.targets.sdist]` (`:72`)
+  and `[tool.hatch.build.targets.wheel]` (`:78`), so hatchling reads the
+  version from `[project]` and nothing derives one declaration from the
+  other. `tests/test_public_api.py:69` pins `__init__` to a hardcoded literal
+  and never compares it to the distribution metadata (`importlib.metadata`
+  appears nowhere in the test suite).
+- **Impact:** the two can disagree silently. Distribution metadata (what
+  `pip show` and PyPI report) comes from `pyproject.toml`; the runtime
+  `__version__` comes from `__init__.py`. `baseline.py:115` stamps every
+  saved baseline with `__version__`, and `check_queries.py:265` compares
+  `baseline.version != __version__` to warn that analyzer coverage may
+  differ - so a disagreement mislabels baselines relative to the installed
+  distribution, and `test_public_api.py:69` cannot catch it because it only
+  ever checks `__init__` against a hardcoded string. Release discipline is
+  the only guard, and it is manual.
+- **Disposition:** 2.2. Either single-source it (`dynamic = ["version"]`
+  plus `[tool.hatch.version]` with `path = "src/query_doctor/__init__.py"`),
+  or make the test an actual cross-check:
+  `assert query_doctor.__version__ == importlib.metadata.version("django-query-doctor")`,
+  which fails when the two drift regardless of which is authoritative. Out
+  of scope for 2.1.1: this changes how the artifact is built, and a
+  correctness-only patch release is the wrong place to change the build on
+  the eve of publish.
