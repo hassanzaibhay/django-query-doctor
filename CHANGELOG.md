@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [2.1.1] - Unreleased
+## [2.1.1] - 2026-07-17
 
 ### Added
 - `QueryDoctorWarning` (subclass of `UserWarning`), exported from
