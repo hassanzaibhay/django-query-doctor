@@ -10,7 +10,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from query_doctor.pytest_plugin import _run_analyzers
+from query_doctor.exceptions import QueryDoctorWarning
+
+# query_doctor is imported so the fixture is collectable from this module's
+# namespace even though pyproject.toml disables the entry-point plugin
+# (-p no:query_doctor).
+from query_doctor.pytest_plugin import _run_analyzers, query_doctor  # noqa: F401
 from query_doctor.types import DiagnosisReport
 
 
@@ -26,6 +31,30 @@ class TestPluginRegistration:
         import query_doctor.pytest_plugin as plugin
 
         assert not hasattr(plugin, "pytest_addoption")
+
+
+class TestFixtureWarnsVacuousReport:
+    """The fixture must warn at use that in-test assertions are vacuous (FOLLOWUPS #1)."""
+
+    def test_fixture_use_warns_vacuous_report(self, request: pytest.FixtureRequest) -> None:
+        """Requesting the fixture emits QueryDoctorWarning steering to diagnose_queries().
+
+        The warning fires during fixture setup, before the test body, so it
+        cannot be caught by pytest.warns around code that merely uses an
+        already-resolved fixture; getfixturevalue() triggers setup inside
+        the pytest.warns block instead.
+        """
+        with pytest.warns(QueryDoctorWarning, match="diagnose_queries") as rec:
+            report = request.getfixturevalue("query_doctor")
+        # rec records every warning raised in the block, not only matching
+        # ones - filter by category before asserting on the message.
+        attributed = [w for w in rec if issubclass(w.category, QueryDoctorWarning)]
+        assert len(attributed) == 1  # exactly one warning per fixture request
+        # The embedded nodeid is the half of attribution this package
+        # controls (the summary heading is pytest's); pin it to the
+        # requesting test's own nodeid, never a hardcoded string.
+        assert request.node.nodeid in str(attributed[0].message)
+        assert isinstance(report, DiagnosisReport)  # positive control: fixture resolved
 
 
 class TestQueryDoctorFixtureIntegration:

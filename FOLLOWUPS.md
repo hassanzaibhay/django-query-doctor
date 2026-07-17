@@ -1,11 +1,15 @@
 # Follow-ups
 
-This list came out of the 2.1.0 documentation remediation (PR #7). None of
-these are regressions introduced by that work — all are pre-existing
+Entries 1-12 came out of the 2.1.0 documentation remediation (PR #7). None of
+those are regressions introduced by that work — all are pre-existing
 conditions the audit surfaced. Entries 5, 6, and 10 were found by the final
 directed checks, and entry 12 by the post-review pass, i.e. the audit was
 still finding items on its last passes; treat this list as a floor, not a
-ceiling.
+ceiling. Entries 13-15 were surfaced during the 2.1.1 follow-up work
+(2026-07-16): 13 by the stream-encoding investigation, 14 by the fixture
+analysis (filed alongside the 2.1.1 fixture change), 15 by the review of
+the Rich-path test corrections. Entry 16 was surfaced by the 2.1.1
+version-bump sweep (2026-07-17).
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -25,6 +29,17 @@ Each entry: evidence, current user-visible impact, proposed disposition.
   scoped as a **fast-follow before the r/django announcement** — a warning
   at the point of use is the only signal that reaches users who don't read
   the docs. Behavior change, so it gets its own TDD commit.
+- **Resolved:** 2.1.1 - `QueryDoctorWarning` (new public category,
+  `exceptions.py`, exported from `__init__`) emitted at fixture use
+  (`pytest_plugin.py:61`), naming the vacuous-pass failure mode, embedding
+  the requesting test's nodeid, and steering to `diagnose_queries()`;
+  suppressible via `ignore::query_doctor.QueryDoctorWarning`. Also in
+  2.1.1: `docs/guides/ci-integration.md` prescribed the exact pattern the
+  warning flags (in-test assertions on the fixture object) and claimed
+  those assertions gate CI; the sample was removed in favour of the pytest
+  guide's `diagnose_queries()` patterns, so the warning and the shipped
+  docs now steer the same direction. The deprecation question continues as
+  entry 14.
 
 ## 2. `OTelReporter` / `HTMLReporter` unreachable via settings
 
@@ -184,14 +199,167 @@ zero in-src references. Classification:
   claimed. The backed finding is the smaller problem: console output
   silently differs by platform, and CI exercises NEITHER branch, so a
   regression on the default (Rich) path cannot be caught.
-- **Disposition** (deliberately not implemented in this recording commit):
-  add `rich` to the `dev` extra so CI runs the four Rich tests; extend
-  `test_ascii_output.py` to cover `_render_rich` (expect RED in
-  box-drawing environments); then decide deliberately whether Unicode
-  box-drawing is acceptable console output or the Panel should use
-  `box=box.ASCII` - given Rich's own downgrade behavior, that is a design
-  choice about output consistency, not a crash fix. Pair with the entry-1
-  fixture warning as a fast-follow before the r/django announcement -
-  both are small.
+- **Additional finding (2.1.1 work, 2026-07-16):** the skip guard is not
+  the only gap. `tests/test_coverage_gaps.py::TestConsoleReporterRich`
+  (tests at `:81`, `:88`, `:117`) goes through the public `render()`, which
+  swallows `ImportError` and falls back (`reporters/console.py:49-52`);
+  with `rich` absent the three tests pass vacuously against
+  `_render_plain`, asserting only strings both renderers emit. Unlike the
+  four skipping tests, these emit no CI signal at all. The fourth test in
+  the class (`:138`, `test_plain_fallback_when_rich_unavailable`) patches
+  `_render_rich` to raise and is correct.
+- **Disposition (decided 2026-07-16, shipping in 2.1.1):**
+  1. `rich` goes into the `dev` extra so CI executes the four direct
+     `_render_rich` tests (the skip disappears) and `render()` exercises
+     the Rich path.
+  2. The three `render()` tests are renamed to state what they cover
+     (content common to both renderers), and a distinguishing test is
+     added: with rich importable, `render(report) != _render_plain(report)`
+     - `_render_plain` emits the `"=" * 60` header
+     (`reporters/console.py:156,163`); `_render_rich` renders a Panel and
+     never does, on both the ASCII-box and unicode-box branches.
+  3. `box=box.ASCII` is **declined**, not deferred: no shipped document
+     claims ASCII console output (every ASCII claim in shipped docs is
+     `UPGRADING.md:120-147`, about bytes written into user source files),
+     and Rich's `safe_box` already degrades to ASCII on terminals that
+     cannot render box-drawing, so pinning ASCII would only degrade the
+     terminals that can. Decided: keep Rich's default box behavior;
+     `safe_box` owns platform degradation.
+
+  Note for whoever revisits box behavior: on a legacy-Windows dev session
+  (`legacy_windows=True`, cp1252) `_render_rich` emits zero non-ASCII, so
+  a box-drawing assertion is GREEN there for platform reasons; a
+  deterministic RED requires monkeypatching `rich.console.Console` with a
+  real subclass forcing `legacy_windows=False` and a utf-8 encoding (a
+  lambda or partial breaks the `isinstance` check at
+  `reporters/console.py:129`). The encoding-divergence question this
+  investigation surfaced is filed as entry 13.
 - Pre-existing condition surfaced by PR #7's review, not a regression -
   the Rich path has always behaved this way.
+- **Resolved (partial):** 2.1.1 - closed: `rich` added to the `dev` extra, CI now
+  exercises the Rich path on utf-8, and the ImportError→skip guards are deleted
+  from the four direct tests, so a future loss of rich fails loudly instead of
+  skipping; `test_ascii_output.py` extension moot by the box=box.ASCII decline.
+  Open: CI is ubuntu-only (`ci.yml:11,45,59`), so the legacy-Windows/cp1252
+  substitution branch is still exercised by no CI run.
+
+## 13. ConsoleReporter probes stdout but writes to a different stream
+
+- **Evidence:** `reporters/console.py:37` sets the destination
+  (`stream or sys.stderr`); `console.py:102` builds
+  `Console(file=None, force_terminal=False)`, whose encoding and
+  legacy-Windows detection probe **stdout**; `console.py:63` prints the
+  captured string to the **destination**. The renderer decides
+  Unicode-vs-ASCII from one stream and writes to a different one.
+  Repro (2026-07-16, rich 15.0.0, in-process;
+  `rich.console.detect_legacy_windows` patched to return `False` to
+  simulate the non-legacy branch - the piped dev session genuinely detects
+  legacy Windows - with stdout replaced by a utf-8 wrapper):
+  - sanity: `_render_rich` emits U+2500, U+2502, U+256D-U+2570;
+  - destination `TextIOWrapper(..., encoding='cp1252')` (strict errors -
+    the shape of `open('report.txt', 'w')` on a cp1252 locale):
+    `report()` raises `UnicodeEncodeError: 'charmap' codec can't encode
+    characters in position 0-32`;
+  - destination cp1252 with `errors='backslashreplace'` (CPython's
+    unconditional default for `sys.stderr`): no raise; the stream receives
+    the literal text `\u256d\u2500...` in place of the box drawing. The
+    escape text is the observed artifact - it is what
+    `errors='backslashreplace'` writes to the stream - and it is
+    recorded verbatim here because rendering it as box characters would
+    document the opposite of the finding.
+- **Impact:** the default path can never raise - `sys.stderr` is
+  `backslashreplace` - so divergent stream encodings garble the report
+  (mojibake) rather than crash it. A crash needs an API user passing their
+  own strict non-utf8 stream (the constructor documents accepting "any
+  writable stream", `reporters/console.py:32-33`) while stdout probes
+  utf-8/non-legacy. Shipped constructors do not diverge: `middleware.py:47`
+  uses the default; `management/commands/check_queries.py:225` and
+  `management/commands/check_serializers.py:176` pass
+  `OutputWrapper(sys.stdout)` - the same underlying stream the Console
+  probes. Latent through 2.0.0 and 2.1.0; not a regression.
+- **Disposition:** ruled out of 2.1.1 (2026-07-16) - latent for two
+  releases, nothing shipped constructs the crashing stream, and the 2.1.1
+  PR already carries enough behavior change. Candidate fix:
+  `Console(file=self._stream)` - probe the stream actually written to;
+  with one stream the encodings cannot disagree, and `safe_box` resolves
+  the box choice automatically. (`box=box.ASCII` would have masked this
+  bug by making output unconditionally encodable - a green light for the
+  wrong reason.) Verified on Django 6.0.7/Linux: the candidate is safe
+  with Django's `OutputWrapper` - its MRO is `['OutputWrapper', 'object']`
+  (nothing shadows), it defines no `encoding` (`__getattr__` delegates),
+  `w.encoding == sys.stdout.encoding == 'utf-8'`, `w.isatty()` matches
+  `sys.stdout.isatty()`, `w.fileno() == 1`. **Open question:** the package
+  supports `django>=4.2`; whether `OutputWrapper.isatty` and the
+  `__getattr__` encoding delegation hold across 4.2-5.x is unverified - a
+  CI-matrix question, part of why this is not a one-line change.
+
+## 14. `query_doctor` fixture has zero observable effect - deprecation case for 2.2
+
+- **Evidence:** `src/query_doctor/pytest_plugin.py:81-104` - the finalizer
+  populates the report and runs analyzers after the test body, and nothing
+  consumes the result: no hook prints it, no summary line is emitted, and
+  user code cannot read it after teardown (finalizers run LIFO - the
+  fixture's own finalizer, registered during setup at `:104`, runs after
+  any finalizer or fixture teardown the test could register later, so no
+  user code observes the populated report). Found 2026-07-16 during the
+  2.1.1 fixture work.
+- **Impact:** every use of the fixture is either vacuous (in-test reads
+  see the empty report - entry 1) or invisible (the populated report is
+  discarded unread). The 2.1.1 `QueryDoctorWarning` makes the vacuous half
+  audible; it does not give the fixture a purpose.
+- **Disposition:** argue deprecation for 2.2 - a warning is a signpost on
+  a road that likely should be closed. If a real in-test use case is
+  wanted instead, the report must be wired somewhere observable (e.g. a
+  pytest terminal-summary hook). Decision deferred to 2.2 planning; 2.1.1
+  ships the warning only (entry 1).
+
+## 15. Unfalsifiable assertion in a direct Rich-path test
+
+- **Evidence:** `tests/test_console_reporter.py:352`
+  (`test_rich_empty_report`, def at `:347`): `assert "No issues" in
+  output or "0" in output`, run against
+  `DiagnosisReport(total_queries=0, total_time_ms=0.0)`. The rendered
+  header always contains a `0` ("Total queries: 0", "Time: 0.0ms"), so
+  the `or` branch is unconditionally true and the assertion cannot fail.
+  The other three direct Rich tests were checked for the same shape and
+  are falsifiable: `test_rich_renders_nonempty_string` (`:320`) asserts
+  prescription content ("author"), `test_rich_warning_severity` (`:354`)
+  and `test_rich_info_severity` (`:374`) assert severity labels a broken
+  renderer would drop. One instance, not four.
+- **Impact:** the empty-report branch of `_render_rich`
+  (`reporters/console.py:119-120`, the green "No issues detected." line)
+  is effectively untested - the test passes whether or not that line
+  renders.
+- **Disposition:** 2.2 - strengthen the assertion to the actual marker
+  (`"No issues detected"`), or delete the test as redundant with
+  `test_render_empty_report_content` (`tests/test_coverage_gaps.py`).
+  Out of scope for 2.1.1: correctness-only release, not a test refactor.
+
+## 16. Version is declared in two places with no cross-check
+
+- **Evidence:** `pyproject.toml:7` declares `version = "2.1.0"` statically;
+  `src/query_doctor/__init__.py:18` declares `__version__ = "2.1.0"`
+  statically. There is no `[tool.hatch.version]` and no `dynamic = ["version"]`
+  - `pyproject.toml` carries only `[tool.hatch.build.targets.sdist]` (`:72`)
+  and `[tool.hatch.build.targets.wheel]` (`:78`), so hatchling reads the
+  version from `[project]` and nothing derives one declaration from the
+  other. `tests/test_public_api.py:69` pins `__init__` to a hardcoded literal
+  and never compares it to the distribution metadata (`importlib.metadata`
+  appears nowhere in the test suite).
+- **Impact:** the two can disagree silently. Distribution metadata (what
+  `pip show` and PyPI report) comes from `pyproject.toml`; the runtime
+  `__version__` comes from `__init__.py`. `baseline.py:115` stamps every
+  saved baseline with `__version__`, and `check_queries.py:265` compares
+  `baseline.version != __version__` to warn that analyzer coverage may
+  differ - so a disagreement mislabels baselines relative to the installed
+  distribution, and `test_public_api.py:69` cannot catch it because it only
+  ever checks `__init__` against a hardcoded string. Release discipline is
+  the only guard, and it is manual.
+- **Disposition:** 2.2. Either single-source it (`dynamic = ["version"]`
+  plus `[tool.hatch.version]` with `path = "src/query_doctor/__init__.py"`),
+  or make the test an actual cross-check:
+  `assert query_doctor.__version__ == importlib.metadata.version("django-query-doctor")`,
+  which fails when the two drift regardless of which is authoritative. Out
+  of scope for 2.1.1: this changes how the artifact is built, and a
+  correctness-only patch release is the wrong place to change the build on
+  the eve of publish.

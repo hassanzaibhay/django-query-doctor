@@ -1,5 +1,38 @@
 # Upgrading django-query-doctor
 
+## From 2.1.0 to 2.1.1
+
+### Breaking / behavior changes
+
+**1. The `query_doctor` pytest fixture now warns at use.** Requesting the
+fixture emits a `QueryDoctorWarning` (new public warning category, importable
+from `query_doctor`) stating that the returned report is empty until test
+teardown, so assertions on it inside the test body pass vacuously. Anyone
+requesting the fixture sees the warning; suites that escalate warnings to
+errors (`-W error`, or `filterwarnings = error` in pytest configuration) go
+from green to red on every test that requests it. Either move in-test
+assertions to the `diagnose_queries()` context manager, whose report is
+populated when the `with` block exits:
+
+```python
+from query_doctor.context_managers import diagnose_queries
+
+
+def test_book_list_is_optimized():
+    with diagnose_queries() as report:
+        list(Book.objects.select_related("author").all())
+    assert report.issues == 0
+```
+
+or suppress the category:
+
+```ini
+[pytest]
+filterwarnings =
+    error
+    ignore::query_doctor.QueryDoctorWarning
+```
+
 ## From 2.0.x to 2.1.0
 
 ### Breaking / behavior changes

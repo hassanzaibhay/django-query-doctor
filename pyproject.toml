@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-query-doctor"
-version = "2.1.0"
+version = "2.1.1"
 description = "Automated Django ORM query diagnosis and optimization. SQL compilation caching, prepared statements, N+1 detection, and DRF analysis."
 readme = "README.md"
 license = "MIT"
@@ -50,6 +50,7 @@ dev = [
     "pytest-django>=4.7",
     "pytest-cov>=4.0",
     "factory-boy>=3.3",
+    "rich>=13.0",
     "ruff>=0.4",
     "mypy>=1.8",
     "django-stubs>=4.2",

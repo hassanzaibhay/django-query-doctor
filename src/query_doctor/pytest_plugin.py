@@ -7,7 +7,9 @@ capture runs for that test only.
 NOTE: The returned DiagnosisReport is populated in a test *finalizer*,
 i.e. after the test body has finished. Assertions on it inside the test
 body see an empty report. For in-test assertions, use the
-``diagnose_queries()`` context manager instead.
+``diagnose_queries()`` context manager instead. The fixture emits a
+QueryDoctorWarning at use for exactly this reason; suppress it with
+``ignore::query_doctor.QueryDoctorWarning`` if you accept the behavior.
 
 Registration:
     The plugin is auto-discovered via the ``pytest11`` entry point
@@ -17,9 +19,12 @@ Registration:
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import TYPE_CHECKING, Any
 
 import pytest
+
+from query_doctor.exceptions import QueryDoctorWarning
 
 if TYPE_CHECKING:
     from query_doctor.types import DiagnosisReport
@@ -42,9 +47,27 @@ def query_doctor(request: pytest.FixtureRequest) -> DiagnosisReport:
             with diagnose_queries() as report:
                 list(Book.objects.select_related('author').all())
             assert report.issues == 0
+
+    Emits QueryDoctorWarning at use (see module docstring). No integer
+    stacklevel can point into the requesting test - the fixture is invoked
+    from pytest's fixture machinery, not from the test's frame - so the
+    warning embeds request.node.nodeid and uses stacklevel=2 to skip this
+    plugin frame; pytest's warnings summary attributes it to the
+    requesting test regardless.
     """
     from query_doctor.interceptor import QueryInterceptor
     from query_doctor.types import DiagnosisReport
+
+    warnings.warn(
+        f"query_doctor fixture ({request.node.nodeid}): the returned "
+        "DiagnosisReport is empty until test teardown, so assertions on it "
+        "inside the test body pass vacuously. For in-test assertions use "
+        "the diagnose_queries() context manager instead "
+        "(from query_doctor.context_managers import diagnose_queries). "
+        "Suppress this warning with ignore::query_doctor.QueryDoctorWarning.",
+        QueryDoctorWarning,
+        stacklevel=2,
+    )
 
     report = DiagnosisReport()
     interceptor = QueryInterceptor()

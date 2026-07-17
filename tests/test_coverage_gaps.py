@@ -72,21 +72,28 @@ class TestBaseAnalyzerIsEnabled:
         assert analyzer.is_enabled() is True
 
 
-# ── console.py: Rich rendering path ────────────────────────────────
+# ── console.py: render() content and fallback ──────────────────────
 
 
-class TestConsoleReporterRich:
-    """Tests for the Rich rendering path in ConsoleReporter."""
+class TestConsoleReporterRenderContent:
+    """Content assertions on the public render(), common to both renderers.
 
-    def test_rich_render_empty_report(self) -> None:
-        """Rich path should handle empty reports."""
+    These tests assert strings that _render_rich and _render_plain both
+    emit, so they pass whichever renderer executes - they verify content,
+    not which path ran. Path selection is covered by
+    test_render_uses_rich_not_plain_fallback (rich present) and
+    test_plain_fallback_when_rich_unavailable (rich absent).
+    """
+
+    def test_render_empty_report_content(self) -> None:
+        """render() reports 'No issues detected' for an empty report (either renderer)."""
         reporter = ConsoleReporter()
         report = DiagnosisReport()
         output = reporter.render(report)
         assert "No issues detected" in output
 
-    def test_rich_render_with_prescription(self) -> None:
-        """Rich path should render prescriptions with severity."""
+    def test_render_prescription_content(self) -> None:
+        """render() includes severity, fix, and callsite strings (either renderer)."""
         reporter = ConsoleReporter()
         report = DiagnosisReport(
             prescriptions=[
@@ -114,8 +121,8 @@ class TestConsoleReporterRich:
         assert "views.py" in output
         assert "10" in output
 
-    def test_rich_render_warning_severity(self) -> None:
-        """Rich path should style WARNING differently from CRITICAL."""
+    def test_render_warning_severity_content(self) -> None:
+        """render() labels WARNING severity (either renderer)."""
         reporter = ConsoleReporter()
         report = DiagnosisReport(
             prescriptions=[
@@ -134,6 +141,25 @@ class TestConsoleReporterRich:
         )
         output = reporter.render(report)
         assert "WARNING" in output
+
+    def test_render_uses_rich_not_plain_fallback(self) -> None:
+        """render() must produce Rich output, not silently fall back to plain.
+
+        _render_plain opens with a '=' * 60 rule; _render_rich draws a
+        Panel and never emits that rule, on both the ASCII-box and
+        unicode-box branches. Equality with _render_plain output means
+        render() swallowed an ImportError and ran the fallback - the
+        vacuous-pass mechanism this class was rewritten to stop hiding
+        (FOLLOWUPS #12). rich is a dev dependency; if it is missing, this
+        fails loudly rather than skipping.
+        """
+        reporter = ConsoleReporter()
+        report = DiagnosisReport(total_queries=5, total_time_ms=10.0)
+        rich_output = reporter.render(report)
+        plain_output = reporter._render_plain(report)
+        assert "=" * 60 in plain_output  # positive control: the plain marker exists
+        assert "=" * 60 not in rich_output
+        assert rich_output != plain_output
 
     def test_plain_fallback_when_rich_unavailable(self) -> None:
         """Should fall back to plain text when Rich import fails."""
