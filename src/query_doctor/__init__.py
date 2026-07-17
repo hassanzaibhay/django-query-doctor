@@ -15,7 +15,7 @@ from query_doctor.types import (
     Severity,
 )
 
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 __all__ = [
     "CallSite",
