@@ -236,9 +236,11 @@ zero in-src references. Classification:
 - Pre-existing condition surfaced by PR #7's review, not a regression -
   the Rich path has always behaved this way.
 - **Resolved (partial):** 2.1.1 - closed: `rich` added to the `dev` extra, CI now
-  exercises the Rich path on utf-8; `test_ascii_output.py` extension moot by the
-  box=box.ASCII decline. Open: CI is ubuntu-only (`ci.yml:11,45,59`), so the
-  legacy-Windows/cp1252 substitution branch is still exercised by no CI run.
+  exercises the Rich path on utf-8, and the ImportError→skip guards are deleted
+  from the four direct tests, so a future loss of rich fails loudly instead of
+  skipping; `test_ascii_output.py` extension moot by the box=box.ASCII decline.
+  Open: CI is ubuntu-only (`ci.yml:11,45,59`), so the legacy-Windows/cp1252
+  substitution branch is still exercised by no CI run.
 
 ## 13. ConsoleReporter probes stdout but writes to a different stream
 
