@@ -2815,7 +2815,7 @@ defaults and asserts the captured query count, not just the response status.
 - Per-view control instead of a global model-level behavior change
 - Helps developers learn to write better querysets, since it reports rather than silently mitigates</p>
 <blockquote>
-<p><strong>Note:</strong> django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off — automatic mitigation instead of manual <code>select_related()</code> calls — and the same on-demand-prefetch idea is coming to Django core as <a href="https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/">fetch modes</a> (<code>FETCH_PEERS</code>), new in <a href="https://docs.djangoproject.com/en/dev/releases/6.1/">Django 6.1</a> — under development and unreleased as of 2026-07-14 (Django 6.0 is the latest stable release). django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.</p>
+<p><strong>Note:</strong> django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off — automatic mitigation instead of manual <code>select_related()</code> calls — and the same on-demand-prefetch idea is coming to Django core as <a href="https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/">fetch modes</a> (<code>FETCH_PEERS</code>), new in <a href="https://docs.djangoproject.com/en/dev/releases/6.1/">Django 6.1</a> — see the linked release notes for its current status. django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.</p>
 </blockquote>
 <hr />
 <h2 id="when-to-use-what">When to Use What<a class="headerlink" href="#when-to-use-what" title="Permanent link">&para;</a></h2>
@@ -2996,7 +2996,7 @@ defaults and asserts the captured query count, not just the response status.
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 22, 2026 10:42:00 UTC">July 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 22, 2026 17:21:15 UTC">July 22, 2026</span>
   </span>
 
     
