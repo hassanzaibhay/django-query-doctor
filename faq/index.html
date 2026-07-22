@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2435,15 +2435,16 @@ will point to the line in the property method where the related access occurs:</
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span>django-query-doctor<span class="o">[</span>celery<span class="o">]</span>
 </span></code></pre></div>
 <h3 id="does-it-support-async-django-views-and-asgi">Does it support async Django views and ASGI?<a class="headerlink" href="#does-it-support-async-django-views-and-asgi" title="Permanent link">&para;</a></h3>
-<p>Yes. django-query-doctor provides an async-compatible middleware that works
-with Django's ASGI support:</p>
+<p>Yes, from 2.1.2 onwards. The same middleware works under WSGI and ASGI:</p>
 <div class="language-python highlight"><span class="filename">settings.py</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">MIDDLEWARE</span> <span class="o">=</span> <span class="p">[</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="o">...</span><span class="p">,</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">&quot;query_doctor.middleware.QueryDoctorMiddleware&quot;</span><span class="p">,</span>  <span class="c1"># Works with both WSGI and ASGI</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">]</span>
 </span></code></pre></div>
-<p>The middleware automatically detects whether it is running in sync or async
-mode and uses the appropriate execution path.</p>
+<p>Under ASGI, Django adapts the middleware into its thread-sensitive executor --
+the same thread it runs ORM work in -- which is what lets the query interceptor
+see those queries. See <a href="../guides/async-support/">Async Support</a> for the
+mechanism, and for the symptoms of the ASGI bug fixed in 2.1.2.</p>
 <div class="admonition note">
 <p class="admonition-title">Async ORM queries</p>
 <p>Django's async ORM methods (e.g., <code>await Book.objects.aget()</code>) are
@@ -2696,7 +2697,7 @@ rollout.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 22, 2026 10:42:00 UTC">July 22, 2026</span>
   </span>
 
     
@@ -2821,7 +2822,7 @@ rollout.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

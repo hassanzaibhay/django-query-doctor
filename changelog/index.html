@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -33,7 +33,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1823,6 +1823,73 @@ and rendered here automatically by MkDocs.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h2 id="212">[2.1.2]<a class="headerlink" href="#212" title="Permanent link">&para;</a></h2>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>QueryDoctorMiddleware.async_capable</code> is now <code>False</code></strong> (was <code>True</code>). This is
+  the fix for the two ASGI defects below, not a withdrawal of ASGI support —
+  ASGI capture works for the first time in this release. Django adapts
+  sync-only middleware with <code>sync_to_async(thread_sensitive=True)</code>, which runs
+  it in the same thread-sensitive executor Django runs ORM work in; because
+  database connections are thread-local, that co-location is what lets the
+  interceptor see the queries. Request concurrency is unaffected: Django opens
+  a thread-sensitive context per request, so requests do not serialise.
+  One consequence worth knowing: Django assigns middleware modes from the
+  inside out (<code>django/core/handlers/base.py</code>, <code>load_middleware</code>), so every
+  middleware listed <em>before</em> <code>QueryDoctorMiddleware</code> in <code>MIDDLEWARE</code> now runs
+  in sync mode as well. With the recommended last position, that is the whole
+  chain. This is standard Django behaviour for any sync-only middleware — a
+  great deal of third-party middleware is sync-only — and it does not affect
+  request concurrency, but async-capable middleware in your stack will run
+  synchronously while query-doctor is installed. Note this is not a change
+  relative to 2.1.1: the missing coroutine marker described below already
+  forced those middleware into sync mode, while also breaking them.
+  <code>async_capable</code> is a public class attribute — if you subclass
+  <code>QueryDoctorMiddleware</code> and re-declare it as <code>True</code>, remove that override.
+  The <code>async_capable = False</code> subclass workaround circulating in issue #11
+  becomes redundant but stays harmless.</li>
+</ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ASGI requests failed with <code>TypeError: object HttpResponse can't be used in
+  'await' expression</code></strong> (<code>HttpResponseServerError</code> when <code>DEBUG = False</code>), raised
+  at <code>django/core/handlers/base.py</code> in <code>get_response_async</code>. The middleware
+  declared <code>async_capable = True</code> without marking its instance as a coroutine
+  function, so Django recorded the handler as async while
+  <code>convert_exception_to_response</code> wrapped it synchronously. Every middleware
+  listed before it then degraded to sync mode and was handed an un-awaited
+  coroutine. Three of Django's seven <code>startproject</code> defaults —
+  <code>SecurityMiddleware</code>, <code>CommonMiddleware</code>, <code>XFrameOptionsMiddleware</code> — touch
+  the response object unconditionally and raised on it, so any stack built from
+  those defaults with query-doctor anywhere but first position failed on every
+  request. Reported in #11 under Daphne + Channels. (<code>SessionMiddleware</code>,
+  <code>CsrfViewMiddleware</code>, and <code>AuthenticationMiddleware</code> pass the object through
+  untouched on an ordinary GET, so some stacks returned 200 — and hit the next
+  defect instead.)</li>
+<li><strong>No queries were captured under ASGI at all</strong>, in any middleware
+  configuration that did not crash, in every release that shipped the
+  middleware. The middleware ran on the event loop thread while Django ran all
+  ORM work — from <code>async def</code> views and sync views alike — in a thread-sensitive
+  executor thread. Database connections are thread-local, so the
+  <code>execute_wrapper</code> was installed on a connection object the queries never
+  touched, and every ASGI report was silently empty. A 200 response was not
+  evidence the tool had run.</li>
+<li><strong>Docs:</strong> <code>docs/guides/async-support.md</code> recommended <code>with diagnose_queries():</code>
+  inside <code>async def</code> views as an alternative to the middleware. Measured under a
+  real ASGI handler, that block reports zero queries — same thread-locality
+  cause as the middleware defect, applied to the context manager. The
+  recommendation has been removed and the limitation documented. No code change;
+  the fix is tracked in <code>FOLLOWUPS.md</code> entry 22.</li>
+<li>The async predicate now comes from <code>asgiref.sync</code> rather than <code>inspect</code>, which
+  is the predicate Django itself uses. <code>inspect.iscoroutinefunction</code> does not
+  recognise asgiref-wrapped callables before Python 3.12
+  (<code>inspect.markcoroutinefunction</code> arrived in 3.12), so on Python 3.10 and 3.11
+  a <code>QueryDoctorMiddleware</code> constructed directly around a <code>sync_to_async</code>
+  handler took the sync path and ran its analysis stage <em>before</em> the view body,
+  producing an always-empty report. Not reachable through Django's middleware
+  chain — <code>load_middleware</code> never hands a <code>sync_capable</code> middleware an
+  asgiref-wrapped handler — so this affected direct instantiation only.</li>
+</ul>
 <h2 id="211-2026-07-17">[2.1.1] - 2026-07-17<a class="headerlink" href="#211-2026-07-17" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1831,7 +1898,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   filterable by category (<code>ignore::query_doctor.QueryDoctorWarning</code>)
   without touching other <code>UserWarning</code>s.</li>
 </ul>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The <code>query_doctor</code> pytest fixture now emits a <code>QueryDoctorWarning</code> when
   requested: its <code>DiagnosisReport</code> is populated only during test teardown,
@@ -1841,7 +1908,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   fixture use — that is the intended signal; suppress just this category
   with <code>ignore::query_doctor.QueryDoctorWarning</code>.</li>
 </ul>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The CI integration guide prescribed in-test assertions on the
   <code>query_doctor</code> fixture object and claimed they gate CI — those
@@ -1879,7 +1946,7 @@ failing the check. See <code>UPGRADING.md</code> for the full 2.1.0 upgrade chec
   instead of sharing <code>IssueType.DRF_SERIALIZER</code> with the deleted runtime
   analyzer. <code>DRF_SERIALIZER</code> remains in the enum for plugin/fixer compatibility.</li>
 </ul>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>nplusone</code>, <code>duplicate</code>, and <code>missing_index</code> analyzers now respect their
   <code>ANALYZERS.&lt;name&gt;.enabled</code> config setting. Previously, disabling these
@@ -1929,7 +1996,7 @@ your source, see <code>UPGRADING.md</code>.</p>
 <li><code>.github/pull_request_template.md</code> — PR template (summary, type, changelog
   entry, testing, checklist).</li>
 </ul>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>CONTRIBUTING.md</code> codifies the PR workflow: all changes via <code>feat/*</code> or
   <code>fix/*</code> branch → PR → review → squash-merge to <code>main</code>. No direct pushes
@@ -1954,7 +2021,7 @@ your source, see <code>UPGRADING.md</code>.</p>
 <li><code>docs/guides/auto-fix.md</code>: updated to describe the new safe/unsafe split
   and the <code>ast.parse()</code> validation floor.</li>
 </ul>
-<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>fix_queries --apply</code> could write broken code into your source files.</strong>
   The fixer edits the query's <em>callsite</em> line, but for <code>n_plus_one</code> and
@@ -2038,7 +2105,7 @@ your source, see <code>UPGRADING.md</code>.</p>
 <li><strong>Annotation source field fingerprinting</strong>: Annotations with the same
   name but different field targets produce different fingerprints.</li>
 </ul>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Minimum Python version remains 3.10</li>
 <li>All existing v1.x APIs remain backward compatible</li>
@@ -2052,13 +2119,13 @@ your source, see <code>UPGRADING.md</code>.</p>
 <p><strong>Never published to PyPI.</strong> This version exists only in the repository
 history; its changes first shipped to PyPI as part of 2.0.0.</p>
 </blockquote>
-<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_4">Fixed<a class="headerlink" href="#fixed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Missing Index analyzer now recommends <code>Meta.indexes</code> with <code>models.Index()</code> instead of <code>db_index=True</code>, following Django's official recommendation since 4.2 (fixes #1)</li>
 <li>Auto-fix for missing indexes now generates <code>Meta.indexes</code> suggestion instead of <code>db_index=True</code></li>
 <li><code>_field_is_indexed</code> now checks <code>Meta.constraints</code> for <code>UniqueConstraint</code> (modern Django 4.2+ pattern) in addition to <code>unique_together</code></li>
 </ul>
-<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Full audit of all prescription texts across all 7 analyzers to align with Django 4.2–6.0 best practices</li>
 <li>Fat SELECT prescriptions now mention <code>.values()</code>/<code>.values_list()</code> as alternatives when model instances aren't needed</li>
@@ -2067,13 +2134,13 @@ history; its changes first shipped to PyPI as part of 2.0.0.</p>
 <li>Updated docs, README, and all affected tests to reflect new recommendation text</li>
 </ul>
 <h2 id="102-2026-03-16">[1.0.2] - 2026-03-16<a class="headerlink" href="#102-2026-03-16" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_4">Fixed<a class="headerlink" href="#fixed_4" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_5">Fixed<a class="headerlink" href="#fixed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fixed SVG terminal renders not displaying on GitHub (switched to absolute URLs)</li>
 <li>Removed Google Fonts @import from SVGs blocked by GitHub CSP</li>
 </ul>
 <h2 id="101-2026-03-15">[1.0.1] - 2026-03-15<a class="headerlink" href="#101-2026-03-15" title="Permanent link">&para;</a></h2>
-<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
+<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Added SVG terminal renders to README for visual feature showcase</li>
 <li>Added Django 6.0 mention in README requirements</li>
@@ -2318,7 +2385,7 @@ below.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

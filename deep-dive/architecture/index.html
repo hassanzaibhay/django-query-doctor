@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -33,7 +33,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2862,7 +2862,10 @@
 </span></code></pre></div>
 <p>This ensures that concurrent requests in both multi-threaded WSGI servers (e.g., gunicorn with sync workers) and ASGI servers (e.g., uvicorn, daphne) do not interfere with each other.</p>
 <h3 id="async-django-support">Async Django Support<a class="headerlink" href="#async-django-support" title="Permanent link">&para;</a></h3>
-<p>Both the query interceptor and QueryTurbo context managers use <code>contextvars.ContextVar</code>, making the full capture pipeline safe for ASGI deployments with concurrent coroutines on the same thread. Django's <code>execute_wrapper()</code> is per-connection, and the interceptor wraps the synchronous database calls within whatever thread Django uses.</p>
+<p>The query interceptor and the QueryTurbo context managers hold their state in <code>contextvars.ContextVar</code>.</p>
+<p>Concurrent ASGI requests do not contaminate each other's reports. This is covered by <code>tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation</code>, which drives ten interleaved requests through a real <code>ASGIHandler</code>, each issuing a different number of queries, and asserts that every report holds exactly its own count.</p>
+<p>Django's <code>execute_wrapper()</code> is per-connection, and Django stores connections in thread-local storage. Under ASGI that makes <em>which thread the middleware runs on</em> decisive: it must be the same thread the ORM runs on, or the wrapper is installed on a connection object the queries never touch. <code>QueryDoctorMiddleware</code> therefore declares <code>async_capable = False</code>, so Django adapts it with <code>sync_to_async(thread_sensitive=True)</code> and runs it in the same thread-sensitive executor it runs ORM work in.</p>
+<p>This is the behaviour from 2.1.2 onwards. Releases 2.0.0 through 2.1.1 declared <code>async_capable = True</code> and, under ASGI, either crashed the middleware chain or captured nothing. See <a href="../../guides/async-support/">Async Support</a> for the mechanism in full, including the per-request <code>ThreadSensitiveContext</code> Django opens in <code>django/core/handlers/asgi.py</code>.</p>
 <blockquote>
 <p><strong>Warning:</strong> If you use raw <code>asyncio</code> database drivers that bypass Django's ORM (e.g., direct <code>asyncpg</code> calls), django-query-doctor will not capture those queries. It only intercepts queries that go through Django's database backend.</p>
 </blockquote>
@@ -2965,7 +2968,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 22, 2026 10:42:00 UTC">July 22, 2026</span>
   </span>
 
     
@@ -3106,7 +3109,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

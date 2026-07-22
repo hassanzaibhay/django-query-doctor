@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -33,7 +33,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1094,13 +1094,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#asgi-middleware-auto-detection" class="md-nav__link">
+  <a href="#asgi-support" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ASGI Middleware Auto-Detection
+        ASGI Support
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="ASGI Support">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-capture-works-under-asgi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How capture works under ASGI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1917,13 +1934,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#asgi-middleware-auto-detection" class="md-nav__link">
+  <a href="#asgi-support" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ASGI Middleware Auto-Detection
+        ASGI Support
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="ASGI Support">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-capture-works-under-asgi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How capture works under ASGI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2016,19 +2050,40 @@
 <h1 id="async-support">Async Support<a class="headerlink" href="#async-support" title="Permanent link">&para;</a></h1>
 <p>django-query-doctor supports async Django views and ASGI deployments through its middleware. This page covers what works in async contexts -- and what does not.</p>
 <hr />
-<h2 id="asgi-middleware-auto-detection">ASGI Middleware Auto-Detection<a class="headerlink" href="#asgi-middleware-auto-detection" title="Permanent link">&para;</a></h2>
-<p>When your Django application is served via ASGI (using Daphne, Uvicorn, Hypercorn, or similar), <code>QueryDoctorMiddleware</code> automatically detects the ASGI environment and switches to its async implementation (<code>sync_capable</code> and <code>async_capable</code> are both enabled). No additional configuration is needed:</p>
+<h2 id="asgi-support">ASGI Support<a class="headerlink" href="#asgi-support" title="Permanent link">&para;</a></h2>
+<p>When your Django application is served via ASGI (Daphne, Uvicorn, Hypercorn, or similar), <code>QueryDoctorMiddleware</code> captures queries with no additional configuration:</p>
 <div class="language-python highlight"><span class="filename">settings.py</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">MIDDLEWARE</span> <span class="o">=</span> <span class="p">[</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">...</span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="s2">&quot;query_doctor.middleware.QueryDoctorMiddleware&quot;</span><span class="p">,</span>  <span class="c1"># Works for both WSGI and ASGI</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">]</span>
 </span></code></pre></div>
+<h3 id="how-capture-works-under-asgi">How capture works under ASGI<a class="headerlink" href="#how-capture-works-under-asgi" title="Permanent link">&para;</a></h3>
+<p>The middleware declares <code>sync_capable = True</code> and <code>async_capable = False</code>. Django adapts sync-only middleware with <code>sync_to_async(thread_sensitive=True)</code>, which runs it in the same thread-sensitive executor Django uses for <strong>all</strong> synchronous ORM work — including the ORM calls made inside <code>async def</code> views, which Django routes through that same executor.</p>
+<p>That co-location is the mechanism. Django keeps database connections in thread-local storage, so the <code>execute_wrapper</code> the middleware installs is only visible to queries issued on the same thread. Running the middleware in the executor thread puts the wrapper on the connection object the ORM actually uses.</p>
+<p>This is how Django adapts <em>every</em> sync-only middleware under ASGI. It is not a query-doctor-specific compromise.</p>
+<p>Under Django's ASGI handler it also costs no request concurrency: <code>ASGIHandler</code> opens a separate <code>ThreadSensitiveContext</code> per request (<code>django/core/handlers/asgi.py</code>), and asgiref allocates one executor thread per such context, so requests do not serialise against one another. This covers normal deployments — <code>get_asgi_application()</code> returns an <code>ASGIHandler</code>, and the <code>application</code> object in a project's <code>asgi.py</code> is what Daphne, Uvicorn, Hypercorn and other ASGI servers serve.</p>
+<p>Code that reaches the middleware chain <em>without</em> going through <code>ASGIHandler</code> — <code>django.test.AsyncClient</code>, which calls <code>get_response_async()</code> directly — gets no such context, and asgiref falls back to a single process-wide executor thread. Requests do serialise there. Capture still works; only concurrency differs.</p>
+<div class="admonition note">
+<p class="admonition-title">Effect on your own middleware</p>
+<p>Django assigns middleware modes from the inside out, so every middleware listed <strong>before</strong> <code>QueryDoctorMiddleware</code> in <code>MIDDLEWARE</code> runs in sync mode too. With the recommended last position, that is the whole chain.</p>
+<p>This is ordinary Django behaviour for any sync-only middleware, and much third-party middleware is sync-only, so most stacks are already in this situation. It does not affect request concurrency. But if you maintain async-capable middleware of your own, it will run synchronously while query-doctor is installed.</p>
+<p>This is not a change relative to 2.1.1. The missing coroutine marker in 2.0.0–2.1.1 (see the warning below) already forced those middleware into sync mode, while additionally breaking them.</p>
+</div>
 <p>Under ASGI, the middleware:</p>
 <ul>
-<li>Uses <code>contextvars.ContextVar</code> for async safety, ensuring correct isolation across concurrent coroutines on the same thread.</li>
-<li>Awaits the response before running analyzers.</li>
-<li>Works correctly with Django's async-to-sync and sync-to-async bridge functions.</li>
+<li>Runs analyzers after the view returns, in the executor thread.</li>
+<li>Captures queries from <code>async def</code> views and from sync views alike.</li>
+<li>Captures queries issued inside <code>sync_to_async</code>-wrapped helpers.</li>
 </ul>
+<div class="admonition warning">
+<p class="admonition-title">Broken before 2.1.2</p>
+<p>Versions 2.0.0 through 2.1.1 declared <code>async_capable = True</code>. Under ASGI this produced one of two symptoms:</p>
+<ul>
+<li><strong>Every request failed</strong> with <code>TypeError: object HttpResponse can't be used in 'await' expression</code> (or <code>HttpResponseServerError</code> when <code>DEBUG = False</code>), raised at <code>django/core/handlers/base.py</code> in <code>get_response_async</code>. This happened whenever any middleware listed <em>before</em> query-doctor touched the response object — which includes <code>SecurityMiddleware</code>, <code>CommonMiddleware</code>, and <code>XFrameOptionsMiddleware</code>, so the <code>startproject</code> defaults were always affected.</li>
+<li><strong>Requests succeeded but reported nothing.</strong> In stacks that did not crash, the middleware ran on the event loop thread while the ORM ran in the executor thread, so it wrapped a connection object the queries never touched.</li>
+</ul>
+<p>If you are on an affected version, upgrade to 2.1.2. Any <code>async_capable = False</code> subclass workaround you applied becomes redundant, but remains harmless.</p>
+</div>
 <p>Async views analyzed by the middleware need nothing special:</p>
 <div class="language-python highlight"><span class="filename">myapp/views.py</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">book_list</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Async view -- queries captured by the middleware.&quot;&quot;&quot;</span>
@@ -2040,18 +2095,23 @@
 <p>Django's async ORM methods (<code>aget</code>, <code>acreate</code>, <code>acount</code>, <code>aexists</code>, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's <code>execute_wrapper</code> captures them identically. Async iteration over querysets is captured the same way.</p>
 <hr />
 <h2 id="the-context-manager-in-async-code">The Context Manager in Async Code<a class="headerlink" href="#the-context-manager-in-async-code" title="Permanent link">&para;</a></h2>
-<p><code>diagnose_queries()</code> is a <strong>synchronous</strong> context manager. Use it with a plain <code>with</code> statement -- including inside <code>async def</code> functions:</p>
+<div class="admonition danger">
+<p class="admonition-title"><code>diagnose_queries()</code> captures nothing inside an <code>async def</code> function</p>
+<p>Measured on Django 6.0 under a real ASGI handler: a <code>with diagnose_queries():</code> block inside an <code>async def</code> view reports <strong>zero queries</strong>, however many the block issues.</p>
+<p>The cause is the same thread-locality described above, applied to the context manager instead of the middleware. The <code>with</code> block runs on the event loop thread and installs its <code>execute_wrapper</code> on <em>that</em> thread's connection object. The ORM work inside it is routed to the thread-sensitive executor on a different thread, which resolves to a different connection. The wrapper never sees the queries.</p>
+<p><code>contextvars</code> do not help here. The interceptor's per-instance <code>ContextVar</code> storage is correct and does propagate across <code>await</code> -- but Django's connection registry is thread-local, not context-local, so the wrapper is on the wrong object before contextvars are ever consulted.</p>
+<p>Use the <strong>middleware</strong> to diagnose async views. It is adapted into the executor thread by Django and captures correctly.</p>
+</div>
+<p><code>diagnose_queries()</code> is a <strong>synchronous</strong> context manager and works as documented in synchronous code -- including inside a <code>def</code> view served under ASGI, where Django runs the whole view in the executor thread:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.context_managers</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose_queries</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process_books</span><span class="p">():</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">process_books</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">count</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">acount</span><span class="p">()</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">book</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">aget</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">exists</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">aexists</span><span class="p">()</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="c1"># report.total_queries == 3</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="c1"># Prescriptions are generated normally</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">books</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="c1"># report.total_queries reflects the queries above</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="c1"># Prescriptions are generated normally</span>
 </span></code></pre></div>
 <blockquote>
 <p><strong>Not supported:</strong> <code>async with diagnose_queries()</code> raises a <code>TypeError</code> -- the context manager does not implement the async context manager protocol.</p>
@@ -2061,10 +2121,10 @@
 <blockquote>
 <p><strong>Not supported:</strong> <code>@diagnose</code> does not detect or await coroutine functions. Applied to an <code>async def</code> view, the wrapped call returns the coroutine object and the capture context exits before the view body runs, so nothing useful is captured.</p>
 </blockquote>
-<p>For async views, use the middleware (recommended) or a <code>with diagnose_queries():</code> block inside the view body.</p>
+<p>For async views, use the middleware. A <code>with diagnose_queries():</code> block inside an <code>async def</code> view body does not work either -- see the warning above.</p>
 <hr />
 <h2 id="mixed-syncasync-code">Mixed Sync/Async Code<a class="headerlink" href="#mixed-syncasync-code" title="Permanent link">&para;</a></h2>
-<p>Django allows mixing sync and async code using <code>sync_to_async</code> and <code>async_to_sync</code>. Queries made in a <code>sync_to_async</code>-wrapped helper are captured because the interceptor is installed at the database connection level, which is shared across sync and async execution within the same request:</p>
+<p>Django allows mixing sync and async code using <code>sync_to_async</code> and <code>async_to_sync</code>. Queries made in a <code>sync_to_async</code>-wrapped helper are captured because that helper runs in the same thread-sensitive executor the middleware itself was adapted into (see <a href="#how-capture-works-under-asgi">How capture works under ASGI</a>), so it resolves to the same thread-local connection object the interceptor is installed on:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">asgiref.sync</span><span class="w"> </span><span class="kn">import</span> <span class="n">sync_to_async</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
@@ -2118,7 +2178,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 22, 2026 10:42:00 UTC">July 22, 2026</span>
   </span>
 
     
@@ -2259,7 +2319,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
