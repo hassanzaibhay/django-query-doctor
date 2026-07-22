@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [2.1.2]
+## [2.1.2] - 2026-07-22
 
 ### Changed
 - **`QueryDoctorMiddleware.async_capable` is now `False`** (was `True`). This is
