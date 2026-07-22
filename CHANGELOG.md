@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Pre-push hooks no longer resolve `ruff`, `mypy` and `pytest` from `PATH`.
+  Every entry now runs through `scripts/hookenv.py`, which resolves this
+  repository's virtualenv explicitly (both the `Scripts/` and `bin/` layouts),
+  fails loudly when a tool is not importable in that interpreter instead of
+  falling back, and prints which interpreter it used so each run states its own
+  provenance. Contributor-facing only; no runtime behaviour changes. Verified
+  from a shell with no venv on `PATH`: previously `Executable ruff not found`,
+  `Executable mypy not found`, and a `pytest` hook exiting 1 with no output
+  from an unrelated system interpreter; now all four pass under the repository
+  venv.
+
 ### Fixed
 - `docs/deep-dive/comparison.md` no longer asserts that Django's fetch modes are
   "unreleased as of 2026-07-14". That parenthetical would have become false when

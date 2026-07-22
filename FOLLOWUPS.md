@@ -14,7 +14,8 @@ work (2026-07-22): 17 and 19 from the middleware rewrite, 18 from the docs
 sweep, 20 from the middleware-chain matrix, 21 from the claim-by-claim
 disposition of the async-support guide, and 22 by the directed measurement
 of the one claim that disposition initially skipped. Entries 23-24 came out of
-the PR #12 review pass (2026-07-22).
+the PR #12 review pass (2026-07-22); 23 duplicated 11 and has been merged into
+it, leaving a tombstone at its number.
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -171,9 +172,59 @@ zero in-src references. Classification:
   partial dependency set could run a subset of the suite and exit 0,
   producing a green gate that proves nothing. The per-commit green-bar
   discipline rests on this hook resolving correctly, and nothing pins it.
-- **Disposition:** pin the interpreter in the hook config, or move the
-  entries off `language: system`. Pre-existing condition surfaced by this
-  PR, not a regression.
+- **Recurrence (2026-07-22, PR #12 review pass — filed separately as entry
+  23, merged here):** a push from a shell without the project venv
+  activated produced ``Executable `mypy` not found`` and a `pytest`
+  failure, because `pytest` resolved to a system Python 3.11 install with
+  no project dependencies while `mypy` and `ruff` were absent from `PATH`
+  entirely. Prepending `.venv/Scripts` fixed it; the push was never run
+  with `--no-verify`. The argument that entry added: this failure was
+  loud, but a `PATH` carrying a *different* project's venv would run that
+  project's `pytest` against this repository's `pyproject.toml`, and a
+  green result would mean nothing. Nothing in the config asserted which
+  interpreter ran. Candidate fixes it listed: pin to the project
+  interpreter (hardcodes a platform path), move to pre-commit-managed
+  environments (`language: python` with `additional_dependencies`), or add
+  a guard hook asserting `sys.prefix`.
+- **Third occurrence (2026-07-22, S12 push):** the pre-push hooks passed on
+  the `docs/comparison-undate` push, but only because `.venv/Scripts` was
+  prepended to `PATH` for that one command. Same mechanism, third sighting.
+- **Resolved:** 2.2.0 (S1). Every entry now runs through
+  `scripts/hookenv.py`, which resolves the repository venv explicitly
+  (`.venv/Scripts/python.exe` or `.venv/bin/python`, both layouts), refuses
+  to fall back to `PATH`, fails loudly when a tool is not importable in the
+  resolved interpreter, and prints the interpreter it used so each run
+  states its own provenance. Entries moved to `language: python` so the
+  launcher itself starts from a pre-commit-managed interpreter rather than
+  from whatever `python` the pushing shell has. Verified as a red/green
+  pair from a shell with no venv on `PATH`: before, `Executable ruff not
+  found` / `Executable mypy not found` / `pytest` exit 1 with no output
+  from a broken system 3.11 shim; after, all four Passed via
+  `...\.venv\Scripts\python.exe [repo .venv]`. The guard-hook candidate was
+  rejected because it detects the condition rather than removing it — it
+  would have failed in exactly the shell the fix has to work in.
+- **The quiet-failure half, measured 2026-07-22 rather than argued.** The
+  red/green pair above only covers tools being *absent*, which fails loudly.
+  The dangerous case named in this entry — a `PATH` carrying a different
+  project's *populated* venv — was reproduced directly: a throwaway venv
+  outside the repository holding `ruff 0.15.22`, `mypy 2.3.0` and
+  `pytest 9.1.1` (versus the repo venv's `ruff 0.15.21` and `mypy 2.2.0`),
+  placed first on `PATH` with no repo venv entry. Running the **old**
+  `language: system` entries in that shell:
+  - `ruff check src/ tests/` -> `All checks passed!`, **exit 0**
+  - `ruff format src/ tests/ --check` -> `131 files already formatted`, **exit 0**
+  - `mypy src/query_doctor/` -> `Error importing plugin "mypy_django_plugin.main"`, exit 2
+  - `pytest -q` -> `47 errors during collection`, exit 2
+
+  So two of the four hooks went **green from the wrong toolchain**. The
+  quiet-green claim in this entry is therefore confirmed for the lint hooks
+  and *not* reproduced for `pytest`, which failed loudly here only because
+  this particular foreign venv lacks Django; one that happened to carry
+  Django and pytest-django would get further. Running the **fixed** hooks in
+  the same shell: all four `Passed`, every line reading
+  `hookenv: <tool> via ...\.venv\Scripts\python.exe [repo .venv]`, `mypy`
+  checking 63 source files and `pytest` collecting and passing 809 — none of
+  which the foreign venv could have produced.
 
 ## 12. Rich console path is unverified in CI and by the ASCII test
 
@@ -507,29 +558,15 @@ zero in-src references. Classification:
   needs its own release. Same underlying question as entry 19: how much of this
   package should be doing thread bookkeeping on Django's behalf.
 
-## 23. Pre-push hook environment is unpinned
+## 23. Pre-push hook environment is unpinned — merged into entry 11
 
-- **Evidence:** `.pre-commit-config.yaml` declares all four pre-push hooks with
-  `language: system`, so `ruff`, `mypy` and `pytest` resolve from whatever
-  `PATH` the pushing shell has. Observed 2026-07-22: a push from a shell
-  without the project venv activated produced ``Executable `mypy` not found``
-  and a `pytest` failure, because `pytest` resolved to a system Python 3.11
-  install with no project dependencies while `mypy` and `ruff` were absent from
-  `PATH` entirely. Prepending `.venv/Scripts` fixed it; the push was never run
-  with `--no-verify`.
-- **Impact:** this failure was loud, but the same mechanism fails silently in
-  the more dangerous direction. A shell whose `PATH` carries a *different*
-  project's venv would run that project's `pytest` against this repository's
-  `pyproject.toml`, and a green result would mean nothing. Nothing in the
-  config asserts which interpreter ran.
-- **Disposition:** 2.2. Either pin the hooks to the project interpreter
-  (`entry: .venv/Scripts/python -m ruff ...`, which hardcodes a platform path),
-  or move them to pre-commit-managed environments (`language: python` with
-  `additional_dependencies`, which is slower but self-contained), or add a
-  guard hook that asserts `sys.prefix` matches the repository venv before the
-  others run. Not 2.1.2: the hooks are documented in the config header as
-  "local convenience, not enforcement" — CI required status checks are the real
-  gate, and CI installs its own environment.
+Filed 2026-07-22 during the PR #12 review pass without checking whether the
+condition was already tracked. It was: same mechanism (`language: system`),
+same quiet-failure argument, same disposition as entry 11. Its distinct
+content — the second observed failure and the three candidate fixes — has
+been carried into entry 11 as a dated recurrence, and entry 11 carries the
+resolution. No separate disposition. Heading kept as a tombstone so the
+number is not silently reused and the duplication stays visible.
 
 ## 24. `architecture.md` credits contextvars for cross-request isolation
 
