@@ -375,7 +375,13 @@ This ensures that concurrent requests in both multi-threaded WSGI servers (e.g.,
 
 ### Async Django Support
 
-Both the query interceptor and QueryTurbo context managers use `contextvars.ContextVar`, making the full capture pipeline safe for ASGI deployments with concurrent coroutines on the same thread. Django's `execute_wrapper()` is per-connection, and the interceptor wraps the synchronous database calls within whatever thread Django uses.
+The query interceptor and the QueryTurbo context managers hold their state in `contextvars.ContextVar`.
+
+Concurrent ASGI requests do not contaminate each other's reports. This is covered by `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`, which drives ten interleaved requests through a real `ASGIHandler`, each issuing a different number of queries, and asserts that every report holds exactly its own count.
+
+Django's `execute_wrapper()` is per-connection, and Django stores connections in thread-local storage. Under ASGI that makes *which thread the middleware runs on* decisive: it must be the same thread the ORM runs on, or the wrapper is installed on a connection object the queries never touch. `QueryDoctorMiddleware` therefore declares `async_capable = False`, so Django adapts it with `sync_to_async(thread_sensitive=True)` and runs it in the same thread-sensitive executor it runs ORM work in.
+
+This is the behaviour from 2.1.2 onwards. Releases 2.0.0 through 2.1.1 declared `async_capable = True` and, under ASGI, either crashed the middleware chain or captured nothing. See [Async Support](../guides/async-support.md) for the mechanism in full, including the per-request `ThreadSensitiveContext` Django opens in `django/core/handlers/asgi.py`.
 
 > **Warning:** If you use raw `asyncio` database drivers that bypass Django's ORM (e.g., direct `asyncpg` calls), django-query-doctor will not capture those queries. It only intercepts queries that go through Django's database backend.
 

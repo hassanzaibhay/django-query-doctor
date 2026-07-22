@@ -9,7 +9,12 @@ ceiling. Entries 13-15 were surfaced during the 2.1.1 follow-up work
 (2026-07-16): 13 by the stream-encoding investigation, 14 by the fixture
 analysis (filed alongside the 2.1.1 fixture change), 15 by the review of
 the Rich-path test corrections. Entry 16 was surfaced by the 2.1.1
-version-bump sweep (2026-07-17).
+version-bump sweep (2026-07-17). Entries 17-21 came out of the 2.1.2 ASGI
+work (2026-07-22): 17 and 19 from the middleware rewrite, 18 from the docs
+sweep, 20 from the middleware-chain matrix, 21 from the claim-by-claim
+disposition of the async-support guide, and 22 by the directed measurement
+of the one claim that disposition initially skipped. Entries 23-24 came out of
+the PR #12 review pass (2026-07-22).
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -363,3 +368,191 @@ zero in-src references. Classification:
   of scope for 2.1.1: this changes how the artifact is built, and a
   correctness-only patch release is the wrong place to change the build on
   the eve of publish.
+
+## 17. `_analyze_and_report` blocks the caller inside `__acall__`
+
+- **Evidence:** `src/query_doctor/middleware.py:134` calls the synchronous
+  `_analyze_and_report` directly from the `async def __acall__` body, so every
+  analyzer and every reporter runs without yielding. Found 2026-07-22 during
+  the 2.1.2 ASGI work.
+- **Impact:** narrowed by the 2.1.2 fix, not removed. With
+  `async_capable = False`, `load_middleware` never gives the middleware an
+  async `get_response`, so `__acall__` is unreachable through Django's
+  middleware chain and the blocking work now happens in Django's
+  thread-sensitive executor thread rather than on the event loop. `__acall__`
+  is still reachable by directly instantiating the middleware around an async
+  handler (`QueryDoctorMiddleware(some_async_view)`), which is what
+  `tests/test_async_support.py` does; in that shape the analysis blocks
+  whatever loop the caller is running.
+- **Disposition:** deferred. Deliberately not fixed in 2.1.2 — that release is
+  scoped to the two ASGI defects. Candidate fix: `await
+  sync_to_async(self._analyze_and_report, thread_sensitive=False)(...)` inside
+  `__acall__`. Tied to entry 19: if `__acall__` is removed, this disappears
+  with it.
+
+## 18. `docs/guides/middleware.md` claims `threading.local()` per-request state
+
+- **Evidence:** `docs/guides/middleware.md:35` — "The middleware uses
+  `threading.local()` to store per-request state, so it is fully thread-safe
+  under WSGI." `src/query_doctor/middleware.py` holds no per-request state at
+  all: the interceptor is a local variable in `_sync_call`/`__acall__`, and
+  `QueryInterceptor` uses `contextvars.ContextVar`
+  (`docs/deep-dive/architecture.md` documents the contextvars design). No
+  `threading.local` appears anywhere in `src/query_doctor/`.
+- **Impact:** the stated mechanism is wrong. The conclusion (thread safety)
+  happens to hold, for a different reason, so no user is misled about
+  behaviour — only about implementation.
+- **Disposition:** correct the sentence to describe the contextvars design and
+  cross-link the architecture page. Out of scope for 2.1.2: that release
+  corrects only doc text the fix falsified or changed, and this sentence was
+  wrong before and after it.
+
+## 19. `__acall__` is unreachable through Django's middleware chain
+
+- **Evidence:** with `async_capable = False`
+  (`src/query_doctor/middleware.py:76`), `BaseHandler.load_middleware` computes
+  `middleware_is_async = False` and adapts the handler to sync, so
+  `self._is_async` is always `False` for a middleware Django built, and
+  `__call__` (`middleware.py:104-106`) always routes to `_sync_call`.
+  `__acall__` (`middleware.py:108`) runs only when the middleware is
+  instantiated directly around an async callable.
+- **Impact:** ~30 lines of duplicated pipeline that no deployment path
+  executes. Same shape as entries 2 and 3 — shipped code with no reachable
+  caller.
+- **Disposition:** decide in 2.2 along with entries 2, 3, 5 and 6: either
+  delete `__acall__` and let direct async instantiation be unsupported, or
+  document it as a supported API for embedding the middleware by hand. Not
+  2.1.2 — removing a method is public API surface reduction and does not belong
+  in a patch release.
+
+## 20. A third-party `async_capable` middleware with the same missing marker breaks the chain
+
+- **Evidence:** measured 2026-07-22 on Django 5.2.16 / Python 3.11.15. With
+  `MIDDLEWARE = [XFrameOptionsMiddleware, QueryDoctorMiddleware, A]` where `A`
+  is a middleware declaring `async_capable = True` with an `async def
+  __call__` but no `markcoroutinefunction(self)` call, the request fails with
+  `TypeError: object HttpResponseServerError can't be used in 'await'
+  expression` — the same failure shape as issue #11, sourced from `A` rather
+  than from us. `asgiref.sync.iscoroutinefunction` returns `False` for an
+  instance whose `__call__` is a coroutine function unless the instance is
+  explicitly marked, so `convert_exception_to_response`
+  (`django/core/handlers/exception.py:37`) builds a sync wrapper for it.
+- **Impact:** query-doctor is in the traceback but not the cause. A user hitting
+  this after upgrading to 2.1.2 could reasonably re-report #11.
+- **Disposition:** do not fix and do not add detection. Detecting other
+  middleware's marking bugs means inspecting `settings.MIDDLEWARE` at startup
+  and warning about third-party classes, which is well outside a query
+  diagnosis tool's remit and would produce false positives against any
+  middleware using a different async signalling mechanism. Recorded so the next
+  reporter of this traceback can be triaged quickly.
+
+## 21. ASGI claims in the docs that 2.1.2 tests do not cover
+
+- **Evidence:** the 2.1.2 test suite covers ASGI capture for `async def` and
+  sync views across Django's `startproject` defaults
+  (`tests/test_asgi_middleware_chain.py`). It does not cover:
+  `docs/guides/async-support.md` "Django Async ORM Methods" (`aget`, `acreate`,
+  `acount`, `aexists`, async iteration are asserted nowhere under ASGI — the
+  ASGI tests issue a raw `SELECT 1`).
+  Two claims originally listed here were measured before release rather than
+  deferred: the concurrent-isolation claim in `docs/deep-dive/architecture.md`
+  now has a test (`TestConcurrentRequestIsolation`), and the
+  `diagnose_queries()`-inside-`async def` recommendation turned out to be false
+  and is entry 22.
+- **Impact:** the async ORM claim is plausible and consistent with the measured
+  mechanism — Django's async ORM methods route through the same thread-sensitive
+  executor the middleware now shares — but it is unverified, and this release is
+  the third time an ASGI claim of this kind turned out to be false when
+  measured.
+- **Disposition:** add ASGI coverage for `aget`/`acreate`/`acount`/`aexists` and
+  async iteration in 2.2, then either keep the claim or qualify it. Not 2.1.2:
+  the release is scoped to the measured defects.
+
+## 22. `diagnose_queries()` captures nothing inside an `async def` function
+
+- **Evidence:** measured 2026-07-22, Django 6.0.7 / Python 3.12.0, driving a
+  real `django.core.handlers.asgi.ASGIHandler` (not `AsyncClient`) against
+  Django's `startproject` middleware defaults, with no query-doctor middleware
+  installed so the context manager is the only capture path:
+  - `with diagnose_queries():` inside an `async def` view issuing one query:
+    `report.total_queries=0`, `cm_thr=10036 query_thr=12896 same_thread=False
+    same_conn=False wrappers_in_view=0`;
+  - the same block inside a `def` view served under the same ASGI handler:
+    `report.total_queries=1`, `same_thread=True same_conn=True
+    wrappers_in_view=1`;
+  - WSGI control (`django.test.Client`, `def` view): `report.total_queries=1`,
+    `same_thread=True same_conn=True wrappers_in_view=1`.
+  Same root cause as the 2.1.2 middleware defect: `context_managers.py:36`
+  installs `connection.execute_wrapper` on the calling thread's connection, and
+  in an `async def` body that is the event loop thread, while the ORM runs in
+  Django's thread-sensitive executor on another thread with another connection
+  object.
+- **Impact:** `docs/guides/async-support.md` recommended exactly this pattern
+  for async views, so anyone who followed it got an empty report and no signal
+  that anything was wrong. The doc text was corrected in 2.1.2 (the
+  recommendation now says to use the middleware); the code limitation ships
+  unchanged.
+  **This also corrects a standing assumption**: the read was that
+  `diagnose_queries()` might already work inside Django Channels consumers
+  because 2.0 shipped async-safe `contextvars`. That read was wrong.
+  `contextvars` were never the binding constraint — Django's connection
+  registry is thread-local (`django/db/utils.py`, `thread_critical = True`), so
+  the wrapper lands on the wrong connection object before contextvars are ever
+  consulted. Any answer given on that basis needs correcting.
+- **Disposition:** deferred. Out of scope for 2.1.2, which is scoped to the
+  middleware. Candidate fix: have `diagnose_queries()` install the wrapper on
+  every connection Django may resolve for the block, or route the block through
+  `sync_to_async(thread_sensitive=True)` so it shares the executor thread the
+  way the middleware now does. Either is a behaviour change to a public API and
+  needs its own release. Same underlying question as entry 19: how much of this
+  package should be doing thread bookkeeping on Django's behalf.
+
+## 23. Pre-push hook environment is unpinned
+
+- **Evidence:** `.pre-commit-config.yaml` declares all four pre-push hooks with
+  `language: system`, so `ruff`, `mypy` and `pytest` resolve from whatever
+  `PATH` the pushing shell has. Observed 2026-07-22: a push from a shell
+  without the project venv activated produced ``Executable `mypy` not found``
+  and a `pytest` failure, because `pytest` resolved to a system Python 3.11
+  install with no project dependencies while `mypy` and `ruff` were absent from
+  `PATH` entirely. Prepending `.venv/Scripts` fixed it; the push was never run
+  with `--no-verify`.
+- **Impact:** this failure was loud, but the same mechanism fails silently in
+  the more dangerous direction. A shell whose `PATH` carries a *different*
+  project's venv would run that project's `pytest` against this repository's
+  `pyproject.toml`, and a green result would mean nothing. Nothing in the
+  config asserts which interpreter ran.
+- **Disposition:** 2.2. Either pin the hooks to the project interpreter
+  (`entry: .venv/Scripts/python -m ruff ...`, which hardcodes a platform path),
+  or move them to pre-commit-managed environments (`language: python` with
+  `additional_dependencies`, which is slower but self-contained), or add a
+  guard hook that asserts `sys.prefix` matches the repository venv before the
+  others run. Not 2.1.2: the hooks are documented in the config header as
+  "local convenience, not enforcement" — CI required status checks are the real
+  gate, and CI installs its own environment.
+
+## 24. `architecture.md` credits contextvars for cross-request isolation
+
+- **Evidence:** `docs/deep-dive/architecture.md`, the paragraph following the
+  `QueryInterceptor.__init__` sample in the *No Global State* build-up: "This
+  ensures that concurrent requests in both multi-threaded WSGI servers (e.g.,
+  gunicorn with sync workers) and ASGI servers (e.g., uvicorn, daphne) do not
+  interfere with each other." The "This" is the per-instance
+  `contextvars.ContextVar`. Pre-dates PR #12.
+- **Impact:** same attribution class as entry 22. Under ASGI the operative
+  mechanism for cross-request isolation is that Django opens a
+  `ThreadSensitiveContext` per request, which makes asgiref allocate a separate
+  executor thread per request — measured to hold from asgiref 3.6.0 (the floor
+  reachable via `django>=4.2`) through 3.12.1. Thread separation alone is
+  sufficient to produce the observed isolation, so contextvars cannot be shown
+  to be the cause. The claim may still be true for the WSGI half and for
+  coroutines sharing a thread; it is simply not established by anything, and no
+  test can currently discriminate the two mechanisms.
+- **Disposition:** 2.2. Either design a test that isolates contextvars from
+  thread separation (concurrent work forced onto one thread), or rewrite the
+  sentence to state thread/context separation as the mechanism and drop the
+  contextvars causality. Deliberately not rewritten in 2.1.2: the sentence
+  pre-dates this release, and PR #12 corrects only text the fix falsified or
+  changed. `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`
+  must not be cited as backing for it — that test passes on thread separation
+  alone.
