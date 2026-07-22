@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- `docs/deep-dive/comparison.md` no longer asserts that Django's fetch modes are
+  "unreleased as of 2026-07-14". That parenthetical would have become false when
+  Django 6.1 reaches final release, with no code change and nobody touching the
+  file; the linked release notes now carry the status instead. The dated
+  disclaimers at `comparison.md:5` and `faq.md:131` are deliberately unchanged —
+  those record when a comparison was made and stay true permanently.
+
 ## [2.1.2] - 2026-07-22
 
 ### Changed
