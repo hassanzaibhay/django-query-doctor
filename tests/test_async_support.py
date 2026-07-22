@@ -60,15 +60,26 @@ class TestInterceptorContextVars:
 
 
 class TestMiddlewareAsyncCapable:
-    """Tests that the middleware declares async support."""
+    """Tests for the middleware's capability declaration.
+
+    Until 2.1.1 this asserted ``async_capable is True``. That is deliberately
+    inverted -- do not "fix" it back. Declaring the middleware async-capable
+    makes Django run it on the event loop thread, while Django runs all ORM work
+    in a thread-sensitive executor thread. ``connections["default"]`` is
+    thread-local (``django/db/utils.py`` sets ``thread_critical = True``), so the
+    execute_wrapper ends up on a connection object the queries never touch and
+    nothing is captured. Declaring it sync-only makes Django adapt it with
+    ``sync_to_async(thread_sensitive=True)``, putting it in the same thread and
+    on the same connection as the ORM. See tests/test_asgi_middleware_chain.py.
+    """
 
     def test_sync_capable(self) -> None:
         """Middleware should be sync_capable."""
         assert getattr(QueryDoctorMiddleware, "sync_capable", True) is True
 
-    def test_async_capable(self) -> None:
-        """Middleware should be async_capable."""
-        assert getattr(QueryDoctorMiddleware, "async_capable", True) is True
+    def test_not_async_capable(self) -> None:
+        """Middleware must declare async_capable = False so ASGI capture works."""
+        assert QueryDoctorMiddleware.async_capable is False
 
 
 class TestMiddlewareSyncPath:

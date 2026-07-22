@@ -44,7 +44,7 @@ This document provides a detailed feature comparison between django-query-doctor
 | Management commands | Yes | No | No | No | No |
 | Pytest plugin | Fixture only² | No | No | No¹ | No |
 | Celery task support | Yes | No | Partial (profiling decorators usable in tasks) | Partial (generic `Profiler` context manager) | — |
-| Async Django support | Yes | Partial (experimental, no concurrent requests) | — | No (predates async Django) | — |
+| Async Django support | Yes³ | Partial (experimental, no concurrent requests) | — | No (predates async Django) | — |
 | CI/CD integration | Yes | No | No | No | No |
 | Git diff-aware filtering | Yes | No | No | No | No |
 | Query budgets (per-view) | Yes | No | No | No | No |
@@ -71,6 +71,13 @@ context manager ([README](https://github.com/jmcarp/nplusone)).
 fixture, but the fixture's report is populated at test teardown — in-test assertions
 on it see an empty report. For working in-test assertions, use `diagnose_queries()`
 (see the [pytest guide](../guides/pytest-plugin.md)).
+
+³ From 2.1.2 onwards. Queries from both `async def` and sync views are captured
+under a real ASGI handler; see `tests/test_asgi_middleware_chain.py`, which drives
+`django.core.handlers.asgi.ASGIHandler` across Django's `startproject` middleware
+defaults and asserts the captured query count, not just the response status.
+2.1.1 and earlier either crashed or captured nothing under ASGI — see
+[Async Support](../guides/async-support.md).
 
 ---
 

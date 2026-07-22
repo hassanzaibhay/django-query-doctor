@@ -105,8 +105,7 @@ pip install django-query-doctor[celery]
 
 ### Does it support async Django views and ASGI?
 
-Yes. django-query-doctor provides an async-compatible middleware that works
-with Django's ASGI support:
+Yes, from 2.1.2 onwards. The same middleware works under WSGI and ASGI:
 
 ```python title="settings.py"
 MIDDLEWARE = [
@@ -115,8 +114,10 @@ MIDDLEWARE = [
 ]
 ```
 
-The middleware automatically detects whether it is running in sync or async
-mode and uses the appropriate execution path.
+Under ASGI, Django adapts the middleware into its thread-sensitive executor --
+the same thread it runs ORM work in -- which is what lets the query interceptor
+see those queries. See [Async Support](guides/async-support.md) for the
+mechanism, and for the symptoms of the ASGI bug fixed in 2.1.2.
 
 !!! note "Async ORM queries"
     Django's async ORM methods (e.g., `await Book.objects.aget()`) are

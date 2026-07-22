@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.2]
+
+### Changed
+- **`QueryDoctorMiddleware.async_capable` is now `False`** (was `True`). This is
+  the fix for the two ASGI defects below, not a withdrawal of ASGI support —
+  ASGI capture works for the first time in this release. Django adapts
+  sync-only middleware with `sync_to_async(thread_sensitive=True)`, which runs
+  it in the same thread-sensitive executor Django runs ORM work in; because
+  database connections are thread-local, that co-location is what lets the
+  interceptor see the queries. Request concurrency is unaffected: Django opens
+  a thread-sensitive context per request, so requests do not serialise.
+  One consequence worth knowing: Django assigns middleware modes from the
+  inside out (`django/core/handlers/base.py`, `load_middleware`), so every
+  middleware listed *before* `QueryDoctorMiddleware` in `MIDDLEWARE` now runs
+  in sync mode as well. With the recommended last position, that is the whole
+  chain. This is standard Django behaviour for any sync-only middleware — a
+  great deal of third-party middleware is sync-only — and it does not affect
+  request concurrency, but async-capable middleware in your stack will run
+  synchronously while query-doctor is installed. Note this is not a change
+  relative to 2.1.1: the missing coroutine marker described below already
+  forced those middleware into sync mode, while also breaking them.
+  `async_capable` is a public class attribute — if you subclass
+  `QueryDoctorMiddleware` and re-declare it as `True`, remove that override.
+  The `async_capable = False` subclass workaround circulating in issue #11
+  becomes redundant but stays harmless.
+
+### Fixed
+- **ASGI requests failed with `TypeError: object HttpResponse can't be used in
+  'await' expression`** (`HttpResponseServerError` when `DEBUG = False`), raised
+  at `django/core/handlers/base.py` in `get_response_async`. The middleware
+  declared `async_capable = True` without marking its instance as a coroutine
+  function, so Django recorded the handler as async while
+  `convert_exception_to_response` wrapped it synchronously. Every middleware
+  listed before it then degraded to sync mode and was handed an un-awaited
+  coroutine. Three of Django's seven `startproject` defaults —
+  `SecurityMiddleware`, `CommonMiddleware`, `XFrameOptionsMiddleware` — touch
+  the response object unconditionally and raised on it, so any stack built from
+  those defaults with query-doctor anywhere but first position failed on every
+  request. Reported in #11 under Daphne + Channels. (`SessionMiddleware`,
+  `CsrfViewMiddleware`, and `AuthenticationMiddleware` pass the object through
+  untouched on an ordinary GET, so some stacks returned 200 — and hit the next
+  defect instead.)
+- **No queries were captured under ASGI at all**, in any middleware
+  configuration that did not crash, in every release that shipped the
+  middleware. The middleware ran on the event loop thread while Django ran all
+  ORM work — from `async def` views and sync views alike — in a thread-sensitive
+  executor thread. Database connections are thread-local, so the
+  `execute_wrapper` was installed on a connection object the queries never
+  touched, and every ASGI report was silently empty. A 200 response was not
+  evidence the tool had run.
+- **Docs:** `docs/guides/async-support.md` recommended `with diagnose_queries():`
+  inside `async def` views as an alternative to the middleware. Measured under a
+  real ASGI handler, that block reports zero queries — same thread-locality
+  cause as the middleware defect, applied to the context manager. The
+  recommendation has been removed and the limitation documented. No code change;
+  the fix is tracked in `FOLLOWUPS.md` entry 22.
+- The async predicate now comes from `asgiref.sync` rather than `inspect`, which
+  is the predicate Django itself uses. `inspect.iscoroutinefunction` does not
+  recognise asgiref-wrapped callables before Python 3.12
+  (`inspect.markcoroutinefunction` arrived in 3.12), so on Python 3.10 and 3.11
+  a `QueryDoctorMiddleware` constructed directly around a `sync_to_async`
+  handler took the sync path and ran its analysis stage *before* the view body,
+  producing an always-empty report. Not reachable through Django's middleware
+  chain — `load_middleware` never hands a `sync_capable` middleware an
+  asgiref-wrapped handler — so this affected direct instantiation only.
+
 ## [2.1.1] - 2026-07-17
 
 ### Added

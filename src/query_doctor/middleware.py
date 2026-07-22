@@ -9,12 +9,12 @@ Supports both sync and async Django views (Django 4.1+).
 
 from __future__ import annotations
 
-import inspect
 import logging
 import random
 from collections.abc import Callable
 from typing import Any
 
+from asgiref.sync import iscoroutinefunction
 from django.http import HttpRequest
 
 from query_doctor.conf import get_config
@@ -61,20 +61,34 @@ class QueryDoctorMiddleware:
     all SQL queries. After the response is generated, runs all enabled
     analyzers and sends reports to configured reporters.
 
-    Supports both sync and async views via sync_capable and async_capable.
+    Works under both WSGI and ASGI. The class declares ``async_capable = False``
+    deliberately: Django then adapts it with ``sync_to_async(thread_sensitive=True)``,
+    which runs it in the same thread-sensitive executor Django runs all ORM work
+    in. Because ``connections["default"]`` is thread-local, that co-location is
+    what lets the execute_wrapper installed here see the queries the view issues.
+    Declaring ``async_capable = True`` places the middleware on the event loop
+    thread instead, where it wraps a connection object the ORM never touches and
+    captures nothing. This is ordinary behaviour for any sync-capable middleware
+    under ASGI, not a query-doctor compromise.
     """
 
     sync_capable = True
-    async_capable = True
+    async_capable = False
 
     def __init__(self, get_response: Callable[..., Any]) -> None:
         """Initialize the middleware.
+
+        The async predicate comes from ``asgiref.sync``, which is the one Django
+        itself uses. ``inspect.iscoroutinefunction`` does not recognise
+        asgiref-wrapped callables before Python 3.12, so it would put a
+        directly-instantiated middleware on the sync path and run the analysis
+        stage before the view body.
 
         Args:
             get_response: The next middleware or view in the chain.
         """
         self.get_response = get_response
-        self._is_async = inspect.iscoroutinefunction(get_response)
+        self._is_async = iscoroutinefunction(get_response)
 
     def __call__(self, request: HttpRequest) -> Any:
         """Process a request through the query doctor pipeline.
