@@ -1,31 +1,37 @@
 # Pre-push checks — local convenience, not enforcement.
 # `git push --no-verify` bypasses this; CI required status checks are the real gate.
 # One-time setup: pre-commit install --hook-type pre-push
+#
+# Every entry runs through `scripts/hookenv.py`, which resolves this
+# repository's virtualenv explicitly instead of letting `PATH` decide, and
+# prints the interpreter it used. `language: python` gives that launcher a
+# pre-commit-managed interpreter to start from, so the hooks do not depend on
+# the pushing shell having anything on `PATH`. See FOLLOWUPS.md item 11.
 default_stages: [pre-push]
 repos:
   - repo: local
     hooks:
       - id: ruff-check
         name: ruff check
-        entry: ruff check src/ tests/
-        language: system
+        entry: python scripts/hookenv.py ruff check src/ tests/
+        language: python
         pass_filenames: false
         always_run: true
       - id: ruff-format
         name: ruff format --check
-        entry: ruff format --check src/ tests/
-        language: system
+        entry: python scripts/hookenv.py ruff format src/ tests/ --check
+        language: python
         pass_filenames: false
         always_run: true
       - id: mypy
         name: mypy
-        entry: mypy src/query_doctor/
-        language: system
+        entry: python scripts/hookenv.py mypy src/query_doctor/
+        language: python
         pass_filenames: false
         always_run: true
       - id: pytest
         name: pytest
-        entry: pytest -q
-        language: system
+        entry: python scripts/hookenv.py pytest -q
+        language: python
         pass_filenames: false
         always_run: true
