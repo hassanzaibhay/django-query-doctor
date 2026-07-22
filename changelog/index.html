@@ -1823,6 +1823,19 @@ and rendered here automatically by MkDocs.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Pre-push hooks no longer resolve <code>ruff</code>, <code>mypy</code> and <code>pytest</code> from <code>PATH</code>.
+  Every entry now runs through <code>scripts/hookenv.py</code>, which resolves this
+  repository's virtualenv explicitly (both the <code>Scripts/</code> and <code>bin/</code> layouts),
+  fails loudly when a tool is not importable in that interpreter instead of
+  falling back, and prints which interpreter it used so each run states its own
+  provenance. Contributor-facing only; no runtime behaviour changes. Verified
+  from a shell with no venv on <code>PATH</code>: previously <code>Executable ruff not found</code>,
+  <code>Executable mypy not found</code>, and a <code>pytest</code> hook exiting 1 with no output
+  from an unrelated system interpreter; now all four pass under the repository
+  venv.</li>
+</ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>docs/deep-dive/comparison.md</code> no longer asserts that Django's fetch modes are
@@ -1833,7 +1846,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   those record when a comparison was made and stay true permanently.</li>
 </ul>
 <h2 id="212-2026-07-22">[2.1.2] - 2026-07-22<a class="headerlink" href="#212-2026-07-22" title="Permanent link">&para;</a></h2>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>QueryDoctorMiddleware.async_capable</code> is now <code>False</code></strong> (was <code>True</code>). This is
   the fix for the two ASGI defects below, not a withdrawal of ASGI support —
@@ -1907,7 +1920,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   filterable by category (<code>ignore::query_doctor.QueryDoctorWarning</code>)
   without touching other <code>UserWarning</code>s.</li>
 </ul>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The <code>query_doctor</code> pytest fixture now emits a <code>QueryDoctorWarning</code> when
   requested: its <code>DiagnosisReport</code> is populated only during test teardown,
@@ -2005,7 +2018,7 @@ your source, see <code>UPGRADING.md</code>.</p>
 <li><code>.github/pull_request_template.md</code> — PR template (summary, type, changelog
   entry, testing, checklist).</li>
 </ul>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>CONTRIBUTING.md</code> codifies the PR workflow: all changes via <code>feat/*</code> or
   <code>fix/*</code> branch → PR → review → squash-merge to <code>main</code>. No direct pushes
@@ -2114,7 +2127,7 @@ your source, see <code>UPGRADING.md</code>.</p>
 <li><strong>Annotation source field fingerprinting</strong>: Annotations with the same
   name but different field targets produce different fingerprints.</li>
 </ul>
-<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Minimum Python version remains 3.10</li>
 <li>All existing v1.x APIs remain backward compatible</li>
@@ -2134,7 +2147,7 @@ history; its changes first shipped to PyPI as part of 2.0.0.</p>
 <li>Auto-fix for missing indexes now generates <code>Meta.indexes</code> suggestion instead of <code>db_index=True</code></li>
 <li><code>_field_is_indexed</code> now checks <code>Meta.constraints</code> for <code>UniqueConstraint</code> (modern Django 4.2+ pattern) in addition to <code>unique_together</code></li>
 </ul>
-<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
+<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Full audit of all prescription texts across all 7 analyzers to align with Django 4.2–6.0 best practices</li>
 <li>Fat SELECT prescriptions now mention <code>.values()</code>/<code>.values_list()</code> as alternatives when model instances aren't needed</li>
@@ -2149,7 +2162,7 @@ history; its changes first shipped to PyPI as part of 2.0.0.</p>
 <li>Removed Google Fonts @import from SVGs blocked by GitHub CSP</li>
 </ul>
 <h2 id="101-2026-03-15">[1.0.1] - 2026-03-15<a class="headerlink" href="#101-2026-03-15" title="Permanent link">&para;</a></h2>
-<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
+<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Added SVG terminal renders to README for visual feature showcase</li>
 <li>Added Django 6.0 mention in README requirements</li>
