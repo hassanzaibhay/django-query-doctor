@@ -1823,8 +1823,27 @@ and rendered here automatically by MkDocs.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<ul>
+<li>A claims gate (<code>scripts/claims_check.py</code> + <code>claims.json</code>) that regenerates
+  every quantitative claim this project publishes — analyzer count, test count,
+  coverage, supported Django and Python ranges — from the tree and fails on
+  drift. It also rejects two shapes of claim outright: build durations quoted as
+  facts, and dated assertions about something's <em>current</em> status, which rot
+  without an edit. Dated <em>provenance</em> ("comparisons current as of ...") is
+  exempt, because recording when a comparison was made stays true permanently.
+  Claims on surfaces outside this repository can be marked deferred; a deferral
+  must carry a reason and a named action, is printed on every run including
+  clean ones, and fails the gate once the surface agrees with the tree.</li>
+<li>The docs truth sweep and the claims gate now run in CI and as pre-push hooks.
+  Neither was wired into anything before; both had to be remembered.</li>
+</ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>scripts/</code> is now linted and type-checked. <code>ruff</code> and <code>mypy</code> covered
+  <code>src/</code> and <code>tests/</code> only, in both the hooks and CI, while <code>scripts/</code> holds the
+  docs truth sweep, the claims gate and the hook launcher that every other check
+  runs through.</li>
 <li>Pre-push hooks no longer resolve <code>ruff</code>, <code>mypy</code> and <code>pytest</code> from <code>PATH</code>.
   Every entry now runs through <code>scripts/hookenv.py</code>, which resolves this
   repository's virtualenv explicitly (both the <code>Scripts/</code> and <code>bin/</code> layouts),
@@ -1913,7 +1932,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   asgiref-wrapped handler — so this affected direct instantiation only.</li>
 </ul>
 <h2 id="211-2026-07-17">[2.1.1] - 2026-07-17<a class="headerlink" href="#211-2026-07-17" title="Permanent link">&para;</a></h2>
-<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>QueryDoctorWarning</code> (subclass of <code>UserWarning</code>), exported from
   <code>query_doctor</code> — the package's warning category for runtime advisories,
@@ -1961,7 +1980,7 @@ analyzer coverage means an old baseline will report newly-covered findings as
 regressions until it's refreshed. Comparing against a baseline saved with a
 different query-doctor version now prints a non-blocking warning rather than
 failing the check. See <code>UPGRADING.md</code> for the full 2.1.0 upgrade checklist.</p>
-<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>IssueType.SERIALIZER_METHOD_FIELD</code> — findings from <code>SerializerMethodAnalyzer</code>
   (the <code>check_serializers</code> static analyzer) now carry their own issue type
@@ -2013,7 +2032,7 @@ including the <code>fix_queries --apply</code> corruption fix below — first re
 PyPI in 2.1.0. To check whether a 2.0.0 <code>--apply</code> run already damaged
 your source, see <code>UPGRADING.md</code>.</p>
 </blockquote>
-<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
+<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>.github/pull_request_template.md</code> — PR template (summary, type, changelog
   entry, testing, checklist).</li>
@@ -2070,7 +2089,7 @@ your source, see <code>UPGRADING.md</code>.</p>
   <code>drf_serializer</code> is never emitted by the runtime pipeline <code>fix_queries</code>
   uses, so it never reaches the fixer at all.</p>
 <h2 id="200-2026-03-21">[2.0.0] - 2026-03-21<a class="headerlink" href="#200-2026-03-21" title="Permanent link">&para;</a></h2>
-<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
+<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>QueryTurbo</strong>: SQL compilation cache with three-phase trust lifecycle
   (UNTRUSTED → TRUSTED → POISONED). On cache miss, compiles and caches.
@@ -2181,7 +2200,7 @@ no caller in any released version and the dashboard template does not
 render project-report data. The original entries are preserved unchanged
 below.</p>
 </blockquote>
-<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
+<h3 id="added_5">Added<a class="headerlink" href="#added_5" title="Permanent link">&para;</a></h3>
 <h4 id="core-pipeline">Core Pipeline<a class="headerlink" href="#core-pipeline" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Query interception via <code>connection.execute_wrapper()</code> — works without <code>DEBUG=True</code></li>
