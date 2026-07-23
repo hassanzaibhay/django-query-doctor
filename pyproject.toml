@@ -107,6 +107,27 @@ warn_return_any = true
 module = ["rest_framework.*", "rich.*", "opentelemetry.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# `python_version` above is pinned to 3.10, the floor this package supports, so
+# mypy cannot resolve `tomllib` (3.11+). scripts/claims_check.py is repo tooling
+# rather than shipped code: it imports tomllib inside a try/except and raises a
+# MeasurementError naming the requirement, so the 3.10 path is handled at
+# runtime rather than typed around.
+module = ["tomllib"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# factory_boy ships no typing usable under strict mode: its public names are
+# re-exports mypy declines to follow (attr-defined) and its factories are
+# untyped callables producing untyped values (no-untyped-call, type-arg,
+# untyped-decorator). These two modules exist only to build fixture data, and
+# typing them would mean writing and maintaining stubs for factory_boy.
+# Scoped to these modules by name so the rest of scripts/ and tests/ stays
+# strict — notably scripts/hookenv.py and scripts/docs_truth_sweep.py, which
+# are load-bearing for the gates and typecheck clean.
+module = ["scripts.regen_examples", "tests.factories"]
+disable_error_code = ["attr-defined", "no-untyped-call", "type-arg", "untyped-decorator"]
+
 [tool.coverage.run]
 source = ["src/query_doctor"]
 

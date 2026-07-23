@@ -7,31 +7,51 @@
 # prints the interpreter it used. `language: python` gives that launcher a
 # pre-commit-managed interpreter to start from, so the hooks do not depend on
 # the pushing shell having anything on `PATH`. See FOLLOWUPS.md item 11.
+#
+# The paths here are kept identical to `.github/workflows/ci.yml` so a hook and
+# its CI counterpart cannot diverge — that divergence is how `scripts/` ended
+# up linted and type-checked by neither.
+#
+# Order matters at the end: `pytest` writes coverage.xml, which the claims gate
+# reads. Running the suite under coverage locally also means the 85% floor is
+# enforced before a push rather than only in CI.
 default_stages: [pre-push]
 repos:
   - repo: local
     hooks:
       - id: ruff-check
         name: ruff check
-        entry: python scripts/hookenv.py ruff check src/ tests/
+        entry: python scripts/hookenv.py ruff check src/ tests/ scripts/
         language: python
         pass_filenames: false
         always_run: true
       - id: ruff-format
         name: ruff format --check
-        entry: python scripts/hookenv.py ruff format src/ tests/ --check
+        entry: python scripts/hookenv.py ruff format src/ tests/ scripts/ --check
         language: python
         pass_filenames: false
         always_run: true
       - id: mypy
         name: mypy
-        entry: python scripts/hookenv.py mypy src/query_doctor/
+        entry: python scripts/hookenv.py mypy src/query_doctor/ scripts/
+        language: python
+        pass_filenames: false
+        always_run: true
+      - id: docs-truth-sweep
+        name: docs truth sweep
+        entry: python scripts/hookenv.py scripts.docs_truth_sweep
         language: python
         pass_filenames: false
         always_run: true
       - id: pytest
         name: pytest
-        entry: python scripts/hookenv.py pytest -q
+        entry: python scripts/hookenv.py pytest -q --cov=query_doctor --cov-report=xml
+        language: python
+        pass_filenames: false
+        always_run: true
+      - id: claims-check
+        name: claims gate
+        entry: python scripts/hookenv.py scripts.claims_check
         language: python
         pass_filenames: false
         always_run: true

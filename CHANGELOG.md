@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- A claims gate (`scripts/claims_check.py` + `claims.json`) that regenerates
+  every quantitative claim this project publishes — analyzer count, test count,
+  coverage, supported Django and Python ranges — from the tree and fails on
+  drift. It also rejects two shapes of claim outright: build durations quoted as
+  facts, and dated assertions about something's *current* status, which rot
+  without an edit. Dated *provenance* ("comparisons current as of ...") is
+  exempt, because recording when a comparison was made stays true permanently.
+  Claims on surfaces outside this repository can be marked deferred; a deferral
+  must carry a reason and a named action, is printed on every run including
+  clean ones, and fails the gate once the surface agrees with the tree.
+- The docs truth sweep and the claims gate now run in CI and as pre-push hooks.
+  Neither was wired into anything before; both had to be remembered.
+
 ### Changed
+- `scripts/` is now linted and type-checked. `ruff` and `mypy` covered
+  `src/` and `tests/` only, in both the hooks and CI, while `scripts/` holds the
+  docs truth sweep, the claims gate and the hook launcher that every other check
+  runs through.
 - Pre-push hooks no longer resolve `ruff`, `mypy` and `pytest` from `PATH`.
   Every entry now runs through `scripts/hookenv.py`, which resolves this
   repository's virtualenv explicitly (both the `Scripts/` and `bin/` layouts),

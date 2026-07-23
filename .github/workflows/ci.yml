@@ -40,6 +40,12 @@ jobs:
         with:
           file: ./coverage.xml
           fail_ci_if_error: false
+      # Runs in this one cell because it consumes the coverage.xml the step
+      # above produced. The claims it checks are derived from the tree, not
+      # from the environment, so one cell is sufficient.
+      - name: Claims gate
+        if: matrix.python-version == '3.12' && matrix.django-version == '5.2'
+        run: python scripts/claims_check.py --coverage-xml coverage.xml
 
   lint:
     runs-on: ubuntu-latest
@@ -51,9 +57,9 @@ jobs:
       - name: Install dependencies
         run: pip install ruff
       - name: Check linting
-        run: ruff check src/ tests/
+        run: ruff check src/ tests/ scripts/
       - name: Check formatting
-        run: ruff format src/ tests/ --check
+        run: ruff format src/ tests/ scripts/ --check
 
   typecheck:
     runs-on: ubuntu-latest
@@ -65,4 +71,17 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
       - name: Run mypy
-        run: mypy src/query_doctor/
+        run: mypy src/query_doctor/ scripts/
+
+  docs-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The sweep is a static AST check over the tree and imports nothing from
+      # the package, so it needs no install. Verified against an interpreter
+      # with no project dependencies.
+      - name: Docs truth sweep
+        run: python scripts/docs_truth_sweep.py
