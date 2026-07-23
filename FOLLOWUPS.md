@@ -34,7 +34,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 20**
+**Open entries: 19**
 
 ---
 
@@ -73,6 +73,30 @@ with no heading (25) cannot inflate it.
 - **Impact:** `REPORTERS: ["otel"]`-style config silently does nothing.
 - **Disposition:** wire the names into the dispatch, or delete the classes.
   Docs are already truthful about the manual-invocation reality.
+- **Resolved:** 2.2.0 - **ratified (R3), neither wired nor deleted**, and the
+  actual defect fixed separately (R4). Under the S3 wire-versus-delete rule
+  (recorded in entry 3), both classes are *duplicate paths*: each is already
+  reachable by a supported, documented route, so a second route via
+  `REPORTERS` would be two mechanisms for one job.
+  The premise this entry shares with entry 19 - "shipped code with no
+  reachable caller" - is **false for these two**, measured across `src/`,
+  `tests/`, `docs/`, `examples/` and `scripts/`: `HTMLReporter` is imported by
+  `scripts/regen_examples.py:51,77`, which generates the committed
+  `examples/outputs/report.html`, and by
+  `examples/sample_project/setup_and_run.py:155`; `OTelReporter` is imported
+  and invoked by `examples/scripts/10_opentelemetry.py:30,35`. Both are
+  rendered into the API reference by mkdocstrings
+  (`docs/api/reference.md:174`, `:192`) and both are fully tested (14 and 10
+  tests). The entry title is precise - *unreachable via settings* - but
+  entry 19's "Same shape as entries 2 and 3" is not, and is corrected there.
+  On the stated impact, `REPORTERS: ["otel"]` silently doing nothing: wiring
+  the two names would **not** have fixed it. `_get_reporters` was three
+  membership tests with no `else`, so `REPORTERS: ["consoel"]` was equally
+  silent and always would have been. Unrecognized entries now emit
+  `QueryDoctorWarning` naming the entry, the recognized names, and - for
+  `html`/`otel` - the direct-invocation route, so a typo and an
+  un-dispatched-but-real reporter read differently. That closes the whole
+  class rather than two names of it.
 
 ## 3. Dead config keys in `DEFAULT_CONFIG`
 
@@ -82,6 +106,60 @@ with no heading (25) cannot inflate it.
   `MAX_REPORTS = 50` (`admin_panel.py:22`).
 - **Impact:** setting any of them silently has no effect.
 - **Disposition:** implement each key or remove it from the defaults.
+- **Resolved:** 2.2.0 - three wired, one removed, decided by a stated rule
+  rather than per item. **The rule (S3), which S4 inherits for entries 5, 6
+  and 19:**
+  - **R0** - delete only against a measured no-caller sweep across `src/`,
+    `tests/`, `docs/` (including mkdocstrings `:::` directives), `examples/`
+    and `scripts/`, output shown. A live import is a caller; "not dispatched
+    by settings" is not "no caller".
+  - **R1** - *wiring gap* (implemented and tested, only the connection
+    missing) -> wire it, with a test that fails before and passes after.
+  - **R2** - *unbuilt surface* (a name with no implementation behind it) ->
+    delete the surface; it re-enters later as a scoped feature, never as
+    "wiring".
+  - **R3** - *duplicate path* (already reachable by a supported, documented
+    route) -> ratify and record why.
+  - **R4** - silent-ignore traps are fixed as a class, not per name: a config
+    surface that discards unrecognized input emits `QueryDoctorWarning`.
+
+  This replaced a candidate axis of "does it carry a user-visible promise,
+  and does the release keep or withdraw it". That axis was rejected for a
+  specific reason worth recording, because a wrong reason was drafted first
+  and struck: it is **not** that the axis would have deleted the reporters -
+  their promise is the documented direct-invocation route
+  (`docs/reporters/index.md:150-156`) and the working example, both of which
+  the axis reads as promises kept, so it would have said ratify too. The axis
+  was rejected because it carries **no requirement to measure callers before
+  deleting**. R0 is that requirement.
+
+  Applied:
+  - `STACK_TRACE_EXCLUDE` - **R1, wired.** The filtering was already
+    implemented and tested (`stack_tracer.py:33-54`,
+    `test_stack_tracer.py:45,53`); only the argument was never passed.
+    `QueryInterceptor` now takes `exclude_modules` and forwards it to
+    `capture_callsite`; `middleware.py:126,161` supply the setting. Honoured
+    exactly where `CAPTURE_STACK_TRACES` already was - see entry 27, which is
+    the rest of that story.
+  - `QUERYIGNORE_PATH` - **R1, wired.** Not merely "a setting S4 will want":
+    `load_queryignore()` already had two live callers
+    (`middleware.py:224-226`, `fix_queries.py:164-166`), both falling through
+    to `_find_project_root()`. It names the ignore file itself; an explicit
+    `project_root` argument still wins. A configured path that does not
+    resolve degrades to project-root discovery **and warns** - degrading
+    silently would be R4's exact failure, leaving a configured path
+    observably identical to an unset one.
+  - `IGNORE_PATTERNS` - **R2, removed** from `DEFAULT_CONFIG` with its docs.
+    Nothing implemented it, and `.queryignore` already does the job; adding it
+    would have been a feature, not a wiring fix. R0 sweep showed no reader -
+    only the declaration, two test settings dicts that merely passed it, and
+    doc disclaimers.
+  - `ADMIN_DASHBOARD.max_reports` - **R1, wired.** The ring buffer is now
+    built on first use and sized from config instead of at import
+    (`admin_panel.py:_get_buffer`). `MAX_REPORTS` survives for importers but
+    is **derived** from `DEFAULT_CONFIG` rather than re-declared as a second
+    `50` - keeping a second literal would have reintroduced entry 16's defect
+    one release after closing it.
 
 ## 4. `.queryignore` dispatch trap
 
@@ -512,8 +590,17 @@ zero in-src references. Classification:
   `__acall__` (`middleware.py:108`) runs only when the middleware is
   instantiated directly around an async callable.
 - **Impact:** ~30 lines of duplicated pipeline that no deployment path
-  executes. Same shape as entries 2 and 3 — shipped code with no reachable
-  caller.
+  executes. ~~Same shape as entries 2 and 3 — shipped code with no reachable
+  caller.~~ **Corrected in 2.2.0 (S3):** that equivalence is false for entry
+  2. Its two classes have live callers — `scripts/regen_examples.py:51,77`
+  generates a committed artifact with `HTMLReporter`, and
+  `examples/scripts/10_opentelemetry.py:30,35` invokes `OTelReporter` — so
+  entry 2 was *unreachable via settings*, not unreachable. Entry 3's dead
+  keys genuinely had no reader. Whether `__acall__` belongs in either group
+  is what entry 19 still has to decide, and it must be decided by the R0
+  sweep recorded in entry 3, not by inheriting this sentence: the tests
+  instantiate the middleware directly around an async callable, so it has
+  callers, and the real question is whether that is a supported API.
 - **Disposition:** decide in 2.2 along with entries 2, 3, 5 and 6: either
   delete `__acall__` and let direct async instantiation be unsupported, or
   document it as a supported API for embedding the middleware by hand. Not
@@ -728,3 +815,40 @@ the falsified half is the useful part of the record.
   backlog holds defects; keeping a decision here would have made this entry
   `Resolved (partial)` and put a second permanent resident in a category that
   never empties. Filed 2026-07-22 during S9a; corrected and closed 2026-07-23.
+
+## 27. `CAPTURE_STACK_TRACES` is unread in 7 of 9 `QueryInterceptor` sites
+
+- **Evidence:** measured 2026-07-23 during S3, while wiring
+  `STACK_TRACE_EXCLUDE`. `grep -rn "QueryInterceptor(" src/` returns nine
+  construction sites. Two pass configuration —
+  `middleware.py:126` and `:161`. The other seven are bare
+  `QueryInterceptor()` and take the `capture_stack: bool = True` default:
+  `celery_integration.py:102`, `context_managers.py:33`,
+  `project_diagnoser.py:218`, `pytest_plugin.py:73`,
+  `management/commands/check_queries.py:189`,
+  `management/commands/fix_queries.py:179`,
+  `management/commands/query_budget.py:81`.
+- **Impact:** `CAPTURE_STACK_TRACES: False` is honoured only by the
+  middleware. `diagnose_queries()`, the pytest plugin, all three management
+  commands, the Celery integration and the project diagnoser capture stacks
+  regardless — the setting is documented without the qualifier, and the cost
+  it exists to avoid is still paid on every one of those paths.
+  `STACK_TRACE_EXCLUDE`, wired in the same release, inherits the same reach
+  by construction: it was wired to parity rather than beyond it, so this
+  entry covers both keys.
+- **Not deliberate, as far as the tree shows:** each of the seven was read
+  with surrounding context and none carries a comment, docstring clause, or
+  argument mentioning stack capture or its cost. Two argue against a
+  deliberate opt-out — `check_queries` and `fix_queries` emit `file:line`
+  prescriptions, and `fix_queries` keys generated fixes on the callsite, so
+  they need capture and were simply never offered the switch.
+- **Disposition:** **R1** under the S3 rule (entry 3): mechanism implemented
+  and tested, connection missing. Closable in 2.2.0; destination **S4**,
+  alongside entry 6 — both are "wire an implemented-but-unconnected mechanism
+  into the pipeline", and S4 already opens this code. Deliberately not folded
+  into S3: it is a behaviour change on seven paths (a user setting
+  `CAPTURE_STACK_TRACES: False` today still gets capture there and would stop),
+  which is a different reviewable unit from wiring a key that was inert
+  everywhere. Candidate fix: have `QueryInterceptor.__init__` read
+  `get_config()` for its own defaults so every construction site inherits both
+  keys, rather than adding the same two kwargs to seven call sites.

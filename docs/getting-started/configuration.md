@@ -16,7 +16,14 @@ QUERY_DOCTOR = {
 
     # Capture Python stack traces to map queries to file:line.
     # Disabling this is faster but prescriptions lose their callsite.
+    # Read by the middleware; other entry points always capture.
     "CAPTURE_STACK_TRACES": True,
+
+    # Extra path fragments to skip when locating the user-code frame,
+    # added to the built-in exclusions (query_doctor, Django internals,
+    # stdlib). Use this when a wrapper library sits between your code and
+    # the ORM and keeps getting blamed for the query.
+    "STACK_TRACE_EXCLUDE": [],
 
     # Per-analyzer config. Keys are short names, not dotted class paths.
     # Analyzers not listed here use their own defaults (all enabled).
@@ -47,9 +54,13 @@ QUERY_DOCTOR = {
     },
 
     # Admin-integrated dashboard showing recent diagnosis reports.
-    # NOTE: max_reports is present in the defaults but the buffer size is
-    # currently fixed at 50 - changing it has no effect.
+    # max_reports sizes the in-memory ring buffer, which is built on first
+    # use -- changing it after reports have been recorded has no effect
+    # until the process restarts.
     "ADMIN_DASHBOARD": {"enabled": False, "max_reports": 50},
+
+    # Path to the .queryignore file itself, when it is not beside manage.py.
+    "QUERYIGNORE_PATH": None,
 
     # Module suffixes check_serializers imports from each app when
     # discovering DRF serializers for static analysis.
@@ -98,6 +109,22 @@ QUERY_DOCTOR = {
 
 `console` uses Rich if it's installed (`pip install django-query-doctor[rich]`), falling back to plain text otherwise. `log` sends prescriptions through Python's standard `logging` module instead of stdout.
 
-## Not Yet Wired
+## Unrecognized Reporter Names
 
-`STACK_TRACE_EXCLUDE`, `IGNORE_PATTERNS`, and `QUERYIGNORE_PATH` exist in `DEFAULT_CONFIG` but aren't read by any code path today — setting them has no effect. To suppress known false positives, use a `.queryignore` file at your project root instead (see the [.queryignore guide](../guides/query-ignore.md)); its location isn't configurable via `QUERY_DOCTOR` settings.
+A name `REPORTERS` doesn't recognize produces no reporter. Since a typo and an unsupported name both simply yield nothing, query_doctor emits a `QueryDoctorWarning` naming the entry and listing the recognized names:
+
+```python title="settings.py"
+QUERY_DOCTOR = {"REPORTERS": ["console", "consoel"]}  # QueryDoctorWarning: 'consoel'
+```
+
+Suppress the category with `-W ignore::query_doctor.QueryDoctorWarning` if you have a reason to keep an unrecognized entry. Note that suites running `-W error` will fail on it, which is the point — the alternative is a reporter you believe is active and is not.
+
+## Locating `.queryignore`
+
+By default the ignore file is `.queryignore` beside your project root (the directory containing `manage.py`). `QUERYIGNORE_PATH` names the file directly when it lives somewhere else:
+
+```python title="settings.py"
+QUERY_DOCTOR = {"QUERYIGNORE_PATH": "/etc/myapp/queryignore.conf"}
+```
+
+It must name the **file**, not the directory containing it. A path that doesn't resolve emits a `QueryDoctorWarning` and falls back to project-root discovery — analysis never fails the request, but the ignored setting is reported rather than silently dropped. See the [.queryignore guide](../guides/query-ignore.md) for the rule syntax.

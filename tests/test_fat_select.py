@@ -242,7 +242,6 @@ class TestFatSelectEdgeCases:
             "CAPTURE_STACK_TRACES": True,
             "STACK_TRACE_EXCLUDE": [],
             "REPORTERS": ["console"],
-            "IGNORE_PATTERNS": [],
             "IGNORE_URLS": [],
             "QUERY_BUDGET": {"DEFAULT_MAX_QUERIES": None, "DEFAULT_MAX_TIME_MS": None},
         }

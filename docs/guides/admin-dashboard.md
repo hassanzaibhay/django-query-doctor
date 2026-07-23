@@ -74,7 +74,7 @@ The view requires an authenticated user with `is_staff` (enforced with `login_re
 | Setting | Default | Description |
 |---|---|---|
 | `ADMIN_DASHBOARD.enabled` | `False` | When `True`, the middleware records each analyzed request into the dashboard buffer. |
-| `ADMIN_DASHBOARD.max_reports` | `50` | Present in the default config, but the buffer size is currently fixed at 50 -- changing this value has no effect. |
+| `ADMIN_DASHBOARD.max_reports` | `50` | Size of the in-memory ring buffer. Read once, when the buffer is first used, so a change takes effect on process restart. |
 
 ---
 
