@@ -1,0 +1,197 @@
+{
+  "_readme": [
+    "Claims manifest. Every quantitative claim this project makes in user-facing",
+    "text, paired with the measurement that regenerates it from the tree.",
+    "Checked by scripts/claims_check.py, which is wired into CI and pre-push.",
+    "",
+    "Adding a claim to any surface without adding a row here is the failure this",
+    "file exists to prevent; the checker cannot detect a claim it was never told",
+    "about, so a row is part of writing the claim, not a follow-up to it.",
+    "",
+    "kind:",
+    "  exact  -- claimed value must equal the measured value",
+    "  floor  -- claimed value must be <= the measured value. LIMITATION: a floor",
+    "            claim can go silently false in the other direction. A hardcoded",
+    "            'coverage 86%+' badge stays green when coverage falls to 80%,",
+    "            because 86 <= 80 is the only thing that would fail and it does",
+    "            not. Floor rows detect overstatement, never decay. The only real",
+    "            fix is a dynamic badge; see FOLLOWUPS.md item 26.",
+    "",
+    "surface_kind:",
+    "  repo      -- file in this repository. 'locator' must appear in it verbatim,",
+    "               so a reworded claim fails loudly instead of going unchecked.",
+    "  external  -- published outside this repository and unreachable from CI.",
+    "               Only the recorded value is compared against measurement, so",
+    "               updating the row and editing the surface are one act."
+  ],
+
+  "claims": [
+    {
+      "id": "readme-analyzer-count",
+      "surface": "README.md",
+      "surface_kind": "repo",
+      "kind": "exact",
+      "measurement": "analyzer_count",
+      "value": 7,
+      "locator": "runs them through 7 analyzers"
+    },
+    {
+      "id": "docs-overview-analyzer-count",
+      "surface": "docs/analyzers/overview.md",
+      "surface_kind": "repo",
+      "kind": "exact",
+      "measurement": "analyzer_count",
+      "value": 7,
+      "locator": "ships with seven built-in analyzers"
+    },
+    {
+      "id": "docs-middleware-analyzer-count",
+      "surface": "docs/guides/middleware.md",
+      "surface_kind": "repo",
+      "kind": "exact",
+      "measurement": "analyzer_count",
+      "value": 7,
+      "locator": "Running all 7 analyzers over captured queries"
+    },
+    {
+      "id": "contributing-coverage-floor",
+      "surface": "CONTRIBUTING.md",
+      "surface_kind": "repo",
+      "kind": "exact",
+      "measurement": "coverage_fail_under",
+      "value": 85,
+      "locator": "CI enforces a minimum of **85% coverage**"
+    },
+    {
+      "id": "docs-contributing-coverage-floor",
+      "surface": "docs/contributing.md",
+      "surface_kind": "repo",
+      "kind": "exact",
+      "measurement": "coverage_fail_under",
+      "value": 85,
+      "locator": "CI enforces a minimum of 85% coverage"
+    },
+    {
+      "id": "readme-django-range",
+      "surface": "README.md",
+      "surface_kind": "repo",
+      "kind": "exact",
+      "measurement": "django_range",
+      "value": "4.2-6.0",
+      "locator": "django-4.2%20|%205.0%20|%205.1%20|%205.2%20|%206.0"
+    },
+    {
+      "id": "profile-analyzer-count",
+      "surface": "github.com/hassanzaibhay profile README, line 32",
+      "surface_kind": "external",
+      "kind": "exact",
+      "measurement": "analyzer_count",
+      "value": 7,
+      "locator": "**7 analyzers**"
+    },
+    {
+      "id": "profile-test-count",
+      "surface": "github.com/hassanzaibhay profile README, line 32",
+      "surface_kind": "external",
+      "kind": "exact",
+      "measurement": "test_count",
+      "value": 811,
+      "locator": "**811 tests**"
+    },
+    {
+      "id": "profile-coverage",
+      "surface": "github.com/hassanzaibhay profile README, lines 25 and 32",
+      "surface_kind": "external",
+      "kind": "floor",
+      "measurement": "coverage_percent",
+      "value": 86,
+      "locator": "**86%+ coverage**"
+    },
+    {
+      "id": "profile-django-range",
+      "surface": "github.com/hassanzaibhay profile README, line 32",
+      "surface_kind": "external",
+      "kind": "exact",
+      "measurement": "django_range",
+      "value": "4.2-6.0",
+      "locator": "Django 4.2–6.0"
+    },
+    {
+      "id": "profile-python-range",
+      "surface": "github.com/hassanzaibhay profile README, line 24 (pyversions badge)",
+      "surface_kind": "external",
+      "kind": "exact",
+      "measurement": "python_range",
+      "value": "3.10-3.13",
+      "locator": "pypi/pyversions/django-query-doctor"
+    },
+    {
+      "id": "forum-post-test-count",
+      "surface": "forum.djangoproject.com/t/44527 post 117670",
+      "surface_kind": "external",
+      "kind": "exact",
+      "measurement": "test_count",
+      "value": 434,
+      "locator": "434 tests",
+      "deferred": {
+        "reason": "The Django Forum announcement post is not reachable from CI and cannot be edited from the repository. It has said 434 since 2026-03-16. Failing the gate on it would make every build red for a surface no commit can fix.",
+        "action": "Edit post 117670 during the S14 external-surfaces pass, then delete this deferral. The gate fails if the row is still marked deferred once it agrees with the tree, so the deferral cannot outlive the fix."
+      }
+    },
+    {
+      "id": "forum-post-analyzer-count",
+      "surface": "forum.djangoproject.com/t/44527 post 117670",
+      "surface_kind": "external",
+      "kind": "exact",
+      "measurement": "analyzer_count",
+      "value": 7,
+      "locator": "seven built-in analyzers"
+    }
+  ],
+
+  "prose_rules": {
+    "_note": [
+      "Rules that reject a shape of claim rather than check a number.",
+      "Applied to the same explicit file list the docs truth sweep gates."
+    ],
+
+    "build_time": {
+      "reason": "Build durations are not properties of the tree. The same `mkdocs build --strict` produced 4.14s and 7.89s on different runs; quoting either as a fact makes the artifact wrong on the next machine.",
+      "patterns": ["built in [0-9]+\\.?[0-9]* seconds", "Documentation built in"]
+    },
+
+    "dated_status": {
+      "reason": "A dated assertion about something's CURRENT status rots without anyone touching the file. comparison.md said fetch modes were 'unreleased as of 2026-07-14', which becomes false when Django 6.1 ships. Dated PROVENANCE claims are the opposite -- 'comparisons current as of <date>' records when a comparison was made and stays true permanently -- so they are exempt.",
+      "status_words": [
+        "unreleased",
+        "not yet released",
+        "latest stable",
+        "under development",
+        "currently the latest"
+      ],
+      "provenance_markers": [
+        "current as of",
+        "correct as of",
+        "measured",
+        "comparisons current",
+        "accurate as of",
+        "as of this writing"
+      ]
+    }
+  },
+
+  "gated_files": [
+    "README.md",
+    "CONTRIBUTING.md",
+    "UPGRADING.md",
+    "docs/**/*.md"
+  ],
+
+  "_gated_files_note": [
+    "Explicit list, deliberately not a repo-root glob: SPEC.md and CLAUDE.md are",
+    "gitignored by decision (D-B2), and a glob would gate content that is not in",
+    "the repository at all. CHANGELOG.md is excluded from the prose rules because",
+    "its historical entries record what was true at the time of each release --",
+    "the same permanence argument that exempts dated-provenance claims."
+  ]
+}

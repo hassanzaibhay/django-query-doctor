@@ -15,7 +15,9 @@ sweep, 20 from the middleware-chain matrix, 21 from the claim-by-claim
 disposition of the async-support guide, and 22 by the directed measurement
 of the one claim that disposition initially skipped. Entries 23-24 came out of
 the PR #12 review pass (2026-07-22); 23 duplicated 11 and has been merged into
-it, leaving a tombstone at its number.
+it, leaving a tombstone at its number. Entry 26 came out of S9a (2026-07-22),
+from checking whether the coverage badge could be made dynamic; 25 is reserved
+for the phase-1 branch disposition and is not yet written.
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -593,3 +595,39 @@ number is not silently reused and the duplication stays visible.
   changed. `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`
   must not be cited as backing for it — that test passes on thread separation
   alone.
+
+## 26. Codecov uploads have never succeeded, and the step reports success
+
+Numbered 26 rather than 25: 25 is reserved for the phase-1 branch disposition
+(S13), which does not exist yet.
+
+- **Evidence:** measured 2026-07-22 on the `main` CI run `29941974446`, job
+  `test (3.12, 5.2)`, step `Upload coverage`:
+
+  ```
+  error - Report creating failed: {"message":"Token required - not valid tokenless upload"}
+  error - Upload queued for processing failed: {"message":"Token required - not valid tokenless upload"}
+  ```
+
+  The step's own conclusion for the same run: `6. Upload coverage -> success`.
+  The badge confirms the other end — the SVG at
+  `codecov.io/gh/hassanzaibhay/django-query-doctor/graph/badge.svg` returns 200
+  with text nodes `['codecov', 'codecov', 'unknown', 'unknown']`, i.e. Codecov
+  holds no data for this project.
+- **Impact:** same shape as entry 11, one level up. `ci.yml:42` sets
+  `fail_ci_if_error: false`, so a rejected upload is indistinguishable from a
+  successful one in the job summary. A step named "Upload coverage" has
+  reported success on every run of every release while uploading nothing. The
+  coverage number in CI is real — `pytest --cov` runs and enforces
+  `fail_under` — but nothing external has ever received it, so no trend, no
+  per-PR delta, and no dynamic badge is possible.
+- **Consequence for the claims manifest:** the `86%+` coverage claim on the
+  profile page has to stay a hardcoded floor row (`claims.json`,
+  `profile-coverage`). A floor row detects overstatement only; it cannot detect
+  decay, so that claim would stay green if coverage fell to 80%. Replacing it
+  with a dynamic badge is the real fix and is blocked on this entry.
+- **Disposition:** add `CODECOV_TOKEN` as a repository secret, pass it to
+  `codecov/codecov-action`, and set `fail_ci_if_error: true` so a rejected
+  upload is loud. **Blocked on Hassan** — only the repository owner can add the
+  secret; there is no code change that closes this without it. Filed 2026-07-22
+  during S9a.

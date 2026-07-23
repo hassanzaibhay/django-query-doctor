@@ -19,6 +19,7 @@ import ast
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC = REPO_ROOT / "src" / "query_doctor"
@@ -76,15 +77,19 @@ def _load_command_flags() -> dict[str, set[str]]:
 def _load_config_keys() -> tuple[set[str], dict[str, set[str]]]:
     """Return (uppercase settings keys at any level, analyzer name -> option keys)."""
     conf_tree = ast.parse((SRC / "conf.py").read_text(encoding="utf-8"))
-    default_config: dict | None = None
+    default_config: dict[str, Any] | None = None
     for node in ast.walk(conf_tree):
-        if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", "") == "DEFAULT_CONFIG":
+        if (
+            isinstance(node, ast.AnnAssign)
+            and getattr(node.target, "id", "") == "DEFAULT_CONFIG"
+            and node.value is not None
+        ):
             default_config = ast.literal_eval(node.value)
     assert default_config is not None, "DEFAULT_CONFIG not found in conf.py"
 
     upper_keys: set[str] = set()
 
-    def _collect(d: dict) -> None:
+    def _collect(d: dict[str, Any]) -> None:
         for k, v in d.items():
             if isinstance(k, str) and k.isupper():
                 upper_keys.add(k)
