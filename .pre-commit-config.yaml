@@ -8,9 +8,13 @@
 # pre-commit-managed interpreter to start from, so the hooks do not depend on
 # the pushing shell having anything on `PATH`. See FOLLOWUPS.md item 11.
 #
-# The paths here are kept identical to `.github/workflows/ci.yml` so a hook and
-# its CI counterpart cannot diverge — that divergence is how `scripts/` ended
-# up linted and type-checked by neither.
+# Both the paths AND the invocation form here are kept identical to
+# `.github/workflows/ci.yml` so a hook and its CI counterpart cannot diverge —
+# that divergence is how `scripts/` ended up linted and type-checked by neither.
+# Invocation form is not cosmetic: `python scripts/x.py` puts `scripts/` on
+# sys.path[0] while `python -m scripts.x` puts the repository root there, so the
+# first intra-package import written would pass one and break the other. Both
+# sides use `-m`.
 #
 # Order matters at the end: `pytest` writes coverage.xml, which the claims gate
 # reads. Running the suite under coverage locally also means the 85% floor is
