@@ -21,6 +21,21 @@ for the phase-1 branch disposition and is not yet written.
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
+**Admission rule (from S9a.1):** an entry may be added only if it is closable
+within 2.2.0, or it carries a named destination for S13. S13 deletes this file;
+every surviving entry becomes a GitHub issue or is closed with a recorded
+reason.
+
+Every gate built in this release carries a rule governing what enters it; this
+file was the only artifact that did not. The count below makes "the backlog is
+shrinking" a measured claim rather than an asserted one -- it is checked by
+`scripts/claims_check.py` (row `followups-open-count`), which counts headings,
+minus tombstones, minus entries carrying a `- **Resolved:**` line.
+`- **Resolved (partial):**` does not count as resolved, and a reserved number
+with no heading (25) cannot inflate it.
+
+**Open entries: 21**
+
 ---
 
 ## 1. Inert `query_doctor` pytest fixture
@@ -596,10 +611,15 @@ number is not silently reused and the duplication stays visible.
   must not be cited as backing for it — that test passes on thread separation
   alone.
 
-## 26. Codecov uploads have never succeeded, and the step reports success
+## 26. The `Upload coverage` step cannot report failure
 
 Numbered 26 rather than 25: 25 is reserved for the phase-1 branch disposition
 (S13), which does not exist yet.
+
+Retitled 2026-07-23. The original title — "Codecov uploads have never succeeded,
+and the step reports success" — was half wrong. See the correction block below;
+the original evidence and text are kept intact rather than edited away, because
+the falsified half is the useful part of the record.
 
 - **Evidence:** measured 2026-07-22 on the `main` CI run `29941974446`, job
   `test (3.12, 5.2)`, step `Upload coverage`:
@@ -626,8 +646,58 @@ Numbered 26 rather than 25: 25 is reserved for the phase-1 branch disposition
   `profile-coverage`). A floor row detects overstatement only; it cannot detect
   decay, so that claim would stay green if coverage fell to 80%. Replacing it
   with a dynamic badge is the real fix and is blocked on this entry.
-- **Disposition:** add `CODECOV_TOKEN` as a repository secret, pass it to
-  `codecov/codecov-action`, and set `fail_ci_if_error: true` so a rejected
-  upload is loud. **Blocked on Hassan** — only the repository owner can add the
-  secret; there is no code change that closes this without it. Filed 2026-07-22
-  during S9a.
+- **Correction (2026-07-23, S9a.1).** Hassan checked the Codecov project from a
+  browser and it holds data: `main`, 87.97% (3057 of 3475 lines), sourced from
+  commit `c779e0f` — the S9a squash merge. Re-measured independently here, with
+  `Cache-Control: no-cache` on the request, the badge SVG now returns text nodes
+  `['codecov', 'codecov', '88%', '88%']`, not `unknown`. Three claims above are
+  therefore false:
+  1. "Codecov holds no data for this project" — false.
+  2. "has reported success on every run of every release while uploading
+     nothing" — false; `c779e0f` landed.
+  3. "there is no code change that closes this without it" — false; the
+     `fail_ci_if_error` fix is a one-line code change.
+
+  The error output recorded above was a real measurement of run
+  `29941974446` and stands. What was wrong was generalising one run into
+  "every run of every release" — an over-generalisation from a single data
+  point, written as though it were a property of the configuration. The three
+  months of `+87.97%` trend Codecov reports is consistent with `c779e0f` being
+  its first data point, i.e. tokenless upload was rejected then and accepted
+  later; its reliability in between is unmeasured.
+
+  **The surviving defect is the only part that was ever a defect:** `ci.yml`
+  sets `fail_ci_if_error: false`, so a step named "Upload coverage" is
+  structurally incapable of reporting failure. Same shape as entry 11, and
+  closable by code.
+- **Coverage divergence, recorded before the badge work (S9a.1).** Two
+  authorities now report this project's coverage and they disagree:
+
+  | Source | Value | Counts |
+  |---|---|---|
+  | `coverage.xml` `line-rate` — what the claims gate measures | 87.94% | `lines-covered=3056` of `lines-valid=3475` |
+  | Codecov, recounted from the same upload | 87.97% | 3057 of 3475 |
+
+  One line in 3475, almost certainly an exclusion-handling difference rather
+  than a defect in either. Harmless today — both clear the `profile-coverage`
+  floor of 86. It stops being harmless the moment the badge becomes dynamic: if
+  the badge reads from Codecov while `measure_coverage_percent` reads
+  `line-rate`, the published number and the gated number drift apart by
+  construction — one claim, two authorities, the exact pattern this release
+  exists to end. Not reconciled here.
+- **Resolved:** 2.2.0 (S9a.1) — `fail_ci_if_error: true` shipped, so a rejected
+  upload now fails the job loudly instead of reporting success.
+  `CODECOV_TOKEN` is **not** a blocker: the upload works without it today. It is
+  recorded as the contingency if tokenless proves flaky. When that flag first
+  fires, CI going red *is* the gate working on its first run — do not revert to
+  `fail_ci_if_error: false`, and do not add `continue-on-error`, a conditional,
+  or a retry-then-pass, all of which restore a step that cannot report failure.
+
+  The dynamic coverage badge is **not** carried here. It is not a defect; it is
+  a choice between Codecov's badge and a shields endpoint generated from the
+  gate's own `coverage.xml` and published to the existing `gh-pages` branch. The
+  single-authority argument favours the endpoint, but that is Hassan's call, and
+  it is recorded as an S14 scope item rather than as a backlog entry. A defect
+  backlog holds defects; keeping a decision here would have made this entry
+  `Resolved (partial)` and put a second permanent resident in a category that
+  never empties. Filed 2026-07-22 during S9a; corrected and closed 2026-07-23.

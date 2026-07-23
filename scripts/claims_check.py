@@ -32,9 +32,13 @@ import json
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
+
+FETCH_TIMEOUT_SECONDS = 30
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = REPO_ROOT / "claims.json"
@@ -49,19 +53,80 @@ class MeasurementError(RuntimeError):
     """A measurement could not be taken, so its claims cannot be checked."""
 
 
+class SurfaceError(RuntimeError):
+    """A published surface could not be retrieved, so its claim cannot be checked."""
+
+
+_FETCH_CACHE: dict[str, str] = {}
+
+
+def fetch_surface(url: str) -> str:
+    """Retrieve a published surface over HTTP.
+
+    Cached per URL for the run, so rows sharing a surface cost one request.
+
+    ``Cache-Control``/``Pragma: no-cache`` are sent deliberately, not as a
+    precaution: ``raw.githubusercontent.com`` is CDN-served, and reading a
+    stale copy of a claim surface is a documented trap on this project. A
+    stale hit is a false green, or -- worse -- a false red immediately after
+    a legitimate surface edit, where the remedy is "wait", which teaches
+    everyone to ignore the gate.
+
+    Raises:
+        SurfaceError: on any failure. There is no skip path; a gate that
+            drops a row on a network blip reports green for the wrong reason.
+    """
+    if url in _FETCH_CACHE:
+        return _FETCH_CACHE[url]
+
+    request = urllib.request.Request(
+        url,
+        headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_SECONDS) as response:
+            if response.status != 200:
+                raise SurfaceError(f"{url} returned HTTP {response.status}")
+            body: str = response.read().decode("utf-8")
+    except SurfaceError:
+        raise
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        raise SurfaceError(f"could not fetch {url}: {exc}") from exc
+
+    _FETCH_CACHE[url] = body
+    return body
+
+
 def measure_analyzer_count() -> int:
     """Count analyzer modules on disk, excluding infrastructure."""
     return len([p for p in ANALYZERS_DIR.glob("*.py") if p.stem not in _NON_ANALYZER_MODULES])
 
 
 def measure_test_count() -> int:
-    """Return the number of tests pytest collects."""
+    """Return the number of tests pytest collects.
+
+    A non-zero exit is a failed measurement, not a number to salvage. Without
+    that check, a run that errors during collection still emits a parseable
+    line -- and the regex below takes the *denominator* of
+    ``811/812 tests collected (1 error)``, so a broken collection would
+    silently yield an inflated count.
+
+    The denominator is nonetheless the right capture: under deselection
+    (``-k``/``-m``, which exits 0) pytest emits ``N/M tests collected`` where
+    ``M`` is the total. Do not "fix" this into capturing ``N``.
+    """
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider"],
         capture_output=True,
         text=True,
         cwd=REPO_ROOT,
     )
+    if proc.returncode != 0:
+        raise MeasurementError(
+            f"pytest collection exited {proc.returncode}; the count cannot be trusted.\n"
+            f"--- stdout tail ---\n{proc.stdout[-1500:]}\n"
+            f"--- stderr tail ---\n{proc.stderr[-1500:]}"
+        )
     match = re.search(r"(\d+) tests? collected", proc.stdout)
     if not match:
         raise MeasurementError(
@@ -83,6 +148,35 @@ def measure_coverage_percent(coverage_xml: Path) -> float:
     if line_rate is None:
         raise MeasurementError(f"{coverage_xml} has no line-rate attribute")
     return float(line_rate) * 100
+
+
+def measure_followups_open() -> int:
+    """Count open entries in FOLLOWUPS.md.
+
+    open = headings - tombstones - fully-resolved entries.
+
+    - **heading** -- ``## <n>. <title>``. A *reserved* number has no heading at
+      all (25 is reserved for the phase-1 disposition and unwritten), so a
+      reservation can never inflate the count.
+    - **tombstone** -- a heading whose title says ``merged into entry``. Kept so
+      a number is not silently reused; excluded from the count, so a tombstone
+      cannot inflate it either.
+    - **resolved** -- the body carries a ``- **Resolved:**`` line.
+      ``- **Resolved (partial):**`` does NOT count, which is why entry 12 --
+      whose legacy-Windows half is still open -- remains open.
+    """
+    text = (REPO_ROOT / "FOLLOWUPS.md").read_text(encoding="utf-8")
+    headings = re.findall(r"^## (\d+)\. (.+)$", text, re.M)
+    bodies = re.split(r"^## \d+\. ", text, flags=re.M)[1:]
+
+    open_count = 0
+    for (_, title), body in zip(headings, bodies, strict=True):
+        if "merged into entry" in title:
+            continue
+        if re.search(r"^- \*\*Resolved:\*\*", body, re.M):
+            continue
+        open_count += 1
+    return open_count
 
 
 def _pyproject() -> dict[str, Any]:
@@ -178,13 +272,33 @@ def _gathered_files(manifest: dict[str, Any]) -> list[Path]:
     return [p for p in paths if p.is_file()]
 
 
+def _provenance_pattern(markers: list[str]) -> re.Pattern[str]:
+    """Build the anchored provenance pattern from the manifest's markers.
+
+    Provenance means the marker *introduces* the date: marker, an optional
+    connector, separators, then the date. Anchoring on that relationship is
+    why there is no character-distance window here -- a distance constant is
+    a tunable with no principle behind it, and a whole-line substring test
+    (the previous implementation) exempts any line merely containing the word
+    "measured" anywhere, including in an unrelated clause.
+
+    If a real provenance line fails to match, extend the connector group.
+    Do not reintroduce a distance window.
+    """
+    alternation = "|".join(re.escape(m) for m in markers)
+    return re.compile(
+        rf"(?:{alternation})(?:\s+(?:on|in|at))?[\s,:—-]*20\d\d-\d\d-\d\d",
+        re.IGNORECASE,
+    )
+
+
 def check_prose_rules(manifest: dict[str, Any]) -> list[str]:
     """Apply the build-time and dated-status rules to the gated files."""
     violations: list[str] = []
     rules = manifest["prose_rules"]
     build_patterns = [re.compile(p, re.IGNORECASE) for p in rules["build_time"]["patterns"]]
     status_words = [w.lower() for w in rules["dated_status"]["status_words"]]
-    provenance = [m.lower() for m in rules["dated_status"]["provenance_markers"]]
+    provenance_re = _provenance_pattern(rules["dated_status"]["provenance_markers"])
     date_re = re.compile(r"\b20\d\d-\d\d-\d\d\b")
 
     for path in _gathered_files(manifest):
@@ -201,7 +315,7 @@ def check_prose_rules(manifest: dict[str, Any]) -> list[str]:
             if (
                 date_re.search(line)
                 and any(w in lowered for w in status_words)
-                and not any(m in lowered for m in provenance)
+                and not provenance_re.search(line)
             ):
                 violations.append(
                     f"{relpath}:{lineno}: dated status claim -- rots without an edit; "
@@ -210,17 +324,52 @@ def check_prose_rules(manifest: dict[str, Any]) -> list[str]:
     return violations
 
 
-def check_claims(manifest: dict[str, Any], coverage_xml: Path) -> tuple[list[str], list[str]]:
+def _surface_text(claim: dict[str, Any]) -> str | None:
+    """Return the surface's contents, or None when it cannot be read at all.
+
+    One path for every kind, so the verbatim-locator rule below applies
+    wherever a surface exists. ``external`` is the only kind that yields
+    None, and that is exactly what makes it unverifiable.
+
+    Raises:
+        SurfaceError: when a surface that *should* be readable is not.
+    """
+    kind = claim["surface_kind"]
+    if kind == "repo":
+        path = REPO_ROOT / str(claim["surface"])
+        if not path.exists():
+            raise SurfaceError(f"surface {claim['surface']} does not exist")
+        text: str = path.read_text(encoding="utf-8")
+        return text
+    if kind == "fetched":
+        url = claim.get("url")
+        if not url:
+            raise SurfaceError(
+                "surface_kind 'fetched' requires a 'url' field. Without it the row "
+                "checks nothing but its own recorded value."
+            )
+        return fetch_surface(url)
+    if kind == "external":
+        return None
+    raise SurfaceError(f"unknown surface_kind {kind!r}")
+
+
+def check_claims(
+    manifest: dict[str, Any], coverage_xml: Path
+) -> tuple[list[str], list[str], list[str]]:
     """Check every manifest row against its measurement.
 
     Returns:
-        A ``(violations, deferrals)`` pair. Deferrals are rows whose surface
-        cannot be corrected from here and that carry an explicit ``deferred``
-        block; they are reported on every run, including clean ones, so a
-        deferral cannot become a hiding place.
+        A ``(violations, deferrals, unverified)`` triple. Deferrals are rows
+        that currently disagree and cannot be corrected from here. Unverified
+        are ``external`` rows without a deferral -- surfaces the gate cannot
+        read at all. Both are reported on every run, including clean ones, so
+        neither can become a hiding place, and each row appears under exactly
+        one heading: a deferred row's actionable state is the informative one.
     """
     violations: list[str] = []
     deferrals: list[str] = []
+    unverified: list[str] = []
     measurements: dict[str, Any] = {}
 
     def measured(name: str) -> Any:
@@ -233,6 +382,20 @@ def check_claims(manifest: dict[str, Any], coverage_xml: Path) -> tuple[list[str
 
     for claim in manifest["claims"]:
         deferred = claim.get("deferred")
+
+        # `external` is the only kind whose surface is never read, so it is the
+        # only kind that can silently check nothing. It must say why, and it is
+        # reported on every run. This is deliberately NOT a deferral
+        # requirement: unverifiable is permanent and definitional to the kind,
+        # while deferred is temporary and self-cancelling, so requiring both
+        # would leave an agreeing external row with no legal state.
+        if claim["surface_kind"] == "external" and not claim.get("unverifiable_reason"):
+            violations.append(
+                f"{claim['id']}: surface_kind 'external' requires 'unverifiable_reason' "
+                f"stating why the surface can be neither fetched nor corrected from a commit."
+            )
+            continue
+
         if deferred is not None:
             missing = [f for f in ("reason", "action") if not deferred.get(f)]
             if missing:
@@ -248,18 +411,19 @@ def check_claims(manifest: dict[str, Any], coverage_xml: Path) -> tuple[list[str
             violations.append(f"{claim['id']}: measurement failed: {exc}")
             continue
 
-        if claim["surface_kind"] == "repo":
-            path = REPO_ROOT / claim["surface"]
-            if not path.exists():
-                violations.append(f"{claim['id']}: surface {claim['surface']} does not exist")
-                continue
-            if claim["locator"] not in path.read_text(encoding="utf-8"):
-                violations.append(
-                    f"{claim['id']}: locator not found in {claim['surface']} -- "
-                    f"the claim was reworded or removed and this row is now checking nothing: "
-                    f"{claim['locator']!r}"
-                )
-                continue
+        try:
+            surface_text = _surface_text(claim)
+        except SurfaceError as exc:
+            violations.append(f"{claim['id']}: {exc}")
+            continue
+
+        if surface_text is not None and claim["locator"] not in surface_text:
+            violations.append(
+                f"{claim['id']}: locator not found in {claim['surface']} -- "
+                f"the claim was reworded or removed and this row is now checking nothing: "
+                f"{claim['locator']!r}"
+            )
+            continue
 
         expected = claim["value"]
         if claim["kind"] == "exact":
@@ -269,6 +433,13 @@ def check_claims(manifest: dict[str, Any], coverage_xml: Path) -> tuple[list[str
         else:
             violations.append(f"{claim['id']}: unknown kind {claim['kind']!r}")
             continue
+
+        if claim["surface_kind"] == "external" and deferred is None:
+            unverified.append(
+                f"{claim['id']}: {claim['surface']} -- recorded {expected!r}, "
+                f"tree measures {actual!r}; surface not read\n"
+                f"      why: {claim['unverifiable_reason']}"
+            )
 
         if not disagrees:
             if deferred is not None:
@@ -290,7 +461,7 @@ def check_claims(manifest: dict[str, Any], coverage_xml: Path) -> tuple[list[str
                 f"      action: {deferred['action']}"
             )
 
-    return violations, deferrals
+    return violations, deferrals, unverified
 
 
 def main() -> int:
@@ -305,8 +476,13 @@ def main() -> int:
     args = parser.parse_args()
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    violations, deferrals = check_claims(manifest, args.coverage_xml)
+    violations, deferrals, unverified = check_claims(manifest, args.coverage_xml)
     violations += check_prose_rules(manifest)
+
+    if unverified:
+        print(f"Claims gate: {len(unverified)} unverified row(s), reported every run:\n")
+        for row in unverified:
+            print(f"  {row}\n")
 
     if deferrals:
         print(f"Claims gate: {len(deferrals)} deferred row(s), reported every run:\n")
