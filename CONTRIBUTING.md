@@ -115,6 +115,14 @@ Version headings carry the actual PyPI upload date. A version that is staged
 but not yet published uses `- Unreleased` in place of the date; setting the
 real date is part of the publish step.
 
+The version itself lives in exactly one place, `src/query_doctor/__init__.py`;
+`pyproject.toml` declares `dynamic = ["version"]` and hatchling derives the
+distribution metadata from it. Because that metadata is snapshotted at install
+time, **a version bump requires `pip install -e "."` before the suite will
+pass** — `test_version` compares the runtime `__version__` against the
+installed distribution, so a stale editable install fails it. The red is
+accurate: the installed artifact really is out of date.
+
 ## TDD
 
 We follow test-driven development:
