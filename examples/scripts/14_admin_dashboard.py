@@ -12,8 +12,7 @@ print("""
 QUERY_DOCTOR = {
     "ADMIN_DASHBOARD": {
         "enabled": True,
-        # NOTE: ring buffer size is currently fixed at 50;
-        # max_reports has no effect
+        # Ring buffer size, read once when the buffer is first used
         "max_reports": 50,
     },
 }

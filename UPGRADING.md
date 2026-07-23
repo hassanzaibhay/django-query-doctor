@@ -1,5 +1,49 @@
 # Upgrading django-query-doctor
 
+## From 2.1.x to 2.2.0
+
+### Breaking / behavior changes
+
+**1. Unrecognized `REPORTERS` entries now warn.** A name the middleware does
+not dispatch produced no reporter and said nothing about it. It now emits a
+`QueryDoctorWarning` naming the entry and the recognized names (`console`,
+`json`, `log`). **Suites that escalate warnings to errors (`-W error`, or
+`filterwarnings = error`) go red on upgrade if `REPORTERS` contains anything
+else** — including `"html"` or `"otel"`, which are real reporter classes but
+are invoked directly rather than dispatched by name. Remove the entry, or
+suppress the category:
+
+```ini
+[pytest]
+filterwarnings =
+    error
+    ignore::query_doctor.QueryDoctorWarning
+```
+
+**2. `IGNORE_PATTERNS` has been removed from `DEFAULT_CONFIG`.** Nothing ever
+read it; setting it never had an effect. It is safe to delete from your
+`QUERY_DOCTOR` dict — an unknown key is merged and ignored, so leaving it in
+place breaks nothing either. To suppress findings, use `.queryignore`
+(see the [.queryignore guide](https://hassanzaibhay.github.io/django-query-doctor/guides/query-ignore/)).
+
+**3. Three settings that were previously inert now take effect.** If you set
+any of them expecting nothing to happen, behavior changes:
+
+- `STACK_TRACE_EXCLUDE` — now appended to the built-in exclusions when the
+  middleware locates the user-code frame, so prescriptions may be attributed
+  to a different `file:line` than before.
+- `QUERYIGNORE_PATH` — now names the `.queryignore` file to load, instead of
+  always discovering one beside `manage.py`. It must point at the file, not
+  its directory; a path that does not resolve warns and falls back.
+- `ADMIN_DASHBOARD.max_reports` — now sizes the dashboard ring buffer instead
+  of leaving it fixed at 50. The buffer is built on first use, so a change
+  takes effect at process restart.
+
+`query_doctor.admin_panel.MAX_REPORTS` still exists and still reads `50`, but
+is now derived from `DEFAULT_CONFIG` rather than declared separately. Code
+importing it is unaffected; code that assumed it described the *live* buffer
+size should read the buffer instead.
+
 ## From 2.1.0 to 2.1.1
 
 ### Breaking / behavior changes

@@ -8,7 +8,7 @@ from django.test import RequestFactory
 from query_doctor.admin_panel import (
     MAX_REPORTS,
     QueryDoctorDashboardView,
-    _report_buffer,
+    _get_buffer,
     record_report,
 )
 from query_doctor.types import DiagnosisReport, IssueType, Prescription, Severity
@@ -44,31 +44,31 @@ class TestRecordReport:
 
     def setup_method(self) -> None:
         """Clear the report buffer before each test."""
-        _report_buffer.clear()
+        _get_buffer().clear()
 
     def test_record_report_stores_in_buffer(self) -> None:
         """record_report should add to the buffer."""
         report = _make_report()
         record_report("/api/books/", "GET", report)
-        assert len(_report_buffer) == 1
-        assert _report_buffer[0]["path"] == "/api/books/"
-        assert _report_buffer[0]["method"] == "GET"
-        assert _report_buffer[0]["total_queries"] == 5
+        assert len(_get_buffer()) == 1
+        assert _get_buffer()[0]["path"] == "/api/books/"
+        assert _get_buffer()[0]["method"] == "GET"
+        assert _get_buffer()[0]["total_queries"] == 5
 
     def test_buffer_respects_max_size(self) -> None:
         """Buffer should evict oldest entries when exceeding MAX_REPORTS."""
         report = _make_report()
         for i in range(MAX_REPORTS + 10):
             record_report(f"/path/{i}/", "GET", report)
-        assert len(_report_buffer) == MAX_REPORTS
+        assert len(_get_buffer()) == MAX_REPORTS
         # Oldest entries should be evicted
-        assert _report_buffer[0]["path"] == "/path/10/"
+        assert _get_buffer()[0]["path"] == "/path/10/"
 
     def test_record_report_captures_prescriptions(self) -> None:
         """Prescription details should be captured in the record."""
         report = _make_report(num_prescriptions=2, has_critical=True)
         record_report("/test/", "POST", report)
-        record = _report_buffer[0]
+        record = _get_buffer()[0]
         assert record["issues"] == 2
         assert record["critical"] is True
         assert len(record["prescriptions"]) == 2
@@ -77,7 +77,7 @@ class TestRecordReport:
         """Records should include a timestamp."""
         report = _make_report()
         record_report("/test/", "GET", report)
-        assert "timestamp" in _report_buffer[0]
+        assert "timestamp" in _get_buffer()[0]
 
 
 @pytest.mark.django_db
@@ -86,7 +86,7 @@ class TestDashboardView:
 
     def setup_method(self) -> None:
         """Clear the report buffer before each test."""
-        _report_buffer.clear()
+        _get_buffer().clear()
 
     def test_dashboard_returns_200_for_staff(self) -> None:
         """Staff user should get 200 response."""

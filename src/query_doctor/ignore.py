@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import fnmatch
 import logging
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
+from query_doctor.exceptions import QueryDoctorWarning
 from query_doctor.types import CapturedQuery, Prescription
 
 logger = logging.getLogger("query_doctor")
@@ -26,18 +28,34 @@ class IgnoreRule:
 
 
 def load_queryignore(project_root: Path | None = None) -> list[IgnoreRule]:
-    """Load .queryignore from project root.
+    """Load .queryignore rules.
+
+    Resolution order:
+
+    1. ``project_root`` when given -- an explicit argument always wins, so
+       callers that already know the directory are unaffected by settings.
+    2. The ``QUERYIGNORE_PATH`` setting, which names the ignore file itself.
+    3. ``.queryignore`` beside the project root located by
+       :func:`_find_project_root`.
+
+    A configured ``QUERYIGNORE_PATH`` that does not resolve degrades to (3)
+    rather than raising -- analysis must never break the host -- but it warns
+    on the way. Degrading silently would make a configured path observably
+    identical to never setting one, which is the failure mode
+    :class:`~query_doctor.exceptions.QueryDoctorWarning` exists to report.
 
     Args:
-        project_root: Root directory to search for .queryignore.
-            Defaults to current working directory.
+        project_root: Root directory to search for .queryignore. Overrides
+            the ``QUERYIGNORE_PATH`` setting when given.
 
     Returns:
-        List of parsed IgnoreRule objects. Empty list if file not found.
+        List of parsed IgnoreRule objects. Empty list if no file is found.
     """
-    if project_root is None:
-        project_root = _find_project_root()
-    ignore_file = project_root / ".queryignore"
+    if project_root is not None:
+        ignore_file = project_root / ".queryignore"
+    else:
+        ignore_file = _configured_ignore_file() or (_find_project_root() / ".queryignore")
+
     if not ignore_file.exists():
         return []
 
@@ -153,6 +171,42 @@ def _should_ignore_prescription(rx: Prescription, rules: list[IgnoreRule]) -> bo
                 return True
 
     return False
+
+
+def _configured_ignore_file() -> Path | None:
+    """Return the ignore file named by QUERYIGNORE_PATH, or None.
+
+    Returns None both when the setting is unset and when it names something
+    unusable; the unusable case warns first, so the caller's fallback is
+    reported rather than silent.
+    """
+    from query_doctor.conf import get_config
+
+    try:
+        configured = get_config().get("QUERYIGNORE_PATH")
+    except Exception:
+        # Settings unavailable (no Django configured); fall back quietly --
+        # the user set nothing here, so there is nothing to report.
+        return None
+
+    if not configured:
+        return None
+
+    path = Path(configured)
+    if path.is_file():
+        return path
+
+    reason = "it is a directory" if path.is_dir() else "no such file"
+    warnings.warn(
+        # Plain str, not repr: on Windows a repr doubles every backslash, so the
+        # path in the warning stops matching the path the user configured.
+        f"query_doctor: QUERYIGNORE_PATH is set to '{configured}' but {reason}; "
+        f"the setting was ignored. Falling back to '.queryignore' beside the project "
+        f"root. QUERYIGNORE_PATH must name the ignore file itself, not its directory.",
+        QueryDoctorWarning,
+        stacklevel=3,
+    )
+    return None
 
 
 def _find_project_root() -> Path:

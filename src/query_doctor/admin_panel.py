@@ -15,14 +15,44 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
 
+from query_doctor.conf import DEFAULT_CONFIG, get_config
 from query_doctor.types import DiagnosisReport
 
 logger = logging.getLogger("query_doctor")
 
-MAX_REPORTS = 50
+# Derived, not re-declared: conf.py is the single authority for the default.
+# A second literal here would be two declarations of one value with nothing
+# deriving either from the other.
+MAX_REPORTS: int = int(DEFAULT_CONFIG["ADMIN_DASHBOARD"]["max_reports"])
 
-_report_buffer: deque[dict[str, Any]] = deque(maxlen=MAX_REPORTS)
+# Built on first use rather than at import, because its size comes from
+# ADMIN_DASHBOARD.max_reports and settings are not readable at import time.
+_report_buffer: deque[dict[str, Any]] | None = None
 _latest_project_report: dict[str, Any] | None = None
+
+
+def _get_buffer() -> deque[dict[str, Any]]:
+    """Return the report ring buffer, sizing it from config on first use.
+
+    Falls back to the packaged default when config cannot be read -- the
+    dashboard is a diagnostic surface and must not raise into the request
+    that is recording a report.
+    """
+    global _report_buffer
+    if _report_buffer is None:
+        max_reports = MAX_REPORTS
+        try:
+            configured = get_config().get("ADMIN_DASHBOARD", {}).get("max_reports", MAX_REPORTS)
+            max_reports = int(configured)
+        except Exception:
+            logger.warning(
+                "query_doctor: could not read ADMIN_DASHBOARD.max_reports; "
+                "using the default of %d",
+                MAX_REPORTS,
+                exc_info=True,
+            )
+        _report_buffer = deque(maxlen=max_reports)
+    return _report_buffer
 
 
 def record_report(request_path: str, method: str, report: DiagnosisReport) -> None:
@@ -36,7 +66,7 @@ def record_report(request_path: str, method: str, report: DiagnosisReport) -> No
         method: The HTTP method (GET, POST, etc.).
         report: The completed diagnosis report.
     """
-    _report_buffer.append(
+    _get_buffer().append(
         {
             "timestamp": datetime.now().isoformat(),
             "path": request_path,
@@ -112,9 +142,10 @@ class QueryDoctorDashboardView(TemplateView):
             Context dict with reports, totals, and statistics.
         """
         ctx = super().get_context_data(**kwargs)
-        ctx["reports"] = list(reversed(_report_buffer))
-        ctx["total_reports"] = len(_report_buffer)
-        ctx["total_issues"] = sum(r["issues"] for r in _report_buffer)
-        ctx["critical_count"] = sum(1 for r in _report_buffer if r["critical"])
+        buffer = _get_buffer()
+        ctx["reports"] = list(reversed(buffer))
+        ctx["total_reports"] = len(buffer)
+        ctx["total_issues"] = sum(r["issues"] for r in buffer)
+        ctx["critical_count"] = sum(1 for r in buffer if r["critical"])
         ctx["project_report"] = _latest_project_report
         return ctx

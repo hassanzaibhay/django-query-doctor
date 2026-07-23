@@ -55,7 +55,7 @@ QUERY_DOCTOR = {
     # Admin dashboard — in-memory ring buffer for recent reports
     "ADMIN_DASHBOARD": {
         "enabled": False,  # Must be explicitly enabled
-        # NOTE: buffer size is currently fixed at 50; max_reports has no effect
+        # Ring buffer size, read once when the buffer is first used
         "max_reports": 50,
     },
     # Module suffixes check_serializers imports per app when discovering
@@ -72,8 +72,9 @@ QUERY_DOCTOR = {
     "TURBO": {
         "ENABLED": False,
     },
-    # NOTE: STACK_TRACE_EXCLUDE, IGNORE_PATTERNS, and QUERYIGNORE_PATH exist in
-    # DEFAULT_CONFIG but are not read by any code path today — setting them has
-    # no effect. Use a .queryignore file at the project root to suppress
-    # known findings.
+    # Extra path fragments to skip when locating the user-code frame
+    "STACK_TRACE_EXCLUDE": [],
+    # Path to the .queryignore file itself when it is not beside manage.py;
+    # None means look for .queryignore at the project root
+    "QUERYIGNORE_PATH": None,
 }

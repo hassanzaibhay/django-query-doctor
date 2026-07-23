@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   Neither was wired into anything before; both had to be remembered.
 
 ### Changed
+- Settings that were accepted and then ignored now take effect.
+  `STACK_TRACE_EXCLUDE` reaches the callsite finder, `QUERYIGNORE_PATH`
+  selects the `.queryignore` file to load, and `ADMIN_DASHBOARD.max_reports`
+  sizes the dashboard buffer. All three were present in the defaults,
+  documented as having no effect, and read by nothing.
+- An unrecognized `REPORTERS` entry now warns instead of silently producing no
+  reporter. A typo and an unsupported name were previously indistinguishable
+  from a working configuration. Suites running `-W error` will fail on such an
+  entry — see `UPGRADING.md`.
+- A `QUERYIGNORE_PATH` that cannot be resolved warns and falls back to
+  discovery beside `manage.py`, rather than being dropped silently.
+
 - The distribution metadata and the runtime `__version__` can no longer
   disagree. The version was previously declared independently in
   `pyproject.toml` and `src/query_doctor/__init__.py`, with a third copy pinned
@@ -69,6 +81,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `Executable mypy not found`, and a `pytest` hook exiting 1 with no output
   from an unrelated system interpreter; now all four pass under the repository
   venv.
+
+### Removed
+- `IGNORE_PATTERNS` from the default configuration. No code path ever read it;
+  `.queryignore` is the supported way to suppress findings. Leaving the key in
+  your settings is harmless — unknown keys are merged and ignored.
 
 ### Fixed
 - `docs/deep-dive/comparison.md` no longer asserts that Django's fetch modes are

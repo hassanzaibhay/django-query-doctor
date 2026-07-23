@@ -34,15 +34,24 @@ class QueryInterceptor:
     async (ASGI) deployments.
     """
 
-    def __init__(self, capture_stack: bool = True) -> None:
+    def __init__(
+        self,
+        capture_stack: bool = True,
+        exclude_modules: list[str] | None = None,
+    ) -> None:
         """Initialize the interceptor.
 
         Args:
             capture_stack: Whether to capture stack traces for callsite info.
+            exclude_modules: Extra path fragments to skip when locating the
+                user-code frame, appended to the built-in exclusions. Callers
+                supply the ``STACK_TRACE_EXCLUDE`` setting here; the
+                interceptor does not read configuration itself.
         """
         global _interceptor_counter
         _interceptor_counter += 1
         self._capture_stack = capture_stack
+        self._exclude_modules = exclude_modules
         # Each instance gets its own ContextVar for async isolation.
         self._queries_var: contextvars.ContextVar[list[CapturedQuery] | None] = (
             contextvars.ContextVar(
@@ -82,7 +91,7 @@ class QueryInterceptor:
 
                 callsite = None
                 if self._capture_stack:
-                    callsite = capture_callsite()
+                    callsite = capture_callsite(self._exclude_modules)
 
                 normalized = normalize_sql(sql)
                 fp = fingerprint(sql)

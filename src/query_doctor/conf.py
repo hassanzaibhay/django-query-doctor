@@ -26,7 +26,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "serializer_method": {"enabled": True},
     },
     "REPORTERS": ["console"],
-    "IGNORE_PATTERNS": [],
     "IGNORE_URLS": [],
     "QUERY_BUDGET": {"DEFAULT_MAX_QUERIES": None, "DEFAULT_MAX_TIME_MS": None},
     "ADMIN_DASHBOARD": {"enabled": False, "max_reports": 50},

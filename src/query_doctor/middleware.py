@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import random
+import warnings
 from collections.abc import Callable
 from typing import Any
 
@@ -18,6 +19,7 @@ from asgiref.sync import iscoroutinefunction
 from django.http import HttpRequest
 
 from query_doctor.conf import get_config
+from query_doctor.exceptions import QueryDoctorWarning
 from query_doctor.interceptor import QueryInterceptor
 from query_doctor.plugin_api import discover_analyzers
 from query_doctor.reporters.console import ConsoleReporter
@@ -38,10 +40,54 @@ def _get_enabled_analyzers(config: dict[str, Any]) -> list[Any]:
     return discover_analyzers()
 
 
+# The only names ``REPORTERS`` dispatches. Defined once so the validation
+# below and the dispatch cannot drift apart.
+_RECOGNIZED_REPORTERS = ("console", "json", "log")
+
+# Reporter classes that ship but are deliberately not dispatched by name: they
+# are invoked directly (see docs/reporters/index.md). Named in the warning so
+# "that reporter exists but is not wired here" reads differently from a typo.
+_DIRECT_INVOCATION_REPORTERS = {
+    "html": "HTMLReporter (query_doctor.reporters.html_reporter)",
+    "otel": "OTelReporter (query_doctor.reporters.otel_exporter)",
+}
+
+
+def _warn_unrecognized_reporters(reporter_names: Any) -> None:
+    """Warn about REPORTERS entries the dispatch below will silently drop.
+
+    Membership tests alone cannot distinguish an unsupported name from a
+    typo: both simply produce no reporter. That silence is the defect
+    ``QueryDoctorWarning`` exists to end, so it is reported as a class
+    rather than per name.
+    """
+    try:
+        unknown = [name for name in reporter_names if name not in _RECOGNIZED_REPORTERS]
+    except TypeError:  # REPORTERS is not iterable; the dispatch below no-ops
+        return
+
+    for name in unknown:
+        direct = _DIRECT_INVOCATION_REPORTERS.get(name)
+        detail = (
+            f" {direct} ships but is invoked directly rather than dispatched by name"
+            f" -- see the reporters guide."
+            if direct
+            else ""
+        )
+        warnings.warn(
+            f"query_doctor: unrecognized REPORTERS entry {name!r}; it produces no reporter. "
+            f"Recognized names: {', '.join(_RECOGNIZED_REPORTERS)}.{detail}",
+            QueryDoctorWarning,
+            stacklevel=3,
+        )
+
+
 def _get_reporters(config: dict[str, Any]) -> list[Any]:
     """Return a list of enabled reporter instances."""
     reporters: list[Any] = []
     reporter_names = config.get("REPORTERS", ["console"])
+
+    _warn_unrecognized_reporters(reporter_names)
 
     if "console" in reporter_names:
         reporters.append(ConsoleReporter())
@@ -123,7 +169,10 @@ class QueryDoctorMiddleware:
         if not self._should_process(request, config):
             return await self.get_response(request)
 
-        interceptor = QueryInterceptor(capture_stack=config.get("CAPTURE_STACK_TRACES", True))
+        interceptor = QueryInterceptor(
+            capture_stack=config.get("CAPTURE_STACK_TRACES", True),
+            exclude_modules=config.get("STACK_TRACE_EXCLUDE"),
+        )
 
         from django.db import connection
 
@@ -155,7 +204,10 @@ class QueryDoctorMiddleware:
         if not self._should_process(request, config):
             return self.get_response(request)
 
-        interceptor = QueryInterceptor(capture_stack=config.get("CAPTURE_STACK_TRACES", True))
+        interceptor = QueryInterceptor(
+            capture_stack=config.get("CAPTURE_STACK_TRACES", True),
+            exclude_modules=config.get("STACK_TRACE_EXCLUDE"),
+        )
 
         from django.db import connection
 
