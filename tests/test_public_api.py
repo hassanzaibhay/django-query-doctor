@@ -63,7 +63,24 @@ class TestPublicAPI:
         assert CallSite is not None
 
     def test_version(self) -> None:
-        """__version__ should be available."""
+        """__version__ must exist and must agree with the installed distribution metadata.
+
+        Two assertions, deliberately: the first fails informatively when the attribute is
+        removed or emptied, the second when the runtime version and the distribution
+        metadata drift apart. A hardcoded literal here -- what this test used to compare
+        against -- was a third place a release had to remember to edit, and it could not
+        detect the drift it looked like it was guarding (FOLLOWUPS.md item 16).
+        """
+        import importlib.metadata
+
         import query_doctor
 
-        assert query_doctor.__version__ == "2.1.2"
+        assert isinstance(query_doctor.__version__, str)
+        assert query_doctor.__version__
+
+        assert query_doctor.__version__ == importlib.metadata.version("django-query-doctor"), (
+            "runtime __version__ and installed distribution metadata disagree. Distribution "
+            "metadata is snapshotted at install time, so after bumping "
+            'src/query_doctor/__init__.py you must re-run `pip install -e "."` before the '
+            "suite will pass."
+        )

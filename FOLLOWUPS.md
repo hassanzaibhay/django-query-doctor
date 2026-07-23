@@ -34,7 +34,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 21**
+**Open entries: 20**
 
 ---
 
@@ -436,6 +436,33 @@ zero in-src references. Classification:
   of scope for 2.1.1: this changes how the artifact is built, and a
   correctness-only patch release is the wrong place to change the build on
   the eve of publish.
+- **Resolved:** 2.2.0 - **both** dispositions, not one. The two are not
+  alternatives: single-sourcing alone is a change that cannot be observed to
+  fail, so the cross-check is what makes it checkable. `pyproject.toml` now
+  carries `dynamic = ["version"]` plus `[tool.hatch.version]` with
+  `path = "src/query_doctor/__init__.py"`, and the static `[project]` key is
+  gone -- `__init__.py:18` is the sole authority. `tests/test_public_api.py`
+  `test_version` compares `__version__` against
+  `importlib.metadata.version("django-query-doctor")`, so a reversion to a
+  static declaration that drifts fails the suite; a separate assertion keeps
+  the informative failure when the attribute is removed. Both assertions live
+  in the existing test rather than a new one, which is a minimisation for a
+  step that needed no new collected test, not a constraint -- adding tests
+  costs one profile README edit plus one `claims.json` bump.
+  Two corrections to this entry as written. Its quoted literals were stale:
+  both declarations read `2.1.0` above and had moved together to `2.1.2`
+  before resolution, so the two *declarations in the tree* never actually
+  disagreed - manual release discipline held. The *installed artifact* is a
+  different matter: `pip show` in the development virtualenv reported `2.0.0`
+  against a runtime `2.1.2`, i.e. two releases of drift between the runtime
+  version and the metadata the suite was resolving entry points through. The
+  new cross-check went red on the unmodified tree because of it, which is how
+  it was found. And the entry undercounts: `tests/test_public_api.py:69` was
+  not only a guard that could not catch the drift, it was a *third* hardcoded
+  literal a release had to remember to edit.
+  Not gated by `claims.json`: during development the tree version legitimately
+  leads the published PyPI version, so an exact row against PyPI would be red
+  for most of every release cycle. The cross-check test is the gate.
 
 ## 17. `_analyze_and_report` blocks the caller inside `__acall__`
 

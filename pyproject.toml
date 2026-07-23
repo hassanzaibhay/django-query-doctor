@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-query-doctor"
-version = "2.1.2"
+dynamic = ["version"]
 description = "Automated Django ORM query diagnosis and optimization. SQL compilation caching, prepared statements, N+1 detection, and DRF analysis."
 readme = "README.md"
 license = "MIT"
@@ -68,6 +68,13 @@ Documentation = "https://hassanzaibhay.github.io/django-query-doctor"
 Repository = "https://github.com/hassanzaibhay/django-query-doctor"
 Changelog = "https://github.com/hassanzaibhay/django-query-doctor/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/hassanzaibhay/django-query-doctor/issues"
+
+# `src/query_doctor/__init__.py` is the sole authority for the version; hatchling
+# derives the distribution metadata from it at build time. Previously `[project]`
+# carried a static `version` alongside the module's `__version__`, with nothing
+# deriving either from the other -- see FOLLOWUPS.md item 16.
+[tool.hatch.version]
+path = "src/query_doctor/__init__.py"
 
 [tool.hatch.build.targets.sdist]
 exclude = [

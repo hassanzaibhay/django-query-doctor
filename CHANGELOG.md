@@ -29,6 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   Neither was wired into anything before; both had to be remembered.
 
 ### Changed
+- The distribution metadata and the runtime `__version__` can no longer
+  disagree. The version was previously declared independently in
+  `pyproject.toml` and `src/query_doctor/__init__.py`, with a third copy pinned
+  in a test, and nothing derived any one from the others; the module is now the
+  single source and the suite fails if the installed distribution reports
+  anything else. Note for contributors: bumping the version requires
+  `pip install -e "."` before the suite passes, because distribution metadata is
+  snapshotted at install time.
 - The claims gate now reads published surfaces instead of trusting its own
   manifest about them. As first shipped it compared only the recorded value
   against the tree for anything outside this repository, so 7 of its 13 rows
