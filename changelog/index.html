@@ -1827,19 +1827,44 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <ul>
 <li>A claims gate (<code>scripts/claims_check.py</code> + <code>claims.json</code>) that regenerates
   every quantitative claim this project publishes — analyzer count, test count,
-  coverage, supported Django and Python ranges — from the tree and fails on
-  drift. It also rejects two shapes of claim outright: build durations quoted as
+  coverage, supported Django and Python ranges, open follow-up count — from the
+  tree and fails on drift. Surfaces in this repository are read on every run;
+  surfaces published elsewhere are fetched over HTTP on every run; in both cases
+  a recorded locator must appear verbatim, so a reworded claim fails loudly
+  rather than leaving its row checking nothing. A surface that can be neither
+  fetched nor corrected from a commit must say so in <code>unverifiable_reason</code> and
+  is reported on every run, including clean ones, because such a row proves the
+  manifest is self-consistent and proves nothing about the surface.
+  The gate also rejects two shapes of claim outright: build durations quoted as
   facts, and dated assertions about something's <em>current</em> status, which rot
   without an edit. Dated <em>provenance</em> ("comparisons current as of ...") is
   exempt, because recording when a comparison was made stays true permanently.
-  Claims on surfaces outside this repository can be marked deferred; a deferral
-  must carry a reason and a named action, is printed on every run including
-  clean ones, and fails the gate once the surface agrees with the tree.</li>
+  A row whose surface currently disagrees and cannot be corrected from here can
+  be marked deferred; a deferral must carry a reason and a named action, is
+  printed on every run, and fails the gate once the surface agrees again.</li>
 <li>The docs truth sweep and the claims gate now run in CI and as pre-push hooks.
   Neither was wired into anything before; both had to be remembered.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
+<li>The claims gate now reads published surfaces instead of trusting its own
+  manifest about them. As first shipped it compared only the recorded value
+  against the tree for anything outside this repository, so 7 of its 13 rows
+  were never read at all and a drifted profile page could not be detected by
+  any code path — the entry above is worded to describe what the gate does
+  after this change, not what it did when the row was written. Five rows now
+  fetch the surface (<code>Cache-Control: no-cache</code>, since the host is CDN-served
+  and a stale read is a false green); a fetch failure is a violation, never a
+  skip.</li>
+<li>A failed <code>pytest --collect-only</code> no longer yields a test count. The exit code
+  was previously unchecked, and the count regex reads the denominator of
+  <code>N/M tests collected</code>, so a broken collection produced an inflated number
+  rather than an error.</li>
+<li>CI and the pre-push hooks now invoke the gate scripts identically
+  (<code>python -m scripts.x</code>). The paths already matched; the invocation form did
+  not, and the two forms put different directories on <code>sys.path[0]</code>.</li>
+<li><code>Upload coverage</code> in CI sets <code>fail_ci_if_error: true</code>. It previously reported
+  success on a run whose upload was refused outright.</li>
 <li><code>scripts/</code> is now linted and type-checked. <code>ruff</code> and <code>mypy</code> covered
   <code>src/</code> and <code>tests/</code> only, in both the hooks and CI, while <code>scripts/</code> holds the
   docs truth sweep, the claims gate and the hook launcher that every other check
