@@ -1847,14 +1847,29 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
-<li>The distribution metadata and the runtime <code>__version__</code> can no longer
+<li>Settings that were accepted and then ignored now take effect.
+  <code>STACK_TRACE_EXCLUDE</code> reaches the callsite finder, <code>QUERYIGNORE_PATH</code>
+  selects the <code>.queryignore</code> file to load, and <code>ADMIN_DASHBOARD.max_reports</code>
+  sizes the dashboard buffer. All three were present in the defaults,
+  documented as having no effect, and read by nothing.</li>
+<li>An unrecognized <code>REPORTERS</code> entry now warns instead of silently producing no
+  reporter. A typo and an unsupported name were previously indistinguishable
+  from a working configuration. Suites running <code>-W error</code> will fail on such an
+  entry — see <code>UPGRADING.md</code>.</li>
+<li>
+<p>A <code>QUERYIGNORE_PATH</code> that cannot be resolved warns and falls back to
+  discovery beside <code>manage.py</code>, rather than being dropped silently.</p>
+</li>
+<li>
+<p>The distribution metadata and the runtime <code>__version__</code> can no longer
   disagree. The version was previously declared independently in
   <code>pyproject.toml</code> and <code>src/query_doctor/__init__.py</code>, with a third copy pinned
   in a test, and nothing derived any one from the others; the module is now the
   single source and the suite fails if the installed distribution reports
   anything else. Note for contributors: bumping the version requires
   <code>pip install -e "."</code> before the suite passes, because distribution metadata is
-  snapshotted at install time.</li>
+  snapshotted at install time.</p>
+</li>
 <li>The claims gate now reads published surfaces instead of trusting its own
   manifest about them. As first shipped it compared only the recorded value
   against the tree for anything outside this repository, so 7 of its 13 rows
@@ -1887,6 +1902,12 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   <code>Executable mypy not found</code>, and a <code>pytest</code> hook exiting 1 with no output
   from an unrelated system interpreter; now all four pass under the repository
   venv.</li>
+</ul>
+<h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>IGNORE_PATTERNS</code> from the default configuration. No code path ever read it;
+  <code>.queryignore</code> is the supported way to suppress findings. Leaving the key in
+  your settings is harmless — unknown keys are merged and ignored.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2048,7 +2069,7 @@ failing the check. See <code>UPGRADING.md</code> for the full 2.1.0 upgrade chec
   prints a non-blocking warning — not a failure — when comparing against a
   baseline saved with a different version.</li>
 </ul>
-<h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h3>
+<h3 id="removed_1">Removed<a class="headerlink" href="#removed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Removed <code>DRFSerializerAnalyzer</code>, a builtin analyzer that always returned no
   results through any code path reachable from <code>fix_queries</code>, the middleware,
