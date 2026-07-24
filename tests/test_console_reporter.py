@@ -347,11 +347,21 @@ class TestConsoleReporterRichPath:
         assert "author" in output
 
     def test_rich_empty_report(self) -> None:
-        """Rich rendering with no prescriptions shows no issues."""
+        """Rich rendering with no prescriptions shows the 'No issues detected' marker.
+
+        The prior assertion (`"No issues" in output or "0" in output`) could not
+        fail: the header always contains a `0` ("Total queries: 0"), so the `or`
+        branch was unconditionally true and the empty-report line at
+        console.py:123-124 was effectively untested (FOLLOWUPS #15). This pins the
+        actual marker, and it is the only direct _render_rich coverage of that
+        branch - test_coverage_gaps.py::test_render_empty_report_content goes
+        through render() and passes on _render_plain too, which emits the same
+        string (console.py:190).
+        """
         reporter = ConsoleReporter()
         report = DiagnosisReport(total_queries=0, total_time_ms=0.0)
         output = reporter._render_rich(report)
-        assert "No issues" in output or "0" in output
+        assert "No issues detected" in output
 
     def test_rich_warning_severity(self) -> None:
         """Rich rendering applies yellow style for WARNING severity."""
