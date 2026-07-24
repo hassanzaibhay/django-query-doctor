@@ -435,3 +435,85 @@ class TestConsoleReporterGrouped:
         reporter.report(report)
         output = stream.getvalue()
         assert "No issues detected" in output
+
+
+class TestConsoleStreamProbe:
+    """The Rich renderer must probe the stream it writes to (FOLLOWUPS #13).
+
+    ``_render_rich`` built ``Console(file=None)``, which probes stdout for
+    encoding/box decisions, then printed the captured string to ``self._stream``
+    - a different stream. When the two disagree (a strict non-utf8 destination
+    while stdout is utf-8), the box characters chosen from stdout garble or crash
+    on the destination. The fix builds ``Console(file=self._stream)`` so one
+    stream owns both the decision and the write.
+    """
+
+    def test_rich_console_probes_the_destination_stream(self) -> None:
+        """_render_rich builds Console(file=self._stream), not file=None.
+
+        Detection stream and destination stream must be the same object, so the
+        encoding the renderer chooses box characters for is the encoding they are
+        written to. Asserted by spying on the file kwarg Rich's Console receives.
+        """
+        import sys
+        from unittest import mock
+
+        import rich.console as rc
+        from django.core.management.base import OutputWrapper
+
+        destination = OutputWrapper(sys.stdout)
+        reporter = ConsoleReporter(stream=destination)
+
+        captured: dict[str, object] = {}
+        real_console = rc.Console
+
+        def spy(*args: object, **kwargs: object) -> object:
+            captured["file"] = kwargs.get("file")
+            return real_console(*args, **kwargs)
+
+        # Empty report: no prescriptions, so the RichConsole isinstance path at
+        # console.py:129 is not exercised and the spy stays a clean stand-in.
+        with mock.patch("rich.console.Console", side_effect=spy):
+            reporter._render_rich(DiagnosisReport(total_queries=0, total_time_ms=0.0))
+
+        assert captured["file"] is reporter._stream
+        assert reporter._stream is destination
+
+    def test_outputwrapper_delegates_probe_attributes(self) -> None:
+        """OutputWrapper delegates encoding/isatty/fileno to the wrapped stream.
+
+        This is the invariant that keeps the two shipped call sites
+        (check_queries.py:221, check_serializers.py:176, both
+        ConsoleReporter(stream=self.stdout)) non-divergent after the fix: the
+        Console probes self.stdout, whose encoding/isatty/fileno resolve to the
+        underlying stdout the output is written to. Runs on every Django version
+        in the CI matrix, which is the answer to entry 13's "unverified across
+        django>=4.2" question.
+        """
+        from django.core.management.base import OutputWrapper
+
+        class FakeStream:
+            encoding = "utf-8"
+
+            def isatty(self) -> bool:
+                return False
+
+            def fileno(self) -> int:
+                return 7
+
+            def write(self, s: str) -> int:
+                return len(s)
+
+            def flush(self) -> None:
+                return None
+
+        # Nothing between OutputWrapper and object can shadow the delegated
+        # attributes, and OutputWrapper itself defines no `encoding`.
+        assert [c.__name__ for c in OutputWrapper.__mro__] == ["OutputWrapper", "object"]
+        assert "encoding" not in vars(OutputWrapper)
+
+        wrapped = FakeStream()
+        w = OutputWrapper(wrapped)
+        assert w.encoding == wrapped.encoding
+        assert w.isatty() == wrapped.isatty()
+        assert w.fileno() == wrapped.fileno()

@@ -99,7 +99,11 @@ class ConsoleReporter:
         from rich.panel import Panel
         from rich.text import Text
 
-        console = Console(file=None, force_terminal=False)
+        # Probe the stream we actually write to (self._stream), not stdout:
+        # with one stream the encoding/box decision and the write cannot
+        # disagree, and safe_box resolves the box choice for that stream
+        # (FOLLOWUPS #13).
+        console = Console(file=self._stream, force_terminal=False)
         parts: list[str] = []
 
         # Header
