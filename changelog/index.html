@@ -1844,6 +1844,16 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   printed on every run, and fails the gate once the surface agrees again.</li>
 <li>The docs truth sweep and the claims gate now run in CI and as pre-push hooks.
   Neither was wired into anything before; both had to be remembered.</li>
+<li>The <code>query_doctor</code> pytest fixture now produces observable output. A
+  <code>pytest_terminal_summary</code> hook prints a <code>query_doctor</code> section at end of
+  session: one header line with the number of fixture-using tests observed and
+  how many were clean, then one line per test that had findings. Tests with zero
+  issues produce no line, so the section stays proportionate to the problems
+  found. Previously the fixture's report was populated in a teardown finalizer
+  and then discarded unread, giving the fixture no observable effect. The
+  teardown timing is unchanged, so <code>diagnose_queries()</code> remains the tool for
+  assertions inside a test body; the fixture's own runtime warning about that is
+  unchanged.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
