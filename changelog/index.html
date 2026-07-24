@@ -1856,6 +1856,19 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   reporter. A typo and an unsupported name were previously indistinguishable
   from a working configuration. Suites running <code>-W error</code> will fail on such an
   entry — see <code>UPGRADING.md</code>.</li>
+<li><code>.queryignore</code> is now honoured on every surface that reports findings, not
+  only the middleware and <code>fix_queries</code>. <code>check_queries</code>, <code>diagnose_project</code>,
+  the pytest plugin, the <code>diagnose_queries()</code> context manager and the Celery
+  integration consolidate onto a single <code>pipeline.analyze()</code>, so a rule behaves
+  identically everywhere. Suppression stays at the prescription level: captured
+  query counts and timings are never altered, only which findings are reported.
+  <code>sql:</code> rules additionally match the raw SQL behind a finding, not only its
+  description — strictly more suppression. See <code>UPGRADING.md</code>.</li>
+<li><code>CAPTURE_STACK_TRACES</code> and <code>STACK_TRACE_EXCLUDE</code> are now read at every
+  interceptor construction site through a shared <code>build_interceptor()</code> factory.
+  <code>CAPTURE_STACK_TRACES: False</code> previously took effect only in the middleware;
+  the seven other surfaces captured stack traces regardless. Default is <code>True</code>,
+  so only users who set it <code>False</code> are affected.</li>
 <li>
 <p>A <code>QUERYIGNORE_PATH</code> that cannot be resolved warns and falls back to
   discovery beside <code>manage.py</code>, rather than being dropped silently.</p>
@@ -1908,6 +1921,14 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <li><code>IGNORE_PATTERNS</code> from the default configuration. No code path ever read it;
   <code>.queryignore</code> is the supported way to suppress findings. Leaving the key in
   your settings is harmless — unknown keys are merged and ignored.</li>
+<li>The dead admin-dashboard project-scan integration: <code>record_project_report</code>,
+  the <code>_latest_project_report</code> global, and the unused <code>project_report</code> template
+  context key. The feature never functioned in any release — nothing wrote the
+  global and the dashboard template never rendered it. See the <code>[1.0.0]</code>
+  historical note.</li>
+<li><code>ignore.should_ignore_query</code>, which had no caller. Its goal — <code>sql:</code> rules
+  matching raw SQL — is now delivered by <code>filter_prescriptions</code> at the
+  prescription level.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2251,8 +2272,9 @@ removed in 2.1.0 (see the [2.1.0] "Removed" entry; static DRF analysis via
 <code>check_serializers</code> replaces it). "Admin dashboard integration showing
 latest project scan results" never activated: <code>record_project_report</code> has
 no caller in any released version and the dashboard template does not
-render project-report data. The original entries are preserved unchanged
-below.</p>
+render project-report data; that dead code — the function, its global, and
+the unused context key — was removed in 2.2.0. The original entries are
+preserved unchanged below.</p>
 </blockquote>
 <h3 id="added_5">Added<a class="headerlink" href="#added_5" title="Permanent link">&para;</a></h3>
 <h4 id="core-pipeline">Core Pipeline<a class="headerlink" href="#core-pipeline" title="Permanent link">&para;</a></h4>
