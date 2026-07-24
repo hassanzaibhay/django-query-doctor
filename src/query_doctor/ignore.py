@@ -77,44 +77,21 @@ def load_queryignore(project_root: Path | None = None) -> list[IgnoreRule]:
     return rules
 
 
-def should_ignore_query(query: CapturedQuery, rules: list[IgnoreRule]) -> bool:
-    """Check if a captured query matches any ignore rule.
-
-    Args:
-        query: The captured query to check.
-        rules: List of ignore rules to match against.
-
-    Returns:
-        True if the query should be ignored.
-    """
-    for rule in rules:
-        if rule.rule_type == "sql":
-            pattern = rule.pattern.replace("%", "*")
-            if fnmatch.fnmatch(query.sql, pattern):
-                return True
-
-        elif rule.rule_type == "file":
-            if query.callsite and fnmatch.fnmatch(query.callsite.filepath, rule.pattern):
-                return True
-
-        elif rule.rule_type == "callsite":
-            if query.callsite:
-                callsite_str = f"{query.callsite.filepath}:{query.callsite.line_number}"
-                if callsite_str == rule.pattern:
-                    return True
-
-    return False
-
-
 def filter_prescriptions(
     prescriptions: list[Prescription],
     rules: list[IgnoreRule],
+    queries: list[CapturedQuery] | None = None,
 ) -> list[Prescription]:
     """Remove prescriptions that match ignore rules.
 
     Args:
         prescriptions: List of prescriptions to filter.
         rules: List of ignore rules to apply.
+        queries: Optional captured queries. When supplied, ``sql:`` rules also
+            match the raw SQL of every query sharing a prescription's
+            ``fingerprint``, not only the prescription description. Defaults to
+            ``None``, in which case ``sql:`` matches the description alone --
+            the historical behaviour.
 
     Returns:
         Filtered list with matching prescriptions removed.
@@ -122,20 +99,35 @@ def filter_prescriptions(
     if not rules:
         return list(prescriptions)
 
+    # Group raw SQL by fingerprint so a prescription can reach the queries
+    # behind it. Only built when queries are supplied.
+    sql_by_fingerprint: dict[str, list[str]] = {}
+    if queries:
+        for query in queries:
+            if query.fingerprint:
+                sql_by_fingerprint.setdefault(query.fingerprint, []).append(query.sql)
+
     filtered: list[Prescription] = []
     for rx in prescriptions:
-        if _should_ignore_prescription(rx, rules):
+        if _should_ignore_prescription(rx, rules, sql_by_fingerprint):
             continue
         filtered.append(rx)
     return filtered
 
 
-def _should_ignore_prescription(rx: Prescription, rules: list[IgnoreRule]) -> bool:
+def _should_ignore_prescription(
+    rx: Prescription,
+    rules: list[IgnoreRule],
+    sql_by_fingerprint: dict[str, list[str]],
+) -> bool:
     """Check if a prescription matches any ignore rule.
 
     Args:
         rx: The prescription to check.
         rules: List of ignore rules.
+        sql_by_fingerprint: Raw SQL grouped by fingerprint, so ``sql:`` rules
+            can match the queries behind a prescription. Empty when no queries
+            were supplied to ``filter_prescriptions``.
 
     Returns:
         True if the prescription should be ignored.
@@ -165,10 +157,17 @@ def _should_ignore_prescription(rx: Prescription, rules: list[IgnoreRule]) -> bo
                     return True
 
         elif rule.rule_type == "sql":
-            # Best-effort: check if the SQL pattern appears in description
-            pattern = rule.pattern.replace("%", "*")
-            if fnmatch.fnmatch(rx.description, f"*{pattern}*"):
+            # Substring-style match (%->*, wrapped in *...*), applied to the
+            # description and, when the queries behind this prescription can be
+            # resolved via its fingerprint, to their raw SQL. Matching either is
+            # a strict superset of the description-only behaviour.
+            pattern = f"*{rule.pattern.replace('%', '*')}*"
+            if fnmatch.fnmatch(rx.description, pattern):
                 return True
+            if rx.fingerprint:
+                for sql in sql_by_fingerprint.get(rx.fingerprint, []):
+                    if fnmatch.fnmatch(sql, pattern):
+                        return True
 
     return False
 

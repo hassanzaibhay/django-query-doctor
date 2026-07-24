@@ -11,13 +11,12 @@ Usage:
 
 from __future__ import annotations
 
-import contextlib
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 
 from query_doctor.fixer import ProposedFix, QueryFixer
-from query_doctor.interceptor import QueryInterceptor
+from query_doctor.interceptor import build_interceptor
 from query_doctor.types import DiagnosisReport
 
 
@@ -157,26 +156,18 @@ class Command(BaseCommand):
         Returns:
             List of proposed fixes.
         """
+        # _run_analysis already applies .queryignore filtering via the shared
+        # pipeline (which logs filter failures rather than swallowing them).
         report = self._run_analysis(options.get("url", "/"))
-
-        # Apply .queryignore filtering
-        try:
-            from query_doctor.ignore import filter_prescriptions, load_queryignore
-
-            rules = load_queryignore()
-            if rules:
-                report.prescriptions = filter_prescriptions(report.prescriptions, rules)
-        except Exception:
-            pass
 
         fixer = QueryFixer()
         return fixer.generate_fixes(report.prescriptions)
 
     def _run_analysis(self, url: str) -> DiagnosisReport:
         """Run query analysis for the given URL."""
-        from query_doctor.plugin_api import discover_analyzers
+        from query_doctor.pipeline import analyze as pipeline_analyze
 
-        interceptor = QueryInterceptor()
+        interceptor = build_interceptor()
         report = DiagnosisReport()
 
         try:
@@ -202,10 +193,6 @@ class Command(BaseCommand):
         report.total_queries = len(queries)
         report.total_time_ms = sum(q.duration_ms for q in queries)
 
-        analyzers = discover_analyzers()
-        for analyzer in analyzers:
-            with contextlib.suppress(Exception):
-                if analyzer.is_enabled():
-                    report.prescriptions.extend(analyzer.analyze(queries))
+        report.prescriptions = pipeline_analyze(queries, source="fix_queries")
 
         return report

@@ -44,6 +44,32 @@ is now derived from `DEFAULT_CONFIG` rather than declared separately. Code
 importing it is unaffected; code that assumed it described the *live* buffer
 size should read the buffer instead.
 
+**4. `.queryignore` now applies to five more surfaces.** Previously only the
+middleware and `fix_queries` honoured the file. It now also applies to
+`check_queries`, `diagnose_project`, the pytest plugin, the `diagnose_queries()`
+context manager, and the Celery integration — every surface that reports
+findings. **Findings that appear in CI today (via `check_queries` or
+`diagnose_project`) will start being suppressed if a matching rule exists.** If
+you relied on those commands ignoring `.queryignore`, move the rules you did not
+mean to apply in CI, or scope them with `file:`/`callsite:`. Query counts and
+timings are unaffected — suppression removes findings, never measurements.
+
+**5. `sql:` rules now also match raw SQL.** A `sql:` rule previously matched
+only the prescription description; it now matches the description **or** the raw
+SQL of the queries behind the finding. This is strictly more suppression — no
+rule that matched before stops matching — but a broad pattern (e.g. `sql:%id%`)
+may now suppress findings it did not touch before, because it reaches column and
+table names that never appear in descriptions. Tighten over-broad `sql:`
+patterns if you see findings disappear unexpectedly.
+
+**6. `CAPTURE_STACK_TRACES: False` is now honoured everywhere.** Previously only
+the middleware read it; the seven other interceptor construction sites
+(`diagnose_queries()`, the pytest plugin, all three management commands, the
+Celery integration, and the project diagnoser) captured stack traces regardless.
+The default is `True`, so **only users who explicitly set it to `False` are
+affected** — for them, stack traces stop being captured on those seven surfaces,
+which means prescriptions from them lose their `file:line` callsite.
+
 ## From 2.1.0 to 2.1.1
 
 ### Breaking / behavior changes

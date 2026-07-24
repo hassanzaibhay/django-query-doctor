@@ -18,12 +18,17 @@ django-query-doctor checks for this file automatically. No settings changes are 
 
 ## Where It Applies
 
-`.queryignore` rules are applied by:
+`.queryignore` rules are applied on every surface that turns captured queries into findings:
 
-- the **middleware** (per-request reports), and
-- the **`fix_queries`** management command.
+- the **middleware** (per-request reports),
+- the **`check_queries`**, **`fix_queries`**, and **`diagnose_project`** management commands,
+- the **`diagnose_queries()`** context manager,
+- the **pytest plugin** fixture, and
+- the **Celery integration**.
 
-They are **not** applied by `check_queries`, `diagnose_project`, the pytest fixture, or the `diagnose_queries()` context manager. Suppressed prescriptions are removed before reporting, so they do not appear in middleware console/JSON output and do not produce fixes.
+Every surface routes through the same analysis pipeline, so a rule behaves identically wherever findings are produced. Suppression happens at the prescription level, *after* analysis: the captured-query counts and timings a report shows are never altered by `.queryignore` — only which findings are reported.
+
+> **Changed in 2.2.0:** before this release only the middleware and `fix_queries` honoured the file. Findings that pass in CI today (via `check_queries` or `diagnose_project`) will start being suppressed if a matching rule exists.
 
 ---
 
@@ -41,7 +46,7 @@ callsite: /app/myapp/views.py:42
 # Suppress one issue type in files whose path contains a substring
 ignore: n_plus_one:legacy_app
 
-# Suppress findings whose description contains a SQL fragment
+# Suppress findings whose description or raw SQL contains a SQL fragment
 sql: %myapp_author%
 ```
 
@@ -93,14 +98,18 @@ The issue type must be one of the values below (these are the `IssueType` enum v
 
 ### `sql:` rules
 
-Best-effort matching against the prescription's **description text**: the pattern is glob-matched as a substring of the description, and SQL `%` wildcards are treated as `*`:
+A `sql:` rule matches a prescription when the pattern matches the prescription's **description text** *or* the **raw SQL** of any captured query behind that prescription (resolved through the prescription's fingerprint). SQL `%` wildcards are translated to `*`, and the pattern is then matched as a substring — wrapped in `*…*` — against each target. The `%`→`*` translation and this substring (non-anchored) matching apply identically to the description and the raw SQL, so one rule cannot behave differently against the two:
 
 ```text title=".queryignore"
-# Suppress findings that mention the author table
+# Suppress findings that touch the author table (matches the table name in the SQL)
 sql: %myapp_author%
+
+# Suppress a finding whose query selects a sensitive column, even though that
+# column never appears in the human-readable description
+sql: %ssn_hash%
 ```
 
-Because prescription descriptions contain table names rather than full SQL, `sql:` rules are mostly useful for table-name matching. Prefer `file:` or `ignore:` rules where possible.
+Matching against raw SQL was added in 2.2.0 and is a **strict superset** of the earlier description-only behaviour: every rule that matched a description before still matches. A prescription with no fingerprint — so the queries behind it cannot be resolved — is matched on its description alone.
 
 ---
 

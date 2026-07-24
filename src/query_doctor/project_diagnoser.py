@@ -212,10 +212,10 @@ class ProjectDiagnoser:
         Returns:
             URLDiagnosisResult with captured queries and analysis.
         """
-        from query_doctor.interceptor import QueryInterceptor
-        from query_doctor.plugin_api import discover_analyzers
+        from query_doctor.interceptor import build_interceptor
+        from query_doctor.pipeline import analyze as pipeline_analyze
 
-        interceptor = QueryInterceptor()
+        interceptor = build_interceptor()
         start = time.perf_counter()
 
         try:
@@ -238,22 +238,8 @@ class ProjectDiagnoser:
             captured_queries=queries,
         )
 
-        # Run all analyzers
-        try:
-            analyzers = discover_analyzers()
-            for analyzer in analyzers:
-                try:
-                    prescriptions = analyzer.analyze(queries)
-                    report.prescriptions.extend(prescriptions)
-                except Exception:
-                    logger.warning(
-                        "query_doctor: analyzer %s failed for %s",
-                        getattr(analyzer, "name", "unknown"),
-                        url.pattern,
-                        exc_info=True,
-                    )
-        except Exception:
-            logger.warning("query_doctor: analyzer discovery failed", exc_info=True)
+        # Run analyzers and apply .queryignore filtering via the shared pipeline.
+        report.prescriptions = pipeline_analyze(queries, source=f"project_diagnoser:{url.pattern}")
 
         return URLDiagnosisResult(
             url=url,

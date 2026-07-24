@@ -302,6 +302,7 @@ src/query_doctor/
 |-- diff_filter.py           # Git diff-aware filtering for CI
 |-- ignore.py                # .queryignore rules
 |-- plugin_api.py            # Analyzer discovery (built-in + entry points)
+|-- pipeline.py              # Shared analyze(): discovery + .queryignore filtering
 |-- project_diagnoser.py     # Full-project scanning logic
 |-- pytest_plugin.py         # Pytest plugin for test-time analysis
 |-- celery_integration.py    # Celery task wrapper

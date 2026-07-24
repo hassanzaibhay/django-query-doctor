@@ -34,7 +34,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 19**
+**Open entries: 14**
 
 ---
 
@@ -161,6 +161,25 @@ with no heading (25) cannot inflate it.
     `50` - keeping a second literal would have reintroduced entry 16's defect
     one release after closing it.
 
+  **S4 refinements to the rule (2.2.0), from applying it to entries 5, 6 and
+  19:**
+  - **R2's mirror case (entry 5).** R2 reads "a name with no implementation
+    behind it". `record_project_report` had an implementation; what was never
+    built was the *consumer* — the template that renders it. R2 by intent, but
+    the wording covers only the producer-missing direction; the consumer-missing
+    direction deletes the same way.
+  - **R3 carries a documentation obligation (entry 19).** When the code being
+    ratified is the *only* implementation of the route being supported,
+    ratifying must **document the route**, not merely record why — otherwise
+    "reachable by a documented route" is asserted of a route no doc describes.
+  - **R1 is a presumption, rebuttable by measurement (entry 6).** Entry 6 was a
+    clean R1 by inspection — implemented, tested, no caller, only the connection
+    missing — yet wiring it was *measured harmful* (it re-attributed and
+    silently downgraded aggregate findings), so it was deleted and its goal
+    delivered at a different layer. No R0–R4 clause covered "implemented,
+    tested, no caller, and wiring it would be wrong". Record that R1's
+    disposition can turn on a measurement rather than on classification.
+
 ## 4. `.queryignore` dispatch trap
 
 - **Evidence:** rules applied only at `middleware.py:210-214` and
@@ -169,6 +188,20 @@ with no heading (25) cannot inflate it.
 - **Impact:** findings suppressed in dev (middleware) reappear in CI
   commands.
 - **Disposition:** wire `ignore.filter_prescriptions` into both commands.
+- **Resolved:** 2.2.0 (S4) - `.queryignore` filtering consolidated into
+  `pipeline.analyze()`, which every prescription-producing surface now routes
+  through. The disposition named two surfaces (`check_queries`,
+  `diagnose_project`); this wired **seven** — those two plus the pytest plugin,
+  the `diagnose_queries()` context manager, the Celery integration, and (already
+  honouring the file) the middleware and `fix_queries`. That exceeds the entry
+  as written, deliberately: the five newly-covered surfaces are the class
+  enumerated at `docs/guides/query-ignore.md:19-26`, and the standing
+  expectation is to fix the class, not the flagged instances. `fix_queries`
+  previously swallowed ignore-filter failures with a bare `pass`; through the
+  shared pipeline it now logs them, matching the middleware. Stale evidence:
+  the rules applied at `middleware.py:276-280` and `fix_queries.py:164-168`,
+  not the `:210-214 / :164-168` line pair this entry recorded for the
+  middleware.
 
 ## 5. Admin dashboard project-scan integration is dead code
 
@@ -185,6 +218,19 @@ with no heading (25) cannot inflate it.
   html` are live.)
 - **Disposition:** wire it into `diagnose_project`, or delete the function,
   its global, and the context key.
+- **Resolved:** 2.2.0 (S4) - **R0, deleted.** `record_project_report`, the
+  `_latest_project_report` global, and the unrendered `project_report` context
+  key are gone. Source-only no-caller sweep across `src/ tests/ docs/ examples/
+  scripts/` returned zero hits for both symbols; the four-file result of a naive
+  `grep project_report` is the **live** `query_doctor.reporters.project_report`
+  module (reached from `diagnose_project.py:21`, `tests/test_project_report.py:12`,
+  behind `diagnose_project --format html`), a module-versus-symbol collision, not
+  a caller. `templates/query_doctor/dashboard.html` never rendered the key (zero
+  hits). No test referenced the deleted symbols; suite green at 831. The
+  `[1.0.0]` changelog claim gains an additive 2.2.0 note; nothing above it is
+  rewritten. Stale symbol refs: `admin_panel.py:31` (`_latest_project_report`),
+  `:97` (`record_project_report` def), `:150` (context key) — not the
+  `:67 / :25 / :119` this entry recorded.
 
 ## 6. `should_ignore_query` has no caller
 
@@ -195,6 +241,28 @@ with no heading (25) cannot inflate it.
   `sql:` rules only ever match prescription descriptions
   (`ignore.py:149-153`) — already documented in the query-ignore guide.
 - **Disposition:** call it during capture/analysis, or delete it.
+- **Resolved:** 2.2.0 (S4) - **R0, deleted; goal delivered elsewhere.**
+  `should_ignore_query` is removed. Its goal — `sql:` rules matching raw SQL —
+  is delivered at prescription-filter time instead: `filter_prescriptions`
+  gained an optional `queries` argument, and a `sql:` rule now matches a
+  prescription when the pattern matches the description **or** the raw SQL of any
+  captured query sharing the prescription's `fingerprint` (substring-style,
+  `%`→`*`, wrapped in `*...*` — the same anchoring as the description arm). A
+  strict superset: every rule matching today still matches. Wiring the function
+  into capture, the disposition's first branch, was **measured harmful** and
+  rejected — see the R1-negative refinement in entry 3. Recorded against R0
+  itself: the S4 plan asserted this function had "zero callers — grep returns
+  its definition only", citing the exact `src/ tests/ docs/ examples/ scripts/`
+  sweep R0 mandates. The claim was false and the command had not been run; the
+  sweep returned one import and seven assertions in `tests/test_queryignore.py`.
+  R0 was invoked and violated in one sentence, in the first release where R0 is
+  load-bearing, by the reviewer who wrote the rule. Deletion stayed valid — no
+  production caller in `src/`, not exported, not documented — and the seven
+  tests were reshaped: two `sql:` cases ported to the prescription level, an
+  empty-fingerprint analogue added, four file/callsite cases dropped (the
+  query-level semantics they exercised no longer exist). Stale evidence:
+  `should_ignore_query` at `ignore.py:80-106` (not `:62-88`); the
+  description-only `sql:` branch at `:167-171` (not `:149-153`).
 
 ## 7. False source docstrings — audit method
 
@@ -606,6 +674,19 @@ zero in-src references. Classification:
   document it as a supported API for embedding the middleware by hand. Not
   2.1.2 — removing a method is public API surface reduction and does not belong
   in a patch release.
+- **Resolved:** 2.2.0 (S4) - **R3, ratified and documented.** `__acall__`
+  stays and is now documented as a supported route in
+  `docs/guides/async-support.md`. R3 as written ("already reachable by a
+  supported, documented route") did not fit unmodified: `__acall__` is the
+  *only* implementation of the route being supported, so ratifying had to
+  **document the route**, not merely record why — the refinement recorded in
+  entry 3. Cost accepted and stated: ~20 lines of duplicated pipeline,
+  permanently. Deleting it would also delete `__call__`'s `_is_async` branch,
+  which makes `test_asgiref_wrapped_handler_detected_as_async` meaningless and
+  removes the asgiref-vs-inspect predicate defence at `middleware.py:127-131` —
+  regression coverage a shipped incident produced. Entry 17's blocking-call
+  defect is tied here and stays open. Stale evidence: `__acall__` at
+  `middleware.py:154` (not `:108`).
 
 ## 20. A third-party `async_capable` middleware with the same missing marker breaks the chain
 
@@ -852,3 +933,16 @@ the falsified half is the useful part of the record.
   everywhere. Candidate fix: have `QueryInterceptor.__init__` read
   `get_config()` for its own defaults so every construction site inherits both
   keys, rather than adding the same two kwargs to seven call sites.
+- **Resolved:** 2.2.0 (S4) - **R1, wired.** A `build_interceptor()` factory in
+  `interceptor.py` reads `CAPTURE_STACK_TRACES` and `STACK_TRACE_EXCLUDE` from
+  `get_config()` (falling back to packaged defaults with a logged warning when
+  config is unreadable) and constructs the interceptor. All nine construction
+  sites call it — the seven bare ones plus the two middleware sites, which stop
+  reading config inline. `QueryInterceptor.__init__` is unchanged, keeping the
+  "the interceptor does not read configuration itself" docstring
+  (`interceptor.py:47-49`) true and leaving explicit construction available to
+  tests and library users. The candidate fix this entry proposed — have
+  `__init__` read `get_config()` itself — was declined for that reason: a
+  factory keeps the class config-free. `TestCaptureStackTraces` pins
+  `CAPTURE_STACK_TRACES: False` at each of the seven previously-ignoring sites,
+  each with a `True` positive control.

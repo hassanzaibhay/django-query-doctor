@@ -59,6 +59,25 @@ async def book_list(request):
     return JsonResponse({"books": [{"title": b.title} for b in books]})
 ```
 
+### Embedding the middleware around an async handler
+
+Through Django's `MIDDLEWARE` chain the middleware always runs in sync mode (`async_capable = False`), so `__call__` routes every request to the synchronous path. There is a second, **supported** route for advanced users who embed the middleware by hand rather than listing it in `MIDDLEWARE`: constructing it directly around an async `get_response`.
+
+```python
+from query_doctor.middleware import QueryDoctorMiddleware
+
+# get_response is an async callable (e.g. an ASGI handler or async view).
+instrumented = QueryDoctorMiddleware(async_get_response)
+response = await instrumented(request)   # native async path -> __acall__
+```
+
+When the wrapped `get_response` is a coroutine function, the middleware detects it at construction and `__call__` awaits `__acall__`, which runs the same capture-and-analyze pipeline without adapting through `sync_to_async`. This is the path `tests/test_async_support.py` and `tests/test_asgi_middleware_chain.py` exercise, and it is kept as a supported API precisely so those tests remain meaningful.
+
+Two caveats apply on this route:
+
+- **You own the thread placement.** Django is not adapting the middleware into its thread-sensitive executor here, so capture is correct only when the ORM work runs on the same thread as the `await` — see [The Context Manager in Async Code](#the-context-manager-in-async-code) for the same thread-locality constraint.
+- **The analysis runs inline on your loop.** `__acall__` runs analyzers and reporters without yielding, so on a busy event loop it blocks the loop for the duration of analysis. The `MIDDLEWARE`-chain path does not have this property because Django runs the whole middleware in the executor thread.
+
 ---
 
 ## Django Async ORM Methods

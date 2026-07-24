@@ -128,8 +128,8 @@
       "url": "https://raw.githubusercontent.com/hassanzaibhay/hassanzaibhay/main/README.md",
       "kind": "exact",
       "measurement": "test_count",
-      "value": 819,
-      "locator": "**819 tests**"
+      "value": 831,
+      "locator": "**831 tests**"
     },
     {
       "id": "profile-coverage",
@@ -191,8 +191,8 @@
       "surface_kind": "repo",
       "kind": "exact",
       "measurement": "followups_open",
-      "value": 19,
-      "locator": "**Open entries: 19**",
+      "value": 14,
+      "locator": "**Open entries: 14**",
       "note": "Makes 'the backlog is shrinking' measured rather than asserted. open = headings - tombstones - entries carrying a '- **Resolved:**' line. A tombstone cannot inflate it (heading title contains 'merged into entry', excluded). A reserved number cannot inflate it either (25 is reserved for the phase-1 disposition and has no heading at all). '- **Resolved (partial):**' does NOT count as resolved, which is why entry 12 stays open. FOLLOWUPS.md is deliberately absent from gated_files: it records dated measurements by design and would fight the prose rules."
     }
   ],

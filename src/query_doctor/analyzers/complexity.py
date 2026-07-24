@@ -75,6 +75,7 @@ class QueryComplexityAnalyzer(BaseAnalyzer):
                         ),
                         fix_suggestion=self._suggest_simplification(q.normalized_sql, score),
                         callsite=q.callsite,
+                        fingerprint=q.fingerprint,
                     )
                 )
 
