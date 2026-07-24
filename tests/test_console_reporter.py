@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import io
+
 from query_doctor.reporters.console import ConsoleReporter
 from query_doctor.types import (
     CallSite,
@@ -517,3 +519,52 @@ class TestConsoleStreamProbe:
         assert w.encoding == wrapped.encoding
         assert w.isatty() == wrapped.isatty()
         assert w.fileno() == wrapped.fileno()
+
+
+class TestRichBoxEncodingBranch:
+    """The Rich renderer's ASCII-box branch, forced deterministically (FOLLOWUPS #12).
+
+    Measured on rich 15.0.0: the pure-ASCII box substitution is driven by the
+    destination stream's ENCODING (a non-utf encoding cannot represent U+2500-
+    range box drawing, so Rich substitutes box.ASCII), NOT by legacy_windows.
+    legacy_windows only swaps rounded corners for square ones among Unicode
+    boxes. Entry 12's original "legacy_windows triggers ASCII" reading conflated
+    the two because that session was also cp1252.
+
+    After the #13 fix the encoding comes from self._stream, so forcing the
+    destination stream's encoding forces the branch - deterministically, on every
+    platform and every CI run, with no dependence on the host console. These
+    tests would fail against the pre-#13 Console(file=None), which ignored the
+    destination encoding and probed stdout instead.
+    """
+
+    class _EncodedStream(io.StringIO):
+        """A text buffer that advertises a chosen encoding to Rich's probe."""
+
+        def __init__(self, encoding: str) -> None:
+            super().__init__()
+            self._encoding = encoding
+
+        @property
+        def encoding(self) -> str:
+            return self._encoding
+
+    def test_non_utf_destination_renders_pure_ascii_box(self) -> None:
+        """A cp1252 destination makes _render_rich emit no box-drawing codepoints."""
+        reporter = ConsoleReporter(stream=self._EncodedStream("cp1252"))
+        output = reporter._render_rich(DiagnosisReport(total_queries=0, total_time_ms=0.0))
+
+        assert not any(ord(ch) >= 0x2500 for ch in output)  # no Unicode box drawing
+        assert "No issues detected" in output  # positive control: it did render
+
+    def test_utf8_destination_renders_unicode_box(self) -> None:
+        """A utf-8 destination makes _render_rich emit Unicode box drawing.
+
+        Asserts the horizontal (U+2500) and vertical (U+2502) rules, which are
+        present in both the rounded (non-legacy) and square (legacy) Unicode
+        boxes, so this holds on Linux CI and a legacy-Windows host alike.
+        """
+        reporter = ConsoleReporter(stream=self._EncodedStream("utf-8"))
+        output = reporter._render_rich(DiagnosisReport(total_queries=0, total_time_ms=0.0))
+
+        assert chr(0x2500) in output and chr(0x2502) in output
