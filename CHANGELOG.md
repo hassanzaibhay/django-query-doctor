@@ -38,6 +38,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   reporter. A typo and an unsupported name were previously indistinguishable
   from a working configuration. Suites running `-W error` will fail on such an
   entry — see `UPGRADING.md`.
+- `.queryignore` is now honoured on every surface that reports findings, not
+  only the middleware and `fix_queries`. `check_queries`, `diagnose_project`,
+  the pytest plugin, the `diagnose_queries()` context manager and the Celery
+  integration consolidate onto a single `pipeline.analyze()`, so a rule behaves
+  identically everywhere. Suppression stays at the prescription level: captured
+  query counts and timings are never altered, only which findings are reported.
+  `sql:` rules additionally match the raw SQL behind a finding, not only its
+  description — strictly more suppression. See `UPGRADING.md`.
+- `CAPTURE_STACK_TRACES` and `STACK_TRACE_EXCLUDE` are now read at every
+  interceptor construction site through a shared `build_interceptor()` factory.
+  `CAPTURE_STACK_TRACES: False` previously took effect only in the middleware;
+  the seven other surfaces captured stack traces regardless. Default is `True`,
+  so only users who set it `False` are affected.
 - A `QUERYIGNORE_PATH` that cannot be resolved warns and falls back to
   discovery beside `manage.py`, rather than being dropped silently.
 
@@ -86,6 +99,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `IGNORE_PATTERNS` from the default configuration. No code path ever read it;
   `.queryignore` is the supported way to suppress findings. Leaving the key in
   your settings is harmless — unknown keys are merged and ignored.
+- The dead admin-dashboard project-scan integration: `record_project_report`,
+  the `_latest_project_report` global, and the unused `project_report` template
+  context key. The feature never functioned in any release — nothing wrote the
+  global and the dashboard template never rendered it. See the `[1.0.0]`
+  historical note.
+- `ignore.should_ignore_query`, which had no caller. Its goal — `sql:` rules
+  matching raw SQL — is now delivered by `filter_prescriptions` at the
+  prescription level.
 
 ### Fixed
 - `docs/deep-dive/comparison.md` no longer asserts that Django's fetch modes are
@@ -420,8 +441,9 @@ failing the check. See `UPGRADING.md` for the full 2.1.0 upgrade checklist.
 > `check_serializers` replaces it). "Admin dashboard integration showing
 > latest project scan results" never activated: `record_project_report` has
 > no caller in any released version and the dashboard template does not
-> render project-report data. The original entries are preserved unchanged
-> below.
+> render project-report data; that dead code — the function, its global, and
+> the unused context key — was removed in 2.2.0. The original entries are
+> preserved unchanged below.
 
 ### Added
 

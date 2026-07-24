@@ -137,3 +137,34 @@ class QueryInterceptor:
     def clear(self) -> None:
         """Reset the captured query list for the current context."""
         self._queries_var.set([])
+
+
+def build_interceptor() -> QueryInterceptor:
+    """Construct a ``QueryInterceptor`` from the active configuration.
+
+    Reads ``CAPTURE_STACK_TRACES`` and ``STACK_TRACE_EXCLUDE`` from
+    ``get_config()`` and passes them to ``QueryInterceptor.__init__``. This is
+    the single construction point every dispatch site uses so the two settings
+    are honoured uniformly; the interceptor itself still reads no configuration.
+
+    If configuration cannot be loaded, logs a warning and falls back to the
+    packaged defaults (stack capture on, no extra exclusions) so query capture
+    never crashes the host application.
+
+    Returns:
+        A configured ``QueryInterceptor`` ready for ``execute_wrapper``.
+    """
+    from query_doctor.conf import get_config
+
+    try:
+        config = get_config()
+        capture_stack = config.get("CAPTURE_STACK_TRACES", True)
+        exclude_modules = config.get("STACK_TRACE_EXCLUDE")
+    except Exception:
+        logger.warning(
+            "query_doctor: failed to load config for interceptor; using defaults",
+            exc_info=True,
+        )
+        return QueryInterceptor()
+
+    return QueryInterceptor(capture_stack=capture_stack, exclude_modules=exclude_modules)

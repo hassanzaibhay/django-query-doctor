@@ -12,13 +12,12 @@ Usage:
 
 from __future__ import annotations
 
-import contextlib
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 from django.test import RequestFactory
 
-from query_doctor.interceptor import QueryInterceptor
+from query_doctor.interceptor import build_interceptor
 from query_doctor.reporters.json_reporter import JSONReporter
 from query_doctor.types import DiagnosisReport, Severity
 
@@ -184,9 +183,9 @@ class Command(BaseCommand):
 
     def _run_analysis(self, url: str) -> DiagnosisReport:
         """Run query analysis for the given URL."""
-        from query_doctor.plugin_api import discover_analyzers
+        from query_doctor.pipeline import analyze as pipeline_analyze
 
-        interceptor = QueryInterceptor()
+        interceptor = build_interceptor()
         report = DiagnosisReport()
 
         try:
@@ -211,10 +210,7 @@ class Command(BaseCommand):
         report.total_queries = len(queries)
         report.total_time_ms = sum(q.duration_ms for q in queries)
 
-        analyzers = discover_analyzers()
-        for analyzer in analyzers:
-            with contextlib.suppress(Exception):
-                report.prescriptions.extend(analyzer.analyze(queries))
+        report.prescriptions = pipeline_analyze(queries, source="check_queries")
 
         return report
 

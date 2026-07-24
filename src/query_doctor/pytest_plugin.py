@@ -55,7 +55,7 @@ def query_doctor(request: pytest.FixtureRequest) -> DiagnosisReport:
     plugin frame; pytest's warnings summary attributes it to the
     requesting test regardless.
     """
-    from query_doctor.interceptor import QueryInterceptor
+    from query_doctor.interceptor import build_interceptor
     from query_doctor.types import DiagnosisReport
 
     warnings.warn(
@@ -70,7 +70,7 @@ def query_doctor(request: pytest.FixtureRequest) -> DiagnosisReport:
     )
 
     report = DiagnosisReport()
-    interceptor = QueryInterceptor()
+    interceptor = build_interceptor()
 
     try:
         from django.db import connection
@@ -118,17 +118,6 @@ def _run_analyzers(report: DiagnosisReport, queries: list[Any]) -> None:
         report: The report to populate with prescriptions.
         queries: The captured queries to analyze.
     """
-    from query_doctor.plugin_api import discover_analyzers
+    from query_doctor.pipeline import analyze as pipeline_analyze
 
-    analyzers = discover_analyzers()
-
-    for analyzer in analyzers:
-        try:
-            prescriptions = analyzer.analyze(queries)
-            report.prescriptions.extend(prescriptions)
-        except Exception:
-            logger.warning(
-                "query_doctor: analyzer %s failed in pytest plugin",
-                getattr(analyzer, "name", "unknown"),
-                exc_info=True,
-            )
+    report.prescriptions.extend(pipeline_analyze(queries, source="pytest_plugin"))

@@ -2,16 +2,17 @@
 # ==========================================
 # Place this file in your project root (same level as manage.py)
 #
-# SCOPE: these rules are honored ONLY by the middleware and the fix_queries
-# command (the two call sites of ignore.load_queryignore/filter_prescriptions:
-# middleware.py:210-214 and management/commands/fix_queries.py:164-168).
-# check_queries and diagnose_project do NOT apply .queryignore — findings
-# suppressed here will still appear in those commands' output.
+# SCOPE: these rules are honored on every surface that reports findings — the
+# middleware, the check_queries / fix_queries / diagnose_project commands, the
+# diagnose_queries() context manager, the pytest plugin, and the Celery
+# integration. See docs/guides/query-ignore.md ("Where It Applies") for the
+# authoritative list; this comment deliberately restates no source line numbers,
+# which rot.
 #
 # Supported rule types (see docs/guides/query-ignore.md for full semantics):
-#   sql:<pattern>       — Ignore findings whose DESCRIPTION matches the pattern
-#                         (substring glob; % = wildcard). Descriptions contain
-#                         table names, not full SQL — match on the table name.
+#   sql:<pattern>       — Ignore findings whose DESCRIPTION or raw SQL matches
+#                         the pattern (substring glob; % = wildcard). Matches a
+#                         table name in either the description or the query SQL.
 #   file:<pattern>      — Ignore findings from matching file paths (fnmatch glob
 #                         against the FULL path, so start patterns with *)
 #   callsite:<file>:<line> — Ignore one exact callsite. Must equal the path

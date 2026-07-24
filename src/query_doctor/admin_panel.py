@@ -28,7 +28,6 @@ MAX_REPORTS: int = int(DEFAULT_CONFIG["ADMIN_DASHBOARD"]["max_reports"])
 # Built on first use rather than at import, because its size comes from
 # ADMIN_DASHBOARD.max_reports and settings are not readable at import time.
 _report_buffer: deque[dict[str, Any]] | None = None
-_latest_project_report: dict[str, Any] | None = None
 
 
 def _get_buffer() -> deque[dict[str, Any]]:
@@ -94,32 +93,6 @@ def record_report(request_path: str, method: str, report: DiagnosisReport) -> No
     # deque with maxlen auto-evicts oldest entries
 
 
-def record_project_report(result: Any) -> None:
-    """Store latest project diagnosis for admin dashboard.
-
-    Args:
-        result: A ProjectDiagnosisResult from the diagnose_project command.
-    """
-    global _latest_project_report
-    _latest_project_report = {
-        "generated_at": result.finished_at,
-        "total_urls": result.total_urls_analyzed,
-        "total_queries": result.total_queries,
-        "total_issues": result.total_issues,
-        "health_score": result.overall_health_score,
-        "apps": [
-            {
-                "name": app.app_name,
-                "health_score": app.health_score,
-                "total_queries": app.total_queries,
-                "total_issues": app.total_issues,
-                "critical_count": app.critical_count,
-            }
-            for app in result.app_results
-        ],
-    }
-
-
 def _is_staff(user: Any) -> bool:
     """Check if user is active staff member."""
     return bool(user.is_active and user.is_staff)
@@ -147,5 +120,4 @@ class QueryDoctorDashboardView(TemplateView):
         ctx["total_reports"] = len(buffer)
         ctx["total_issues"] = sum(r["issues"] for r in buffer)
         ctx["critical_count"] = sum(1 for r in buffer if r["critical"])
-        ctx["project_report"] = _latest_project_report
         return ctx

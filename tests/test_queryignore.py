@@ -8,7 +8,6 @@ from query_doctor.ignore import (
     IgnoreRule,
     filter_prescriptions,
     load_queryignore,
-    should_ignore_query,
 )
 from query_doctor.types import (
     CallSite,
@@ -103,59 +102,60 @@ class TestLoadQueryignore:
         assert rules[3].rule_type == "ignore"
 
 
-class TestShouldIgnoreQuery:
-    """Tests for query-level ignore matching."""
+class TestSqlRuleAgainstRawSql:
+    """sql: rules matched against the raw SQL behind a prescription.
+
+    Ported from the deleted query-level TestShouldIgnoreQuery: the ``%`` -> ``*``
+    translation and its positive/negative cases now live at the prescription
+    level, which is the only surface .queryignore filters. ``_make_query``
+    supplies the query behind each prescription (matched via fingerprint).
+    """
 
     def test_sql_pattern_matching_with_wildcard(self) -> None:
-        """SQL patterns with % wildcard should match."""
+        """A sql: pattern present in the raw SQL (not the description) matches."""
         rules = [IgnoreRule(rule_type="sql", pattern="SELECT * FROM django_session%")]
         query = _make_query(sql="SELECT * FROM django_session WHERE id = 1")
-        assert should_ignore_query(query, rules) is True
+        rx = _make_prescription()  # fingerprint defaults to match _make_query
+        rx = Prescription(
+            issue_type=rx.issue_type,
+            severity=rx.severity,
+            description="N+1 detected: 5 queries",  # pattern absent here
+            fix_suggestion=rx.fix_suggestion,
+            callsite=rx.callsite,
+            fingerprint=query.fingerprint,
+        )
+        assert "django_session" not in rx.description
+        assert filter_prescriptions([rx], rules, [query]) == []
 
     def test_sql_pattern_no_match(self) -> None:
-        """Non-matching SQL should not be ignored."""
+        """Non-matching SQL leaves the prescription in place."""
         rules = [IgnoreRule(rule_type="sql", pattern="SELECT * FROM django_session%")]
         query = _make_query(sql="SELECT * FROM books WHERE id = 1")
-        assert should_ignore_query(query, rules) is False
-
-    def test_file_pattern_matching_with_glob(self) -> None:
-        """File patterns with * glob should match."""
-        rules = [IgnoreRule(rule_type="file", pattern="myapp/migrations/*")]
-        query = _make_query(callsite_file="myapp/migrations/0001_initial.py")
-        assert should_ignore_query(query, rules) is True
-
-    def test_file_pattern_exact_match(self) -> None:
-        """Exact file path should match."""
-        rules = [IgnoreRule(rule_type="file", pattern="myapp/management/commands/seed_data.py")]
-        query = _make_query(callsite_file="myapp/management/commands/seed_data.py")
-        assert should_ignore_query(query, rules) is True
-
-    def test_callsite_exact_match(self) -> None:
-        """Callsite file:line should match exactly."""
-        rules = [IgnoreRule(rule_type="callsite", pattern="myapp/views.py:142")]
-        query = _make_query(callsite_file="myapp/views.py", callsite_line=142)
-        assert should_ignore_query(query, rules) is True
-
-    def test_callsite_no_match_different_line(self) -> None:
-        """Different line number should not match."""
-        rules = [IgnoreRule(rule_type="callsite", pattern="myapp/views.py:142")]
-        query = _make_query(callsite_file="myapp/views.py", callsite_line=100)
-        assert should_ignore_query(query, rules) is False
-
-    def test_query_without_callsite(self) -> None:
-        """Query without callsite should not match file/callsite rules."""
-        rules = [IgnoreRule(rule_type="file", pattern="myapp/*")]
-        query = CapturedQuery(
-            sql="SELECT 1",
-            params=None,
-            duration_ms=1.0,
-            fingerprint="abc",
-            normalized_sql="select 1",
-            callsite=None,
-            is_select=True,
-            tables=[],
+        rx = Prescription(
+            issue_type=IssueType.N_PLUS_ONE,
+            severity=Severity.WARNING,
+            description="N+1 detected: 5 queries",
+            fix_suggestion="Fix it",
+            callsite=query.callsite,
+            fingerprint=query.fingerprint,
         )
-        assert should_ignore_query(query, rules) is False
+        assert len(filter_prescriptions([rx], rules, [query])) == 1
+
+    def test_prescription_without_fingerprint_not_matched_by_sql(self) -> None:
+        """Analogue of the old no-callsite edge: an empty fingerprint cannot be
+        resolved to any query, so a sql: rule present only in raw SQL misses.
+        """
+        rules = [IgnoreRule(rule_type="sql", pattern="SELECT * FROM django_session%")]
+        query = _make_query(sql="SELECT * FROM django_session WHERE id = 1")
+        rx = Prescription(
+            issue_type=IssueType.N_PLUS_ONE,
+            severity=Severity.WARNING,
+            description="N+1 detected: 5 queries",  # pattern absent
+            fix_suggestion="Fix it",
+            callsite=query.callsite,
+            fingerprint="",  # unresolvable
+        )
+        assert len(filter_prescriptions([rx], rules, [query])) == 1
 
 
 class TestFilterPrescriptions:
@@ -233,3 +233,76 @@ class TestFilterPrescriptions:
         filtered = filter_prescriptions([p], rules)
         # SQL rule matching on prescriptions is best-effort via description
         assert len(filtered) <= 1
+
+
+def _query_with_sql(sql: str, fingerprint: str) -> CapturedQuery:
+    """A CapturedQuery carrying a specific fingerprint and raw SQL."""
+    return CapturedQuery(
+        sql=sql,
+        params=None,
+        duration_ms=1.0,
+        fingerprint=fingerprint,
+        normalized_sql=sql.lower(),
+        callsite=CallSite("myapp/views.py", 10, "get"),
+        is_select=True,
+        tables=["blog_author"],
+    )
+
+
+def _prescription_with_fingerprint(description: str, fingerprint: str) -> Prescription:
+    """A Prescription tagged with a fingerprint (as real analyzers now emit)."""
+    return Prescription(
+        issue_type=IssueType.N_PLUS_ONE,
+        severity=Severity.WARNING,
+        description=description,
+        fix_suggestion="Fix it",
+        callsite=CallSite("myapp/views.py", 10, "get"),
+        fingerprint=fingerprint,
+    )
+
+
+class TestFilterPrescriptionsWithQueries:
+    """filter_prescriptions() must match sql: rules against raw SQL when the
+    captured queries are supplied (FOLLOWUPS entry 6), while remaining a strict
+    superset of today's description-only behaviour.
+    """
+
+    def test_sql_rule_matches_raw_sql_absent_from_description(self) -> None:
+        """A sql: pattern present in raw SQL but not the description must suppress.
+
+        Impossible before: filter_prescriptions matched only rx.description.
+        """
+        fp = "fp_author_by_id"
+        query = _query_with_sql(
+            'SELECT "blog_author"."ssn_hash" FROM "blog_author" WHERE "id" = 1', fp
+        )
+        rx = _prescription_with_fingerprint('N+1 detected: 12 queries for table "blog_author"', fp)
+        assert "ssn_hash" not in rx.description
+        rules = [IgnoreRule(rule_type="sql", pattern="%ssn_hash%")]
+
+        kept = filter_prescriptions([rx], rules, [query])
+        assert kept == []
+
+    def test_sql_rule_matching_description_still_matches_with_queries(self) -> None:
+        """Superset: a rule that matches the description today must still match
+        when queries are supplied and the SQL does NOT contain the pattern.
+        """
+        fp = "fp_dup"
+        query = _query_with_sql("SELECT id FROM books", fp)
+        rx = _prescription_with_fingerprint(
+            "Duplicate query: SELECT * FROM django_session WHERE id = 1", fp
+        )
+        rules = [IgnoreRule(rule_type="sql", pattern="SELECT * FROM django_session%")]
+
+        kept = filter_prescriptions([rx], rules, [query])
+        assert kept == []
+
+    def test_without_queries_argument_matches_prior_behavior(self) -> None:
+        """Called without queries, sql: must behave exactly as before (description only)."""
+        fp = "fp_author_by_id"
+        rx = _prescription_with_fingerprint('N+1 detected: 12 queries for table "blog_author"', fp)
+        rules = [IgnoreRule(rule_type="sql", pattern="%ssn_hash%")]
+
+        # ssn_hash is only in the (unavailable) raw SQL; with no queries it cannot match.
+        kept = filter_prescriptions([rx], rules)
+        assert len(kept) == 1

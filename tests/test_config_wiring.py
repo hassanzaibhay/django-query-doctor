@@ -190,3 +190,193 @@ class TestUnknownReporterNames:
             reporters = _get_reporters({"REPORTERS": ["console", "json", "log"]})
 
         assert len(reporters) == 3
+
+
+from query_doctor.stack_tracer import capture_callsite as _real_capture  # noqa: E402
+
+
+def _spy_factory(seen: list[Any]) -> Any:
+    """A capture_callsite replacement that records every call, then delegates."""
+
+    def _spy(exclude_modules: list[str] | None = None) -> Any:
+        seen.append(exclude_modules)
+        return _real_capture(exclude_modules)
+
+    return _spy
+
+
+def _drive_context_manager() -> None:
+    from query_doctor.context_managers import diagnose_queries
+    from tests.factories import BookFactory
+    from tests.testapp.models import Book
+
+    BookFactory()
+    with diagnose_queries():
+        list(Book.objects.all())
+
+
+def _drive_check_queries() -> None:
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    from tests.factories import BookFactory
+
+    for _ in range(3):
+        BookFactory()
+    call_command(
+        "check_queries", "--url", "/books/nplusone/", "--format", "json", stdout=StringIO()
+    )
+
+
+def _drive_fix_queries() -> None:
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    from tests.factories import BookFactory
+
+    for _ in range(3):
+        BookFactory()
+    call_command("fix_queries", "--url", "/books/nplusone/", "--dry-run", stdout=StringIO())
+
+
+def _drive_query_budget() -> None:
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    from tests.factories import BookFactory
+
+    BookFactory()
+    call_command(
+        "query_budget",
+        "--max-queries",
+        "100000",
+        "--execute",
+        "from tests.testapp.models import Book\nlist(Book.objects.all())",
+        stdout=StringIO(),
+    )
+
+
+def _drive_project_diagnoser() -> None:
+    from query_doctor.project_diagnoser import ProjectDiagnoser
+    from query_doctor.url_discovery import DiscoveredURL
+    from tests.factories import BookFactory
+
+    for _ in range(3):
+        BookFactory()
+    url = DiscoveredURL(
+        pattern="/books/nplusone/",
+        name=None,
+        app_name="testapp",
+        view_name="book_list_nplusone",
+        methods=["GET"],
+        has_parameters=False,
+    )
+    ProjectDiagnoser().diagnose([url])
+
+
+def _drive_celery() -> None:
+    from query_doctor.celery_integration import diagnose_task
+    from tests.factories import BookFactory
+    from tests.testapp.models import Book
+
+    @diagnose_task()
+    def _task() -> str:
+        BookFactory()
+        list(Book.objects.all())
+        return "done"
+
+    _task()
+
+
+def _drive_pytest_plugin() -> None:
+    import warnings as _warnings
+
+    from query_doctor.pytest_plugin import query_doctor as _qd_fixture
+    from tests.factories import BookFactory
+    from tests.testapp.models import Book
+
+    raw = _qd_fixture.__wrapped__  # type: ignore[attr-defined]
+    BookFactory()
+
+    finalizers: list[Any] = []
+
+    class _FakeNode:
+        nodeid = "tests/test_config_wiring.py::_drive_pytest_plugin"
+
+    class _FakeRequest:
+        node = _FakeNode()
+
+        def addfinalizer(self, func: Any) -> None:
+            finalizers.append(func)
+
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("ignore", QueryDoctorWarning)
+        raw(_FakeRequest())
+        list(Book.objects.all())
+        for func in finalizers:
+            func()
+
+
+@pytest.mark.django_db
+class TestCaptureStackTraces:
+    """CAPTURE_STACK_TRACES=False must be honoured at every interceptor site.
+
+    Today only the two middleware sites read the setting; the seven other
+    construction sites hardcode ``QueryInterceptor()`` (capture_stack defaults
+    to True) and capture stack traces regardless. The observable is
+    capture_callsite: with the setting False it must never be called; the
+    True run is the paired positive control proving the driver reaches capture.
+    """
+
+    def _check(self, driver: Any, monkeypatch: Any) -> None:
+        import query_doctor.interceptor as interceptor_module
+
+        seen_false: list[Any] = []
+        monkeypatch.setattr(interceptor_module, "capture_callsite", _spy_factory(seen_false))
+        self._drive(driver, capture=False)
+        assert seen_false == [], (
+            f"CAPTURE_STACK_TRACES=False ignored: "
+            f"capture_callsite was called {len(seen_false)} time(s)"
+        )
+
+        seen_true: list[Any] = []
+        monkeypatch.setattr(interceptor_module, "capture_callsite", _spy_factory(seen_true))
+        self._drive(driver, capture=True)
+        assert seen_true, (
+            "positive control failed: capture_callsite was never called with "
+            "CAPTURE_STACK_TRACES=True, so the False assertion proves nothing"
+        )
+
+    @staticmethod
+    def _drive(driver: Any, capture: bool) -> None:
+        get_config.cache_clear()
+        try:
+            with override_settings(QUERY_DOCTOR={"CAPTURE_STACK_TRACES": capture}):
+                get_config.cache_clear()
+                driver()
+        finally:
+            get_config.cache_clear()
+
+    def test_context_manager_site(self, monkeypatch: Any) -> None:
+        self._check(_drive_context_manager, monkeypatch)
+
+    def test_check_queries_site(self, monkeypatch: Any) -> None:
+        self._check(_drive_check_queries, monkeypatch)
+
+    def test_fix_queries_site(self, monkeypatch: Any) -> None:
+        self._check(_drive_fix_queries, monkeypatch)
+
+    def test_query_budget_site(self, monkeypatch: Any) -> None:
+        self._check(_drive_query_budget, monkeypatch)
+
+    def test_project_diagnoser_site(self, monkeypatch: Any) -> None:
+        self._check(_drive_project_diagnoser, monkeypatch)
+
+    def test_celery_site(self, monkeypatch: Any) -> None:
+        self._check(_drive_celery, monkeypatch)
+
+    def test_pytest_plugin_site(self, monkeypatch: Any) -> None:
+        self._check(_drive_pytest_plugin, monkeypatch)

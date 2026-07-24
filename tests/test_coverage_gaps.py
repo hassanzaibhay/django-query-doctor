@@ -267,8 +267,21 @@ class TestMiddlewareEdgeCases:
             "REPORTERS": [],
         }
 
+        # Inject a query so analysis runs past the early empty-queries return.
+        query = CapturedQuery(
+            sql="SELECT 1",
+            params=None,
+            duration_ms=1.0,
+            fingerprint="abc",
+            normalized_sql="select ?",
+            callsite=None,
+            is_select=True,
+            tables=[],
+        )
+        interceptor._queries_var.get().append(query)
+
         with patch(
-            "query_doctor.middleware._get_enabled_analyzers",
+            "query_doctor.pipeline.discover_analyzers",
             return_value=[MagicMock(analyze=MagicMock(side_effect=RuntimeError("boom")))],
         ):
             # Should not raise
@@ -313,7 +326,7 @@ class TestMiddlewareEdgeCases:
 
         with (
             patch(
-                "query_doctor.middleware._get_enabled_analyzers",
+                "query_doctor.pipeline.discover_analyzers",
                 return_value=[mock_analyzer],
             ),
             patch(

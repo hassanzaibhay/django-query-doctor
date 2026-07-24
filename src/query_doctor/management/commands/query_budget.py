@@ -14,7 +14,7 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 
-from query_doctor.interceptor import QueryInterceptor
+from query_doctor.interceptor import build_interceptor
 from query_doctor.types import DiagnosisReport
 
 
@@ -78,7 +78,7 @@ class Command(BaseCommand):
 
     def _run_with_budget(self, execute_code: str | None) -> DiagnosisReport:
         """Run code and capture query metrics."""
-        interceptor = QueryInterceptor()
+        interceptor = build_interceptor()
 
         from django.db import connection
 

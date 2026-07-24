@@ -10,8 +10,8 @@ import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from query_doctor.interceptor import QueryInterceptor
-from query_doctor.plugin_api import discover_analyzers
+from query_doctor.interceptor import build_interceptor
+from query_doctor.pipeline import analyze as pipeline_analyze
 from query_doctor.types import DiagnosisReport
 
 logger = logging.getLogger("query_doctor")
@@ -30,7 +30,7 @@ def diagnose_queries() -> Generator[DiagnosisReport, None, None]:
         print(report.issues)
     """
     report = DiagnosisReport()
-    interceptor = QueryInterceptor()
+    interceptor = build_interceptor()
 
     from django.db import connection
 
@@ -44,17 +44,7 @@ def diagnose_queries() -> Generator[DiagnosisReport, None, None]:
         report.total_queries = len(queries)
         report.total_time_ms = sum(q.duration_ms for q in queries)
 
-        # Run analyzers
-        analyzers = discover_analyzers()
-        for analyzer in analyzers:
-            try:
-                prescriptions = analyzer.analyze(queries)
-                report.prescriptions.extend(prescriptions)
-            except Exception:
-                logger.warning(
-                    "query_doctor: analyzer %s failed in context manager",
-                    analyzer.name,
-                    exc_info=True,
-                )
+        # Run analyzers and apply .queryignore filtering via the shared pipeline.
+        report.prescriptions = pipeline_analyze(queries, source="context_manager")
     except Exception:
         logger.warning("query_doctor: context manager analysis failed", exc_info=True)

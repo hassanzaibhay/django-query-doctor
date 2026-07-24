@@ -20,24 +20,14 @@ from django.http import HttpRequest
 
 from query_doctor.conf import get_config
 from query_doctor.exceptions import QueryDoctorWarning
-from query_doctor.interceptor import QueryInterceptor
-from query_doctor.plugin_api import discover_analyzers
+from query_doctor.interceptor import QueryInterceptor, build_interceptor
+from query_doctor.pipeline import analyze as pipeline_analyze
 from query_doctor.reporters.console import ConsoleReporter
 from query_doctor.reporters.json_reporter import JSONReporter
 from query_doctor.reporters.log_reporter import LogReporter
 from query_doctor.types import DiagnosisReport
 
 logger = logging.getLogger("query_doctor")
-
-
-def _get_enabled_analyzers(config: dict[str, Any]) -> list[Any]:
-    """Return all discovered analyzer instances.
-
-    Config-based filtering happens per-analyzer via is_enabled() inside
-    analyze(), not here -- discover_analyzers() returns every registered
-    analyzer regardless of its enabled state.
-    """
-    return discover_analyzers()
 
 
 # The only names ``REPORTERS`` dispatches. Defined once so the validation
@@ -169,10 +159,7 @@ class QueryDoctorMiddleware:
         if not self._should_process(request, config):
             return await self.get_response(request)
 
-        interceptor = QueryInterceptor(
-            capture_stack=config.get("CAPTURE_STACK_TRACES", True),
-            exclude_modules=config.get("STACK_TRACE_EXCLUDE"),
-        )
+        interceptor = build_interceptor()
 
         from django.db import connection
 
@@ -204,10 +191,7 @@ class QueryDoctorMiddleware:
         if not self._should_process(request, config):
             return self.get_response(request)
 
-        interceptor = QueryInterceptor(
-            capture_stack=config.get("CAPTURE_STACK_TRACES", True),
-            exclude_modules=config.get("STACK_TRACE_EXCLUDE"),
-        )
+        interceptor = build_interceptor()
 
         from django.db import connection
 
@@ -258,28 +242,8 @@ class QueryDoctorMiddleware:
             captured_queries=queries,
         )
 
-        # Run all enabled analyzers
-        analyzers = _get_enabled_analyzers(config)
-        for analyzer in analyzers:
-            try:
-                prescriptions = analyzer.analyze(queries)
-                report.prescriptions.extend(prescriptions)
-            except Exception:
-                logger.warning(
-                    "query_doctor: analyzer %s failed",
-                    getattr(analyzer, "name", "unknown"),
-                    exc_info=True,
-                )
-
-        # Apply .queryignore filtering
-        try:
-            from query_doctor.ignore import filter_prescriptions, load_queryignore
-
-            rules = load_queryignore()
-            if rules:
-                report.prescriptions = filter_prescriptions(report.prescriptions, rules)
-        except Exception:
-            logger.warning("query_doctor: queryignore filtering failed", exc_info=True)
+        # Run analyzers and apply .queryignore filtering via the shared pipeline.
+        report.prescriptions = pipeline_analyze(queries, source="middleware")
 
         # Record for admin dashboard if enabled
         dashboard_config = config.get("ADMIN_DASHBOARD", {})
