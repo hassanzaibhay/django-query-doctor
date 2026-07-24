@@ -334,3 +334,83 @@ class TestRunAnalyzersExtended:
             _run_analyzers(report, [])
         # Should not raise
         assert isinstance(report.prescriptions, list)
+
+
+class TestTerminalSummary:
+    """The plugin surfaces populated fixture reports at end of session (FOLLOWUPS #14).
+
+    Without this hook the fixture's report is populated in a finalizer and then
+    discarded unread - the fixture has no observable effect. The
+    pytest_terminal_summary hook reads the reports stashed by each fixture use
+    and prints a proportionate summary: one header line, then one line per test
+    that actually had findings. Tests with zero issues produce no per-test line,
+    so a large suite is not flooded (FOLLOWUPS #14, Condition 2).
+    """
+
+    def test_summary_emits_findings_only_with_header(self, pytester: pytest.Pytester) -> None:
+        """A finding-bearing test gets a line; a clean test does not; header counts both.
+
+        The inner session injects reports directly into config.stash (the same
+        store the fixture finalizer writes to), so this exercises the real hook
+        end-to-end without needing a database.
+        """
+        pytester.makepyfile(
+            """
+            def test_has_finding(request):
+                from query_doctor.pytest_plugin import _REPORTS_KEY
+                from query_doctor.types import (
+                    DiagnosisReport, Prescription, IssueType, Severity,
+                )
+
+                report = DiagnosisReport()
+                report.total_queries = 5
+                report.prescriptions.append(
+                    Prescription(
+                        issue_type=IssueType.DUPLICATE_QUERY,
+                        severity=Severity.WARNING,
+                        description="duplicate",
+                        fix_suggestion="fix it",
+                        callsite=None,
+                    )
+                )
+                registry = request.config.stash.setdefault(_REPORTS_KEY, {})
+                registry[request.node.nodeid] = report
+
+            def test_is_clean(request):
+                from query_doctor.pytest_plugin import _REPORTS_KEY
+                from query_doctor.types import DiagnosisReport
+
+                registry = request.config.stash.setdefault(_REPORTS_KEY, {})
+                registry[request.node.nodeid] = DiagnosisReport()
+            """
+        )
+        # -p no:cacheprovider keeps the inner run's output stable; the plugin
+        # itself auto-loads via its pytest11 entry point. -p no:django keeps
+        # pytest-django from re-running setup_test_environment inside the
+        # already-configured outer process (these inner tests need no database).
+        result = pytester.runpytest("-p", "no:cacheprovider", "-p", "no:django")
+
+        result.assert_outcomes(passed=2)
+        # A "query_doctor" section separator, then the counts line: two
+        # observed, one clean, one with findings (write_sep and the count line
+        # are separate lines, so they are matched separately).
+        result.stdout.fnmatch_lines(["*query_doctor*"])
+        result.stdout.fnmatch_lines(["observed 2 test(s)*1 clean*1 with findings*"])
+        # The finding-bearing test gets its own line naming the issue count.
+        result.stdout.fnmatch_lines(["*test_has_finding*1 issue*"])
+        # The clean test must NOT get a per-test line - that is the whole point
+        # of emitting findings only (Condition 2).
+        assert not any("test_is_clean" in line and "issue" in line for line in result.stdout.lines)
+
+    def test_summary_silent_when_no_reports(self, pytester: pytest.Pytester) -> None:
+        """No fixture use in a session means no query_doctor summary section at all."""
+        pytester.makepyfile(
+            """
+            def test_noop():
+                assert True
+            """
+        )
+        result = pytester.runpytest("-p", "no:cacheprovider", "-p", "no:django")
+
+        result.assert_outcomes(passed=1)
+        assert not any("query_doctor" in line for line in result.stdout.lines)

@@ -129,7 +129,11 @@
       "kind": "exact",
       "measurement": "test_count",
       "value": 831,
-      "locator": "**831 tests**"
+      "locator": "**831 tests**",
+      "deferred": {
+        "reason": "The tree measures 833 tests, but the profile README lives in a different repository (github.com/hassanzaibhay/hassanzaibhay) whose owner batch-updates it at each release rather than after every minor fix (decision 2026-07-24). value and locator track what the profile currently publishes (831); this field records only the current disagreement (tree 833 vs profile 831).",
+        "action": "At the v2.2.0 release, bump '**831 tests**' to the then-current count in the hassanzaibhay/hassanzaibhay README, update this row's value and locator to match, and delete this deferral. The gate fails once a deferred row agrees with the tree, so the deferral cannot outlive the fix."
+      }
     },
     {
       "id": "profile-coverage",
