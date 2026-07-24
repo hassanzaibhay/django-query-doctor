@@ -34,6 +34,19 @@ The `DiagnosisReport` object exposes:
 
 Each `CapturedQuery` has `sql`, `params`, `duration_ms`, `fingerprint`, `normalized_sql`, `callsite`, `is_select`, and `tables`. Each `Prescription` has `issue_type`, `severity`, `description`, `fix_suggestion`, `callsite`, `query_count`, `time_saved_ms`, and `fingerprint`.
 
+### End-of-Session Summary
+
+Because the report is populated at teardown, its findings are surfaced after the session finishes rather than inside the test. A `pytest_terminal_summary` hook (`src/query_doctor/pytest_plugin.py:140`) reads the report each fixture use produced and prints a `query_doctor` section: one header line stating how many fixture-using tests were observed and how many were clean, then **one line per test that had findings** — tests with zero issues produce no line, so the section stays proportionate to the problems found:
+
+```text
+================================= query_doctor =================================
+observed 12 test(s); 10 clean, 2 with findings
+  tests/test_views.py::test_book_list: 48 queries, 1 issue(s)
+  tests/test_api.py::test_author_feed: 31 queries, 1 issue(s)
+```
+
+This makes the fixture useful for passive, zero-effort reporting across a suite. When you need a test to **fail** on a query problem rather than merely report it, use `diagnose_queries()` (below).
+
 ---
 
 ## Context Manager in Tests

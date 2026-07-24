@@ -68,9 +68,12 @@ all automated tests involving unnecessary queries to fail") or the core `Profile
 context manager ([README](https://github.com/jmcarp/nplusone)).
 
 ² django-query-doctor registers a `pytest11` entry point providing a `query_doctor`
-fixture, but the fixture's report is populated at test teardown — in-test assertions
-on it see an empty report. For working in-test assertions, use `diagnose_queries()`
-(see the [pytest guide](../guides/pytest-plugin.md)).
+fixture. The fixture's report is populated at test teardown, so in-test assertions on
+it see an empty report; its findings are instead surfaced at end of session by a
+`pytest_terminal_summary` hook that prints one line per test with findings
+(`src/query_doctor/pytest_plugin.py:140`, emitting line at `:167`). For working
+in-test assertions, use `diagnose_queries()` (see the
+[pytest guide](../guides/pytest-plugin.md)).
 
 ³ From 2.1.2 onwards. Queries from both `async def` and sync views are captured
 under a real ASGI handler; see `tests/test_asgi_middleware_chain.py`, which drives
