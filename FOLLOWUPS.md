@@ -529,15 +529,25 @@ zero in-src references. Classification:
   supports `django>=4.2`; whether `OutputWrapper.isatty` and the
   `__getattr__` encoding delegation hold across 4.2-5.x is unverified - a
   CI-matrix question, part of why this is not a one-line change.
-- **Resolved:** 2.2.0 (S6, commit 1488dd9). `Console(file=self._stream)` - the
-  detection stream and the write stream are now one. A spy test asserts the Console
-  is built with `file=self._stream`; an `OutputWrapper` delegation test pins
-  encoding/isatty/fileno forwarding and runs on all five Django versions in the CI
-  matrix, which answers the "unverified across django>=4.2" open question. The two
-  shipped call sites stay non-divergent, confirmed after the fix (both wrap the same
-  stdout the Console now probes). `legacy_windows` is unaffected: it comes from
-  `detect_legacy_windows()`, which probes the stdout handle globally, independent of
-  the Console's file - only the encoding source moves to `self._stream`. Stale
+- **Resolved:** 2.2.0 (S6, commit 1488dd9 plus the `_probe_target` follow-up,
+  commit 5). Django's `OutputWrapper` subclassed `TextIOBase` before 5.2, so on
+  those versions `OutputWrapper.encoding` resolves to the inherited descriptor and
+  reads `None`, and its `__getattr__` never forwards the wrapped stream's encoding;
+  from 5.2 it forwards directly. So the one-line `Console(file=self._stream)`
+  change (commit 1488dd9) fixed the middleware path (`sys.stderr`) on every
+  version, but the command path - both entry points wrap `self.stdout` in an
+  `OutputWrapper` (`check_queries.py:221`, `check_serializers.py:176`) - was fixed
+  only from 5.2 up. Commit 5 adds `_probe_target()`, which unwraps
+  `OutputWrapper._out` when `encoding` reads `None`, closing the command path
+  across the whole supported 4.2-6.0 range. Safe because `_render_rich` renders
+  through `console.capture()`: the Console's file is probed, never written to; the
+  write is `print(output, file=self._stream)` at `console.py:63`. `_probe_target`
+  affects encoding only - width comes from `_STD_STREAMS`, `is_terminal` is pinned
+  by `force_terminal=False`. The cross-version pin is
+  `test_cp1252_outputwrapper_destination_renders_ascii` (a cp1252 `OutputWrapper`
+  destination renders a pure-ASCII box), green on all five matrix versions.
+  `legacy_windows` is unaffected: it comes from `detect_legacy_windows()`, which
+  probes the stdout handle globally, independent of the Console's file. Stale
   evidence: `check_queries.py:225` is actually `:221`, and the Impact line's
   `middleware.py:47` is actually `:83`; `console.py:37/:102/:129` were accurate.
 

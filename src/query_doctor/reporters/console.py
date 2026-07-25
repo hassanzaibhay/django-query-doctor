@@ -93,17 +93,41 @@ class ConsoleReporter:
         lines.append("")
         return "\n".join(lines)
 
+    def _probe_target(self) -> Any:
+        """Return the object Rich probes for the output encoding.
+
+        Affects ENCODING only. Not width: ``rich.console.Console.size`` reads the
+        standard file descriptors, never ``self.file.fileno()``. Not
+        ``is_terminal``: pinned by ``force_terminal=False``. ``_render_rich``
+        renders through ``console.capture()``, so this object is probed, never
+        written to; the write is ``print(output, file=self._stream)`` at line 63.
+
+        Normally ``self._stream``. Django's ``OutputWrapper`` subclassed
+        ``TextIOBase`` before 5.2, so on those versions its ``encoding`` resolves
+        to an inherited descriptor returning ``None`` and its ``__getattr__``
+        never forwards the wrapped stream's encoding. Fall back to the wrapped
+        stream (``_out``, set in ``OutputWrapper.__init__`` on every supported
+        version) so the real encoding is reached. The ``encoding is None`` guard
+        means the unwrap fires only there.
+        """
+        if getattr(self._stream, "encoding", None) is None:
+            inner = getattr(self._stream, "_out", None)
+            if inner is not None:
+                return inner
+        return self._stream
+
     def _render_rich(self, report: DiagnosisReport) -> str:
         """Render with Rich formatting."""
         from rich.console import Console
         from rich.panel import Panel
         from rich.text import Text
 
-        # Probe the stream we actually write to (self._stream), not stdout:
-        # with one stream the encoding/box decision and the write cannot
-        # disagree, and safe_box resolves the box choice for that stream
-        # (FOLLOWUPS #13).
-        console = Console(file=self._stream, force_terminal=False)
+        # Probe the encoding of the stream we write to, not stdout, so Rich
+        # chooses box characters the destination can encode. The ASCII-vs-Unicode
+        # choice is driven by that encoding (ConsoleOptions.ascii_only), not by
+        # legacy_windows, which only picks rounded vs square among Unicode boxes
+        # (FOLLOWUPS #13, #12).
+        console = Console(file=self._probe_target(), force_terminal=False)
         parts: list[str] = []
 
         # Header

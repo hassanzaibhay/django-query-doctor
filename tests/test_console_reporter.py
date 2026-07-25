@@ -14,6 +14,18 @@ from query_doctor.types import (
 )
 
 
+class _EncodedStream(io.StringIO):
+    """A text buffer that advertises a chosen encoding to Rich's probe."""
+
+    def __init__(self, encoding: str) -> None:
+        super().__init__()
+        self._encoding = encoding
+
+    @property
+    def encoding(self) -> str:
+        return self._encoding
+
+
 class TestConsoleReporter:
     """Tests for ConsoleReporter."""
 
@@ -450,30 +462,35 @@ class TestConsoleReporterGrouped:
 
 
 class TestConsoleStreamProbe:
-    """The Rich renderer must probe the stream it writes to (FOLLOWUPS #13).
+    """The Rich renderer probes the encoding of the stream it writes to (#13).
 
-    ``_render_rich`` built ``Console(file=None)``, which probes stdout for
-    encoding/box decisions, then printed the captured string to ``self._stream``
-    - a different stream. When the two disagree (a strict non-utf8 destination
-    while stdout is utf-8), the box characters chosen from stdout garble or crash
-    on the destination. The fix builds ``Console(file=self._stream)`` so one
-    stream owns both the decision and the write.
+    ``_render_rich`` built ``Console(file=None)``, which probes stdout, then
+    printed the captured string to ``self._stream`` - a different stream. When
+    the two encodings disagree the box characters chosen from stdout garble or
+    crash on the destination. The fix probes ``self._probe_target()``, which is
+    ``self._stream`` normally and the unwrapped inner stream when ``self._stream``
+    is a pre-5.2 ``OutputWrapper`` whose ``encoding`` reads ``None``. The write
+    target (``self._stream``) is never moved.
     """
 
-    def test_rich_console_probes_the_destination_stream(self) -> None:
-        """_render_rich builds Console(file=self._stream), not file=None.
+    def test_rich_console_probes_the_destination_encoding(self) -> None:
+        """The Console Rich builds carries the destination's real encoding.
 
-        Detection stream and destination stream must be the same object, so the
-        encoding the renderer chooses box characters for is the encoding they are
-        written to. Asserted by spying on the file kwarg Rich's Console receives.
+        Object identity is the wrong assertion: on Django <5.2 the probe target
+        is the unwrapped inner stream, not ``self._stream``. And an identity
+        check against ``_probe_target()`` would pass as ``None is None`` if the
+        method ever regressed to returning ``None`` - reconstructing the entry-13
+        bug the test exists to catch (entry 15's failure mode). Pinning the
+        encoding fails on ``None``, on ``sys.stdout``, and on an un-unwrapped
+        pre-5.2 ``OutputWrapper``. The wrapped encoding is cp1252 on every Django
+        version: delegated on >=5.2, reached via the ``_out`` unwrap below it.
         """
-        import sys
         from unittest import mock
 
         import rich.console as rc
         from django.core.management.base import OutputWrapper
 
-        destination = OutputWrapper(sys.stdout)
+        destination = OutputWrapper(_EncodedStream("cp1252"))
         reporter = ConsoleReporter(stream=destination)
 
         captured: dict[str, object] = {}
@@ -483,35 +500,43 @@ class TestConsoleStreamProbe:
             captured["file"] = kwargs.get("file")
             return real_console(*args, **kwargs)
 
-        # Empty report: no prescriptions, so the RichConsole isinstance path at
-        # console.py:129 is not exercised and the spy stays a clean stand-in.
+        # Empty report: no prescriptions, so the RichConsole isinstance path in
+        # _render_rich_prescription is not exercised and the spy stays clean.
         with mock.patch("rich.console.Console", side_effect=spy):
             reporter._render_rich(DiagnosisReport(total_queries=0, total_time_ms=0.0))
 
-        assert captured["file"] is reporter._stream
+        assert getattr(captured["file"], "encoding", None) == "cp1252"
+        # The renderer must not move the write target while resolving the probe.
         assert reporter._stream is destination
 
-    def test_outputwrapper_delegates_probe_attributes(self) -> None:
-        """OutputWrapper delegates encoding/isatty/fileno to the wrapped stream.
+    def test_probe_target_exposes_wrapped_encoding_across_django(self) -> None:
+        """_probe_target reaches the wrapped encoding on every supported Django.
 
-        This is the invariant that keeps the two shipped call sites
-        (check_queries.py:221, check_serializers.py:176, both
-        ConsoleReporter(stream=self.stdout)) non-divergent after the fix: the
-        Console probes self.stdout, whose encoding/isatty/fileno resolve to the
-        underlying stdout the output is written to. Runs on every Django version
-        in the CI matrix, which is the answer to entry 13's "unverified across
-        django>=4.2" question.
+        Pre-5.2 ``OutputWrapper`` subclasses ``TextIOBase``, so ``encoding`` reads
+        ``None`` and ``__getattr__`` never forwards; >=5.2 it forwards directly.
+        Either way the probe target must expose the wrapped cp1252 encoding - the
+        MRO differs across the 5.2 boundary but the resolved encoding must not.
+        (Replaces an assertion that ``OutputWrapper.__mro__`` is
+        ``['OutputWrapper', 'object']``, which is false below 5.2.)
         """
         from django.core.management.base import OutputWrapper
 
-        class FakeStream:
-            encoding = "utf-8"
+        wrapped = OutputWrapper(_EncodedStream("cp1252"))
+        reporter = ConsoleReporter(stream=wrapped)
+        probe = reporter._probe_target()
+        assert getattr(probe, "encoding", None) == "cp1252"
 
-            def isatty(self) -> bool:
-                return False
+        # Positive control: a plain stream carrying its own encoding is returned
+        # unchanged - the guard unwraps only when encoding reads None, so it does
+        # not flatten well-behaved streams.
+        plain = _EncodedStream("utf-8")
+        assert ConsoleReporter(stream=plain)._probe_target() is plain
 
-            def fileno(self) -> int:
-                return 7
+        # Positive control 2: a stream whose encoding reads None but which has no
+        # _out to unwrap must be returned unchanged - the guard unwraps only when
+        # an inner stream exists, so it never returns None for an exotic stream.
+        class _NoOutStream:
+            encoding = None
 
             def write(self, s: str) -> int:
                 return len(s)
@@ -519,16 +544,8 @@ class TestConsoleStreamProbe:
             def flush(self) -> None:
                 return None
 
-        # Nothing between OutputWrapper and object can shadow the delegated
-        # attributes, and OutputWrapper itself defines no `encoding`.
-        assert [c.__name__ for c in OutputWrapper.__mro__] == ["OutputWrapper", "object"]
-        assert "encoding" not in vars(OutputWrapper)
-
-        wrapped = FakeStream()
-        w = OutputWrapper(wrapped)
-        assert w.encoding == wrapped.encoding
-        assert w.isatty() == wrapped.isatty()
-        assert w.fileno() == wrapped.fileno()
+        no_out = _NoOutStream()
+        assert ConsoleReporter(stream=no_out)._probe_target() is no_out
 
 
 class TestRichBoxEncodingBranch:
@@ -548,20 +565,9 @@ class TestRichBoxEncodingBranch:
     destination encoding and probed stdout instead.
     """
 
-    class _EncodedStream(io.StringIO):
-        """A text buffer that advertises a chosen encoding to Rich's probe."""
-
-        def __init__(self, encoding: str) -> None:
-            super().__init__()
-            self._encoding = encoding
-
-        @property
-        def encoding(self) -> str:
-            return self._encoding
-
     def test_non_utf_destination_renders_pure_ascii_box(self) -> None:
         """A cp1252 destination makes _render_rich emit no box-drawing codepoints."""
-        reporter = ConsoleReporter(stream=self._EncodedStream("cp1252"))
+        reporter = ConsoleReporter(stream=_EncodedStream("cp1252"))
         output = reporter._render_rich(DiagnosisReport(total_queries=0, total_time_ms=0.0))
 
         assert not any(ord(ch) >= 0x2500 for ch in output)  # no Unicode box drawing
@@ -574,7 +580,32 @@ class TestRichBoxEncodingBranch:
         present in both the rounded (non-legacy) and square (legacy) Unicode
         boxes, so this holds on Linux CI and a legacy-Windows host alike.
         """
-        reporter = ConsoleReporter(stream=self._EncodedStream("utf-8"))
+        reporter = ConsoleReporter(stream=_EncodedStream("utf-8"))
         output = reporter._render_rich(DiagnosisReport(total_queries=0, total_time_ms=0.0))
 
         assert chr(0x2500) in output and chr(0x2502) in output
+
+    def test_cp1252_outputwrapper_destination_renders_ascii(self) -> None:
+        """A cp1252 stream wrapped in Django's OutputWrapper renders pure ASCII.
+
+        The real end-to-end pin, on every supported Django (4.2-6.0). Before 5.2
+        OutputWrapper subclassed TextIOBase, so its `encoding` resolves to an
+        inherited descriptor returning None and its __getattr__ never forwards the
+        wrapped stream's cp1252 - so Console(file=wrapper) probes None, falls back
+        to utf-8, and emits Unicode box drawing the cp1252 destination cannot
+        encode. _probe_target unwraps to the inner stream in that case. This test
+        fails on Django <5.2 against the plain Console(file=self._stream) and
+        passes on all five versions once the probe target is resolved.
+        """
+        from django.core.management.base import OutputWrapper
+
+        destination = OutputWrapper(_EncodedStream("cp1252"))
+        reporter = ConsoleReporter(stream=destination)
+        output = reporter._render_rich(DiagnosisReport(total_queries=0, total_time_ms=0.0))
+
+        # The invariant that matters: the destination can encode what we produced.
+        # This is what actually broke - the pre-fix output raised on cp1252.
+        output.encode("cp1252")
+        # And the box style is ASCII, not merely cp1252-encodable Unicode.
+        assert not any(ord(ch) >= 0x2500 for ch in output)  # pure ASCII box
+        assert "No issues detected" in output  # positive control: it did render
