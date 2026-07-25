@@ -119,6 +119,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   prescription level.
 
 ### Fixed
+- The Rich console reporter now selects box-drawing characters from the encoding
+  of the stream it writes to, not from stdout. Previously, output aimed at a
+  terminal whose encoding differed from stdout's could contain characters the
+  destination could not encode, garbling the report (or raising on a strict
+  stream). It now renders a plain-ASCII box whenever the destination cannot encode
+  the Unicode one.
 - `docs/deep-dive/comparison.md` no longer asserts that Django's fetch modes are
   "unreleased as of 2026-07-14". That parenthetical would have become false when
   Django 6.1 reaches final release, with no code change and nobody touching the

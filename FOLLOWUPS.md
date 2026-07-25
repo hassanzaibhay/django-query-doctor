@@ -34,7 +34,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 14**
+**Open entries: 10**
 
 ---
 
@@ -461,6 +461,24 @@ zero in-src references. Classification:
   skipping; `test_ascii_output.py` extension moot by the box=box.ASCII decline.
   Open: CI is ubuntu-only (`ci.yml:11,45,59`), so the legacy-Windows/cp1252
   substitution branch is still exercised by no CI run.
+- **Resolved:** 2.2.0 (S6, commit 05808a5). The open branch is now covered by two
+  deterministic tests forcing the destination stream's encoding
+  (`tests/test_console_reporter.py::TestRichBoxEncodingBranch`), which run on every
+  platform and every CI run. **Correction, measured on rich 15.0.0:** the pure-ASCII
+  substitution is driven by the destination stream's ENCODING (a non-utf encoding
+  cannot represent U+2500-range box drawing), NOT by `legacy_windows`.
+  `legacy_windows` only swaps rounded corners for square ones among Unicode boxes;
+  the "`legacy_windows=True` emits pure ASCII" reading above conflated the two axes
+  because that dev session was also cp1252. Scope boundary: the test proves "non-utf
+  destination encoding => pure-ASCII box"; it does NOT test Rich's platform detection
+  (`detect_legacy_windows`, which keys off VT support on the stdout handle and is
+  version-independent, not a Windows-version question) - that is Rich's
+  responsibility, not this package's. No `windows-latest` CI row was added: a piped
+  GHA stdout reports `legacy_windows=True` today, but the row would silently stop
+  exercising the branch the day GHA runs steps in a real console or enables VT.
+  Stale evidence: `ci.yml:11,45,59` are wrong - `runs-on: ubuntu-latest` is at 11,
+  55, 69 and 81 (four jobs: test, lint, typecheck, docs-gate); `:45` is a Codecov
+  comment and `:59` a `with:`.
 
 ## 13. ConsoleReporter probes stdout but writes to a different stream
 
@@ -511,6 +529,27 @@ zero in-src references. Classification:
   supports `django>=4.2`; whether `OutputWrapper.isatty` and the
   `__getattr__` encoding delegation hold across 4.2-5.x is unverified - a
   CI-matrix question, part of why this is not a one-line change.
+- **Resolved:** 2.2.0 (S6, commit 1488dd9 plus the `_probe_target` follow-up,
+  commit 5). Django's `OutputWrapper` subclassed `TextIOBase` before 5.2, so on
+  those versions `OutputWrapper.encoding` resolves to the inherited descriptor and
+  reads `None`, and its `__getattr__` never forwards the wrapped stream's encoding;
+  from 5.2 it forwards directly. So the one-line `Console(file=self._stream)`
+  change (commit 1488dd9) fixed the middleware path (`sys.stderr`) on every
+  version, but the command path - both entry points wrap `self.stdout` in an
+  `OutputWrapper` (`check_queries.py:221`, `check_serializers.py:176`) - was fixed
+  only from 5.2 up. Commit 5 adds `_probe_target()`, which unwraps
+  `OutputWrapper._out` when `encoding` reads `None`, closing the command path
+  across the whole supported 4.2-6.0 range. Safe because `_render_rich` renders
+  through `console.capture()`: the Console's file is probed, never written to; the
+  write is `print(output, file=self._stream)` at `console.py:63`. `_probe_target`
+  affects encoding only - width comes from `_STD_STREAMS`, `is_terminal` is pinned
+  by `force_terminal=False`. The cross-version pin is
+  `test_cp1252_outputwrapper_destination_renders_ascii` (a cp1252 `OutputWrapper`
+  destination renders a pure-ASCII box), green on all five matrix versions.
+  `legacy_windows` is unaffected: it comes from `detect_legacy_windows()`, which
+  probes the stdout handle globally, independent of the Console's file. Stale
+  evidence: `check_queries.py:225` is actually `:221`, and the Impact line's
+  `middleware.py:47` is actually `:83`; `console.py:37/:102/:129` were accurate.
 
 ## 14. `query_doctor` fixture has zero observable effect - deprecation case for 2.2
 
@@ -531,6 +570,15 @@ zero in-src references. Classification:
   wanted instead, the report must be wired somewhere observable (e.g. a
   pytest terminal-summary hook). Decision deferred to 2.2 planning; 2.1.1
   ships the warning only (entry 1).
+- **Resolved:** 2.2.0 (S6 records; work shipped in PR #21, squash `2609681`).
+  **Wired, not deprecated.** `pytest_terminal_summary` (`pytest_plugin.py:140`)
+  surfaces each fixture's stashed report at end of session - one header line plus
+  one line per test with findings - so the fixture has an observable effect. The
+  `QueryDoctorWarning` (entry 1) is retained for the in-test-read path, which stays
+  vacuous under any option. PR #21 shipped the code but omitted this file from its
+  diff, so the work landed while the record stayed open; corrected here in S6's
+  records commit (the reviewer error was in the S5 bookkeeping, not the PR). The
+  evidence line refs above (`:81-104`, `:104`) predate the fix.
 
 ## 15. Unfalsifiable assertion in a direct Rich-path test
 
@@ -553,6 +601,14 @@ zero in-src references. Classification:
   (`"No issues detected"`), or delete the test as redundant with
   `test_render_empty_report_content` (`tests/test_coverage_gaps.py`).
   Out of scope for 2.1.1: correctness-only release, not a test refactor.
+- **Resolved:** 2.2.0 (S6, commit d7693a5). Strengthened to assert
+  `"No issues detected"`, not the vacuous `"No issues" or "0"` (the header always
+  carries a `0`). Not deleted: it is the only direct `_render_rich` coverage of the
+  empty branch (`console.py:123-124`) - the nearby `test_render_empty_report_content`
+  goes through `render()` and passes on `_render_plain` too, which emits the same
+  marker (`console.py:190`), so it does not pin the Rich path. Verified falsifiable:
+  with `console.py:123-124` removed the strengthened assertion fails; the old one
+  passed. `:352` was accurate.
 
 ## 16. Version is declared in two places with no cross-check
 
