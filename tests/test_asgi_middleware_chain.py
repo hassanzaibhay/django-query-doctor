@@ -37,7 +37,7 @@ from django.test import AsyncClient, Client, RequestFactory, override_settings
 
 from query_doctor.interceptor import QueryInterceptor
 from query_doctor.middleware import QueryDoctorMiddleware
-from tests.asgi_driver import asgi_get_concurrent_sync, asgi_get_sync
+from tests.asgi_driver import asgi_get_concurrent_sync, asgi_get_sync, drive_embedded
 from tests.testapp import views
 
 QD = "query_doctor.middleware.QueryDoctorMiddleware"
@@ -245,6 +245,111 @@ class TestASGICapture:
             asgi_get_sync("/async/probe/")
 
         assert views.view_execution_record["wrappers"] == 1
+
+
+# The five async ORM surfaces docs/guides/async-support.md:85 claims capture for,
+# with the number of queries each view issues. Publisher carries no required FK,
+# so every async ORM call is exactly one query: the create, plus the one
+# statement the method under test issues (``acreate`` being only the create).
+ASYNC_ORM_CASES = [
+    ("acreate", 1, "INSERT INTO"),
+    ("aget", 2, "LIMIT 21"),
+    ("acount", 2, "COUNT(*)"),
+    ("aexists", 2, "LIMIT 1"),
+    ("aiter", 2, 'FROM "testapp_publisher"'),
+]
+
+# Both classes below cover the same five surfaces; deriving the names keeps the
+# two parametrisations from drifting apart.
+ASYNC_ORM_NAMES = [name for name, _, _ in ASYNC_ORM_CASES]
+
+# The writes below run on Django's thread-sensitive executor, on a different
+# connection than the test thread's, so pytest-django's wrapping transaction
+# does not cover them: under plain ``django_db`` they commit for real and are
+# never rolled back. Measured on this tree: five plain-``django_db`` runs left
+# six Publisher rows visible to the test thread, and the second ``aget`` request
+# raised ``MultipleObjectsReturned`` (HTTP 500) off the leaked row.
+# ``transaction=True`` flushes between tests, which is what keeps these
+# self-contained.
+ASYNC_ORM_DB = pytest.mark.django_db(transaction=True)
+
+
+class TestASGIAsyncORMCapture:
+    """Django's async ORM methods must be captured on the MIDDLEWARE-chain route.
+
+    Backs ``docs/guides/async-support.md:85``. The pre-existing ASGI tests issue
+    a raw ``SELECT 1`` through a cursor, so before this class no test put an
+    ``a*`` ORM method or an ``async for`` under the middleware at all and the
+    doc's claim rested on the mechanism argument alone.
+    """
+
+    @ASYNC_ORM_DB
+    @pytest.mark.parametrize(("name", "expected", "fragment"), ASYNC_ORM_CASES)
+    def test_async_orm_method_is_captured(
+        self, monkeypatch: pytest.MonkeyPatch, name: str, expected: int, fragment: str
+    ) -> None:
+        """Each async ORM surface must reach the interceptor under a real ASGI request."""
+        captured: list[str] = []
+
+        def _spy(
+            self: QueryDoctorMiddleware,
+            interceptor: QueryInterceptor,
+            config: dict[str, Any],
+            request: Any = None,
+        ) -> None:
+            captured.extend(q.sql for q in interceptor.get_queries())
+
+        monkeypatch.setattr(QueryDoctorMiddleware, "_analyze_and_report", _spy)
+
+        with override_settings(MIDDLEWARE=[*STARTPROJECT_DEFAULTS, QD]):
+            status, body = asgi_get_sync(f"/async/orm/{name}/")
+
+        assert status == 200
+        assert body == f"{name} ok".encode()
+        assert len(captured) == expected
+        # Not a raw SELECT 1: the captured SQL is the ORM's own statement.
+        assert "INSERT INTO" in captured[0]
+        assert any(fragment in sql for sql in captured)
+
+
+class TestDirectEmbedAsyncORMNotCaptured:
+    """Characterization: the hand-embedding route captures NONE of the same calls.
+
+    ``docs/guides/async-support.md:85`` states the async-ORM claim without
+    qualifying the route, but it holds only for the ``MIDDLEWARE``-chain route
+    asserted above. On the hand-embedding route documented six lines earlier
+    (``:64``), ``__acall__`` installs the ``execute_wrapper`` on the event loop
+    thread's connection (``middleware.py:166``) while every ``a*`` method is
+    ``sync_to_async(thread_sensitive=True)`` internally and so runs the ORM on
+    an executor thread holding a different ``connections["default"]``. Same
+    cause as the ``diagnose_queries()`` failure at ``async-support.md:95``.
+
+    These tests pin the measured behaviour rather than xfail it, so the suite
+    stays green and they flip the day the disposition lands. Do NOT "fix" them
+    by making the counts nonzero -- see FOLLOWUPS entry 28.
+    """
+
+    @ASYNC_ORM_DB
+    @pytest.mark.parametrize("name", ASYNC_ORM_NAMES)
+    def test_async_orm_method_is_not_captured(self, name: str) -> None:
+        """Every async ORM surface captures nothing when the middleware is embedded."""
+        view = getattr(views, f"async_orm_{name}")
+
+        captured = drive_embedded(view)
+
+        assert captured == []
+
+    @ASYNC_ORM_DB
+    def test_sync_view_through_the_same_harness_does_capture(self) -> None:
+        """Positive control: identical ORM work, sync, through the same driver.
+
+        Without this the zeros above would be unfalsifiable -- a harness that
+        captured nothing at all would produce them just as well.
+        """
+        captured = drive_embedded(views.sync_orm_publisher)
+
+        assert len(captured) == 2
+        assert "INSERT INTO" in captured[0].sql
 
 
 class TestConcurrentRequestIsolation:
