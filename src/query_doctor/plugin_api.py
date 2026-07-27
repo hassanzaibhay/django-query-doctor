@@ -17,6 +17,7 @@ Usage:
 
 from __future__ import annotations
 
+import functools
 import logging
 from importlib.metadata import entry_points
 
@@ -77,14 +78,23 @@ def get_builtin_analyzers() -> list[BaseAnalyzer]:
     return analyzers
 
 
-def discover_analyzers() -> list[BaseAnalyzer]:
-    """Load built-in analyzers plus any third-party plugins.
+@functools.lru_cache(maxsize=1)
+def _discover_analyzers_cached() -> tuple[BaseAnalyzer, ...]:
+    """Build the analyzer set once and hold it for the process.
 
-    Discovers plugins registered via the 'query_doctor.analyzers'
-    entry point group. Invalid or failing plugins are logged and skipped.
+    Separate from ``discover_analyzers`` only so the public function can hand
+    back a fresh list per call; this is where the caching actually lives.
+
+    Caching analyzer *instances* is safe because analyzers hold no per-run
+    state: ``FatSelectAnalyzer.__init__`` sets ``_threshold_override``
+    (``analyzers/fat_select.py:64``) and that is the only instance attribute
+    assigned anywhere in ``analyzers/``, set once at construction and never
+    mutated during ``analyze``. Configuration stays live because every analyzer
+    reads ``get_config()`` at analyze time (``is_enabled()``,
+    ``FatSelectAnalyzer._get_threshold``), not at construction.
 
     Returns:
-        List of all available analyzer instances.
+        Tuple of all available analyzer instances.
     """
     analyzers = get_builtin_analyzers()
 
@@ -97,7 +107,40 @@ def discover_analyzers() -> list[BaseAnalyzer]:
             exc_info=True,
         )
 
-    return analyzers
+    return tuple(analyzers)
+
+
+def discover_analyzers() -> list[BaseAnalyzer]:
+    """Load built-in analyzers plus any third-party plugins.
+
+    Discovers plugins registered via the 'query_doctor.analyzers'
+    entry point group. Invalid or failing plugins are logged and skipped.
+
+    The entry point scan is cached for the process: ``_load_entry_point_analyzers``
+    walks every installed distribution and reads its ``entry_points.txt`` from
+    disk, which was measured at 87 reads per call against 87 installed
+    distributions -- ~8 ms of synchronous filesystem I/O, flat in query count,
+    paid by every surface routing through ``pipeline.analyze`` and once per URL
+    pattern by the project diagnoser (FOLLOWUPS entry 29).
+
+    Call ``discover_analyzers.cache_clear()`` to force a rescan. Tests that
+    patch discovery must clear it, the same way ``get_config.cache_clear()`` is
+    used around settings overrides; without that the patch is never consulted
+    and the test passes while exercising nothing.
+
+    A fresh list is returned per call rather than the cached container, so a
+    caller appending to the result cannot corrupt later calls. The copy costs
+    ~0.1 microseconds for seven analyzers.
+
+    Returns:
+        List of all available analyzer instances.
+    """
+    return list(_discover_analyzers_cached())
+
+
+# Part of the public contract, not an implementation detail: the cache is only
+# safe to introduce if callers -- tests above all -- can drop it.
+discover_analyzers.cache_clear = _discover_analyzers_cached.cache_clear  # type: ignore[attr-defined]
 
 
 def _load_entry_point_analyzers() -> list[BaseAnalyzer]:

@@ -7,6 +7,7 @@ handles third-party entry point plugins correctly.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -15,6 +16,26 @@ import pytest
 from query_doctor.analyzers.base import BaseAnalyzer
 from query_doctor.plugin_api import discover_analyzers, get_builtin_analyzers
 from query_doctor.types import CapturedQuery, Prescription
+
+
+@pytest.fixture(autouse=True)
+def _clear_discovery_cache() -> Iterator[None]:
+    """Clear the analyzer-discovery cache around every test in this module.
+
+    ``discover_analyzers()`` caches its result (FOLLOWUPS entry 29), so without
+    this the tests below stop exercising anything: the first cached call wins
+    and every later ``patch("..._load_entry_point_analyzers")`` is never
+    consulted. Clearing *after* matters as much as before -- a result cached
+    under a patch would otherwise leak into
+    ``test_analyzer_discovery_wiring.py``, whose exact-count assertion would
+    then see this module's fake plugin.
+
+    Mirrors the way ``tests/test_pipeline.py`` calls ``get_config.cache_clear()``
+    around settings overrides.
+    """
+    discover_analyzers.cache_clear()
+    yield
+    discover_analyzers.cache_clear()
 
 
 class ValidCustomAnalyzer(BaseAnalyzer):
@@ -75,6 +96,7 @@ class TestDiscoverAnalyzers:
 
         result = discover_analyzers()
 
+        assert mock_load.called  # the patch must actually be consulted
         names = [a.name for a in result]
         assert "custom_test" in names
 
@@ -85,6 +107,7 @@ class TestDiscoverAnalyzers:
 
         result = discover_analyzers()
 
+        assert mock_load.called  # the patch must actually be consulted
         # Should still have built-in analyzers
         assert len(result) >= 3
 
@@ -98,8 +121,73 @@ class TestDiscoverAnalyzers:
         with caplog.at_level(logging.WARNING, logger="query_doctor"):
             result = discover_analyzers()
 
+        assert mock_load.called  # the patch must actually be consulted
         # Should still return built-in analyzers
         assert len(result) >= 3
+
+
+class TestDiscoverAnalyzersCaching:
+    """discover_analyzers() must not rescan entry points on every call.
+
+    FOLLOWUPS entry 29: ``_load_entry_point_analyzers()`` walks every installed
+    distribution and reads its ``entry_points.txt`` from disk, and
+    ``pipeline.analyze`` called it on every invocation -- measured at 87
+    ``read_text`` calls per run against 87 installed distributions, ~8 ms, flat
+    in query count. Seven dispatch surfaces route through ``pipeline.analyze``,
+    and ``project_diagnoser._diagnose_url`` calls it once per URL pattern, so a
+    project scan paid a full rescan per URL.
+    """
+
+    @patch("query_doctor.plugin_api._load_entry_point_analyzers")
+    def test_entry_points_scanned_once_across_calls(self, mock_load: MagicMock) -> None:
+        """Five calls must scan entry points exactly once."""
+        mock_load.return_value = []
+
+        first = discover_analyzers()
+        for _ in range(4):
+            discover_analyzers()
+
+        assert mock_load.call_count == 1
+        # Positive control: the one scan produced a real result, so a
+        # discover_analyzers() that returned nothing cannot satisfy the count.
+        assert len(first) == 7
+
+    @patch("query_doctor.plugin_api._load_entry_point_analyzers")
+    def test_cache_clear_forces_a_rescan(self, mock_load: MagicMock) -> None:
+        """``cache_clear()`` is part of the contract, not an afterthought.
+
+        Paired with the test above: without this one, a ``discover_analyzers``
+        that scanned entry points *never* would satisfy ``call_count == 1``
+        just as well as one that scanned them once.
+        """
+        mock_load.return_value = []
+
+        discover_analyzers()
+        assert mock_load.call_count == 1
+
+        discover_analyzers.cache_clear()
+        discover_analyzers()
+
+        assert mock_load.call_count == 2
+
+    def test_returns_a_fresh_list_each_call(self) -> None:
+        """The cache must not hand callers the container it caches.
+
+        ``discover_analyzers`` is annotated ``list[BaseAnalyzer]`` and
+        ``plugin_api`` is the public plugin surface, so a caller may legitimately
+        mutate the result. Returning the cached list object would let one
+        caller's ``append`` corrupt every later call. This passes before the
+        cache exists too -- it is a guard against the wrong fix, not evidence
+        for the right one.
+        """
+        first = discover_analyzers()
+        first.append(ValidCustomAnalyzer())
+
+        second = discover_analyzers()
+
+        assert first is not second
+        assert len(second) == 7
+        assert "custom_test" not in [a.name for a in second]
 
 
 class TestEntryPointLoading:

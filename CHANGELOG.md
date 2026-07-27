@@ -131,6 +131,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   file; the linked release notes now carry the status instead. The dated
   disclaimers at `comparison.md:5` and `faq.md:131` are deliberately unchanged —
   those record when a comparison was made and stay true permanently.
+- `discover_analyzers()` no longer rescans installed entry points on every call.
+  It walked every installed distribution and read its `entry_points.txt` from
+  disk each time analysis ran — measured at 87 reads per call against 87
+  installed distributions, roughly 8 ms of synchronous filesystem I/O. The cost
+  was flat in query count, so a request issuing no queries paid the same as one
+  issuing a hundred, and it was paid by every surface: the middleware,
+  `diagnose_queries()`, the pytest plugin, the Celery integration and all three
+  management commands. `diagnose_project` paid it once per URL pattern. The scan
+  is now cached for the process, taking a zero-query `pipeline.analyze()` from
+  7.86 ms to 0.30 ms in the same environment. `discover_analyzers()` still
+  returns a fresh `list`, so callers may mutate the result as before; a new
+  `discover_analyzers.cache_clear()` forces a rescan, which any test patching
+  discovery must call.
 
 ## [2.1.2] - 2026-07-22
 
