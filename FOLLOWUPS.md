@@ -17,7 +17,13 @@ of the one claim that disposition initially skipped. Entries 23-24 came out of
 the PR #12 review pass (2026-07-22); 23 duplicated 11 and has been merged into
 it, leaving a tombstone at its number. Entry 26 came out of S9a (2026-07-22),
 from checking whether the coverage badge could be made dynamic; 25 is reserved
-for the phase-1 branch disposition and is not yet written.
+for the phase-1 branch disposition and is not yet written. Entries 28-30 came
+out of S7 (2026-07-27): 28 from the claim-by-claim disposition of entry 21,
+where the one remaining async-ORM claim measured false on a second route rather
+than being edited in passing; 29 from profiling the blocking call entry 17
+names, which found the cost is analyzer *discovery* rather than analysis; and 30
+from reading the three tests entry 29's fix moves, one of which asserts nothing
+its name promises.
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -34,7 +40,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 10**
+**Open entries: 12**
 
 ---
 
@@ -686,6 +692,40 @@ zero in-src references. Classification:
   sync_to_async(self._analyze_and_report, thread_sensitive=False)(...)` inside
   `__acall__`. Tied to entry 19: if `__acall__` is removed, this disappears
   with it.
+- **Note (S7, 2026-07-27):** measured rather than argued. Three findings, none
+  of which close this entry.
+
+  1. **The candidate fix above is wrong as written.** `thread_sensitive=False`
+     moves `_analyze_and_report` onto an arbitrary worker thread, and the
+     hazards that exposes are not the one that would be guessed. A
+     `deque.append` race is **not** among them: `deque.append` is thread-safe,
+     measured at 16 threads x 5000 appends with 80000/80000 items intact. The
+     real hazards are (a) the check-then-set lazy init at `admin_panel.py:40-53`
+     — two threads can both read `_report_buffer is None`, both build a deque,
+     and one buffer is discarded with every report in it; 199 of 200 trials lost
+     reports — and (b) interleaved writes from two reporters onto the same
+     stream, which `print(output, file=self._stream)` does not serialise. Any
+     future off-loop fix has to address both; `thread_sensitive=False` alone
+     addresses neither.
+  2. **The blocking is real, but it is discovery, not analysis.** Profiling the
+     call showed the cost is flat in query count — a 0-query request costs the
+     same as a 100-query one — and scales with the number of *installed
+     distributions*: ~8 ms at 87 distributions, ~10 ms at 152. That is
+     `discover_analyzers()` rescanning entry points on every call, filed as
+     entry 29. Analysis proper is sub-millisecond. So the thing this entry
+     proposes to move off the loop is mostly filesystem I/O that should not be
+     happening at all.
+  3. **Disposition: (b) — leave it synchronous and document it as a cheap
+     inline post-response step — conditional on entry 29 landing first.** That
+     sentence is only true once the discovery cache exists; writing it while the
+     step still costs ~8 ms would be the fifth false doc claim of this release.
+     This entry therefore stays open and closes in **S7b**, the same step that
+     lands entry 29's cache.
+
+  **Stale line numbers corrected.** The blocking call is `middleware.py:170`,
+  not `:134`; `__acall__` is `middleware.py:144`, not `:108`. The sync-path copy
+  of the same call at `:202` is correct there and out of scope — it already runs
+  in a worker thread.
 
 ## 18. `docs/guides/middleware.md` claims `threading.local()` per-request state
 
@@ -786,6 +826,25 @@ zero in-src references. Classification:
 - **Disposition:** add ASGI coverage for `aget`/`acreate`/`acount`/`aexists` and
   async iteration in 2.2, then either keep the claim or qualify it. Not 2.1.2:
   the release is scoped to the measured defects.
+- **Resolved:** 2.2.0 (S7, commit `a95840c`). The coverage this entry asked for
+  landed as `TestASGIAsyncORMCapture`
+  (`tests/test_asgi_middleware_chain.py:277`), which drives all five surfaces —
+  `aget`, `acreate`, `acount`, `aexists`, async iteration — through a real
+  `ASGIHandler` on the `MIDDLEWARE`-chain route and asserts captured counts of
+  1/2/2/2/2 plus a per-method SQL fragment, so the raw `SELECT 1` that satisfied
+  the old ASGI tests cannot satisfy these. Measured on Django 6.0.7 and 4.2.30.
+  The "either keep the claim or qualify it" half is **not** decided here: the
+  claim measured **false on the hand-embedding route**
+  (`docs/guides/async-support.md:64`), where all five capture nothing, so the
+  doc sentence at `:85` is route-dependent and needs a qualifier rather than a
+  keep-or-delete. That is split out as **entry 28** rather than edited in
+  passing — the same precedent entry 22 set, where a claim measured false during
+  this entry's disposition became its own entry instead of a silent fix. The
+  measured non-capture is pinned by `TestDirectEmbedAsyncORMNotCaptured`
+  (`:315`), a characterization test rather than an xfail: it keeps the suite
+  green, states the current behaviour, and flips when entry 28's disposition
+  lands. A sync view doing identical ORM work through the same driver captures
+  2, which is what makes the five zeros falsifiable.
 
 ## 22. `diagnose_queries()` captures nothing inside an `async def` function
 
@@ -1002,3 +1061,113 @@ the falsified half is the useful part of the record.
   factory keeps the class config-free. `TestCaptureStackTraces` pins
   `CAPTURE_STACK_TRACES: False` at each of the seven previously-ignoring sites,
   each with a `True` positive control.
+
+## 28. The async-ORM capture claim is true on one route and false on the other
+
+- **Evidence:** measured 2026-07-27 during S7, on Django 6.0.7 and 4.2.30.
+  `docs/guides/async-support.md:85` states that the interceptor's
+  `execute_wrapper` captures `aget`, `acreate`, `acount`, `aexists` and async
+  iteration "identically", without naming a route. The same page documents two
+  routes: the `MIDDLEWARE` chain, and the hand-embedding route at `:64`
+  (`QueryDoctorMiddleware(async_get_response)`). The claim is **true on the
+  chain route** — all five surfaces capture, counts 1/2/2/2/2
+  (`tests/test_asgi_middleware_chain.py::TestASGIAsyncORMCapture`) — and
+  **false on the hand-embedding route**, where all five capture nothing
+  (`::TestDirectEmbedAsyncORMNotCaptured`, `:315`), against a sync-view positive
+  control through the same driver that captures 2.
+- **Cause:** `__acall__` installs the `execute_wrapper` on the event loop
+  thread's connection (`middleware.py:166`), while every `a*` method is
+  internally `sync_to_async(thread_sensitive=True)`, so the ORM runs on an
+  executor thread holding a different `connections["default"]`. This is the same
+  cause as the `diagnose_queries()` failure already documented on the same page
+  at `:95`, and the same cause as entry 22 — thread-local connection registry,
+  not contextvars.
+- **Impact:** a user following the hand-embedding route documented at `:64`
+  gets an empty report from async ORM calls and no signal that anything is
+  wrong. The page's own caveat at `:78` ("you own the thread placement") covers
+  the mechanism but does not connect it to the async-ORM claim 7 lines later, so
+  the two read as independent.
+- **This is the fourth ASGI claim of this release measured false**, after the
+  two corrected in 2.1.2 and entry 22's `diagnose_queries()` recommendation.
+  Recorded as a rate, not as an incident: every ASGI claim in this package that
+  has been measured rather than reasoned from the mechanism has needed
+  qualification, so the remaining unmeasured ASGI claims should be treated as
+  unbacked rather than as probably fine.
+- **Proposed disposition:** a route qualifier on `:85` pointing at the `:78`
+  caveat. **Not deletion** — the claim is true on the `MIDDLEWARE`-chain route,
+  which is the route the page recommends and the one essentially every user is
+  on. **Destination: S8** (docs corrections). Deliberately not fixed in S7: S7
+  is scoped to measurement, and this is the fourth false claim of the release,
+  which is a finding to record rather than to fix in passing.
+
+## 29. `discover_analyzers()` rescans entry points on every call
+
+- **Evidence:** measured 2026-07-27 during S7, while profiling entry 17's
+  blocking call. `pipeline.analyze` (`pipeline.py:27`) calls
+  `discover_analyzers()` (`plugin_api.py:80`) on **every** invocation;
+  `_load_entry_point_analyzers` (`plugin_api.py:103`) walks every installed
+  distribution and reads its `entry_points.txt` from disk. Nothing on that path
+  caches. Counted directly: 435 `read_text` calls over 5 runs = 87 per run =
+  exactly the installed-distribution count. Cost is **flat in query count** — a
+  0-query call costs the same as a 100-query call — and scales with installed
+  distributions: ~8 ms at 87, ~10 ms at 152. Discovery is 87% of cumulative
+  time; analysis proper is sub-millisecond.
+- **Impact:** synchronous filesystem I/O on every analyzed request, on **every
+  surface** — the sync middleware, `diagnose_queries()`, the pytest plugin, the
+  Celery integration and all three management commands — not only the async one
+  entry 17 is about. Entry 17 is where it was found, not where it lives.
+- **Measured fix:** `functools.lru_cache` on `discover_analyzers`, which takes
+  the residual to 0.15-0.80 ms.
+- **Four implementation constraints, each measured, each easy to get wrong:**
+  1. **Decorate the `def` itself, not a re-export.** `pipeline.py:21` holds a
+     separate module-level binding
+     (`from query_doctor.plugin_api import discover_analyzers`, used at `:48`),
+     so caching by rebinding `plugin_api.discover_analyzers` leaves the pipeline
+     path — the only path that matters — uncached.
+  2. **Cache a tuple, or return a copy.** The cache hands back the same list
+     object and the same analyzer instances on every call (verified: `same list
+     object: True`, all seven instances identical). `pipeline.analyze` only
+     iterates, so this is safe today, but any caller that mutates the returned
+     list corrupts every later call. Sharing the *instances* is separately safe:
+     `fat_select.py:64` (`self._threshold_override`, set in `__init__` at `:57`)
+     is the only instance attribute assigned anywhere in
+     `src/query_doctor/analyzers/`, and it is never mutated during `analyze`.
+  3. **`cache_clear()` is part of the contract, not an afterthought.** Mirror
+     `conf.py:60-61` (`@functools.lru_cache(maxsize=1)` on `get_config`) and the
+     way `tests/test_pipeline.py` calls `get_config.cache_clear()` to keep tests
+     isolated.
+  4. **The blast radius is three tests, not one.** Only
+     `tests/test_plugin_api.py:71` (`test_includes_valid_plugin`) goes red, at
+     the `:79` assertion. `:81` (`test_invalid_plugin_skipped`) and `:91`
+     (`test_plugin_error_logged`) go **vacuous** — measured,
+     `mock_load.called == False` in both, `assert len(result) >= 3` still True,
+     warnings logged 0 — so both keep passing while exercising nothing. That is
+     the worse failure mode, because nothing goes red to announce it, and a
+     future reader who sees only "one test failed" will under-scope the fix.
+     Immune, and not to be "fixed" alongside them:
+     `tests/test_coverage_gaps.py:283,328`, which patch
+     `query_doctor.pipeline.discover_analyzers` outright.
+- **Disposition:** land the cache with its `cache_clear()` contract and the
+  three-test fix. **Destination: S7b**, a new step. Entry 17 closes in the same
+  step and cannot close before it — 17's disposition (b) describes the analysis
+  as "a cheap inline post-response step", which is not true at ~8 ms.
+
+## 30. `test_plugin_error_logged` does not assert on logging
+
+- **Evidence:** `tests/test_plugin_api.py:91-102` (def at `:92`). The docstring
+  reads "Plugin that raises should log a warning". The body sets
+  `mock_load.side_effect`, opens
+  `caplog.at_level(logging.WARNING, logger="query_doctor")` (`:98`), and then
+  asserts only `assert len(result) >= 3` (`:102`). `caplog` is never read.
+- **Impact:** the graceful-degradation half is genuinely covered — a raising
+  plugin loader does not take down discovery. The logging half, which the
+  test's name and docstring both promise, is asserted nowhere, so the warning
+  in `discover_analyzers`'s except branch (`plugin_api.py:95`) could be deleted
+  and this test would stay green. Same shape as entry 15 (an assertion that cannot fail), one layer
+  over: here the assertion is real but is not the one advertised.
+- **Disposition:** add the missing assertion on `caplog.records` (renaming the
+  test to what it actually covers is the worse option — the warning deserves a
+  pin). Pre-existing and independent of entry 29: true today, before any
+  caching change, and it would remain true if entry 29 were never done. Filed
+  separately for that reason rather than folded into 29's three-test fix.
+  **Destination: S9b** (tooling tests, with entries 7, 8, 9 and 10).
