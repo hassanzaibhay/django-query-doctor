@@ -9,7 +9,7 @@ from asgiref.sync import sync_to_async
 from django.db import connection, connections
 from django.http import HttpResponse, JsonResponse
 
-from tests.testapp.models import Book
+from tests.testapp.models import Book, Publisher
 
 # Filled in by the probe views below so ASGI tests can compare the thread and
 # connection the view ran on against the ones the middleware ran on.
@@ -69,6 +69,59 @@ async def async_probe(request):
     """Async view issuing one query via sync_to_async, for capture assertions."""
     await sync_to_async(_run_one_query)()
     return HttpResponse("async ok")
+
+
+# Async ORM probe views. Each issues its queries through Django's async ORM API
+# and creates the rows it needs inside the same request, so every statement is
+# issued on whichever connection that request's ORM work resolves to. Publisher
+# is used because it has no required FK, so each async ORM call maps to exactly
+# one query and the asserted counts stay readable.
+
+
+async def async_orm_acreate(request):
+    """Async view issuing one query via ``acreate``."""
+    await Publisher.objects.acreate(name="Async Press", country="PK")
+    return HttpResponse("acreate ok")
+
+
+async def async_orm_aget(request):
+    """Async view issuing one ``acreate`` then one ``aget``."""
+    await Publisher.objects.acreate(name="Async Press", country="PK")
+    await Publisher.objects.aget(name="Async Press")
+    return HttpResponse("aget ok")
+
+
+async def async_orm_acount(request):
+    """Async view issuing one ``acreate`` then one ``acount``."""
+    await Publisher.objects.acreate(name="Async Press", country="PK")
+    await Publisher.objects.acount()
+    return HttpResponse("acount ok")
+
+
+async def async_orm_aexists(request):
+    """Async view issuing one ``acreate`` then one ``aexists``."""
+    await Publisher.objects.acreate(name="Async Press", country="PK")
+    await Publisher.objects.filter(name="Async Press").aexists()
+    return HttpResponse("aexists ok")
+
+
+async def async_orm_aiter(request):
+    """Async view issuing one ``acreate`` then one async iteration."""
+    await Publisher.objects.acreate(name="Async Press", country="PK")
+    _ = [publisher async for publisher in Publisher.objects.all()]
+    return HttpResponse("aiter ok")
+
+
+def sync_orm_publisher(request):
+    """Sync view issuing the same two Publisher queries as ``async_orm_aiter``.
+
+    Not routed: it exists to be embedded directly, as the positive control for
+    the hand-embedding assertions. Holding the ORM work identical and varying
+    only sync-versus-async makes the route the single variable under test.
+    """
+    Publisher.objects.create(name="Async Press", country="PK")
+    _ = list(Publisher.objects.all())
+    return HttpResponse("sync orm ok")
 
 
 def _run_n_queries(count):
