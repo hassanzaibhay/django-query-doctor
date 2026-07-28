@@ -42,7 +42,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 6**
+**Open entries: 5**
 
 ---
 
@@ -365,6 +365,41 @@ zero in-src references. Classification:
   `format_github_annotations` / `generate_pr_comment` /
   `write_json_report` (`ci/github.py:16,38,73` — user-facing CI helpers
   documented in UPGRADING.md).
+- **Resolved:** 2.2.0 (S9) — all four scheduled symbols removed:
+  `ConfigError`, `AnalyzerError`, `InterceptorError` (`exceptions.py`) and
+  `set_thread_override` (`turbo/patch.py`). Recorded under CHANGELOG
+  `Removed`.
+
+  **One premise of this entry was wrong and the removal was reclassified
+  because of it.** The entry states the three exception classes are "not
+  referenced in any doc". They are not named in any markdown — but
+  `docs/api/reference.md:242` autodocs the entire `query_doctor.exceptions`
+  module via mkdocstrings, so all three rendered on the published API
+  reference page. Confirmed against built HTML before removing, not inferred
+  from the absence of a grep hit:
+
+  ```
+  ConfigError rendered on API page: 7 occurrences
+  AnalyzerError rendered on API page: 7 occurrences
+  InterceptorError rendered on API page: 7 occurrences
+  ```
+
+  So this was a *documented* public-API removal, not the silent deletion of an
+  unreferenced symbol, and the CHANGELOG entry says so and tells callers to
+  catch `QueryDoctorError` instead. The general lesson: a module-level autodoc
+  directive publishes every public symbol in that module, so `grep` over
+  markdown cannot establish that something is undocumented.
+
+  The three classes also had live test references
+  (`tests/test_exceptions.py`), which the entry did not mention — three
+  `issubclass` tests plus `test_can_raise_and_catch`, which raised
+  `ConfigError`. The `issubclass` tests were removed with their subjects;
+  `test_can_raise_and_catch` was kept and re-pointed at `QueryBudgetError`,
+  since the property it tests is the single-except-clause contract, not that
+  particular exception.
+
+  Stale line references: `exceptions.py:19/:23/:27` had drifted to `:31/:35/:39`
+  by S9. `turbo/patch.py:102` was exact.
 
 ## 11. Pre-push hook integrity is PATH-dependent
 

@@ -117,6 +117,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `ignore.should_ignore_query`, which had no caller. Its goal — `sql:` rules
   matching raw SQL — is now delivered by `filter_prescriptions` at the
   prescription level.
+- Three exception classes that were never raised anywhere in the package:
+  `ConfigError`, `AnalyzerError` and `InterceptorError`. They were not exported
+  from `query_doctor` and no code path constructed them, but they *were*
+  published API: `docs/api/reference.md` autodocs the whole
+  `query_doctor.exceptions` module, so all three rendered on the API reference
+  page. If you catch them by name, import them from your own module or catch
+  `QueryDoctorError` instead — the base class, which every remaining package
+  exception still inherits from.
+- `turbo.patch.set_thread_override`, a deprecated shim that delegated to
+  `turbo.context.set_turbo_override`. It had no caller in the package, no test,
+  and no mention in the docs. Use `set_turbo_override` directly.
 
 ### Fixed
 - The Rich console reporter now selects box-drawing characters from the encoding
