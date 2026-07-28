@@ -2081,8 +2081,8 @@
 </span></code></pre></div>
 <h3 id="how-capture-works-under-asgi">How capture works under ASGI<a class="headerlink" href="#how-capture-works-under-asgi" title="Permanent link">&para;</a></h3>
 <p>The middleware declares <code>sync_capable = True</code> and <code>async_capable = False</code>. Django adapts sync-only middleware with <code>sync_to_async(thread_sensitive=True)</code>, which runs it in the same thread-sensitive executor Django uses for <strong>all</strong> synchronous ORM work — including the ORM calls made inside <code>async def</code> views, which Django routes through that same executor.</p>
-<p>That co-location is the mechanism. Django keeps database connections in thread-local storage, so the <code>execute_wrapper</code> the middleware installs is only visible to queries issued on the same thread. Running the middleware in the executor thread puts the wrapper on the connection object the ORM actually uses.</p>
-<p>This is how Django adapts <em>every</em> sync-only middleware under ASGI. It is not a query-doctor-specific compromise.</p>
+<p>That co-location is the mechanism. Django keeps database connections in thread-local storage (<a href="https://docs.djangoproject.com/en/stable/ref/databases/#connection-management">Django docs: Databases — connection handling</a>, and <code>django.db.utils.ConnectionHandler</code>, which subclasses asgiref's <code>Local</code>), so the <code>execute_wrapper</code> the middleware installs is only visible to queries issued on the same thread. Running the middleware in the executor thread puts the wrapper on the connection object the ORM actually uses.</p>
+<p>This is Django's standard adaptation for any middleware that declares <code>async_capable = False</code>, not a query-doctor-specific compromise — see <a href="https://docs.djangoproject.com/en/stable/topics/async/#async-middleware">Django docs: Asynchronous support — Async middleware</a> and <code>django.core.handlers.base.BaseHandler.load_middleware</code>, which wraps such middleware in <code>sync_to_async(thread_sensitive=True)</code>.</p>
 <p>Under Django's ASGI handler it also costs no request concurrency: <code>ASGIHandler</code> opens a separate <code>ThreadSensitiveContext</code> per request (<code>django/core/handlers/asgi.py</code>), and asgiref allocates one executor thread per such context, so requests do not serialise against one another. This covers normal deployments — <code>get_asgi_application()</code> returns an <code>ASGIHandler</code>, and the <code>application</code> object in a project's <code>asgi.py</code> is what Daphne, Uvicorn, Hypercorn and other ASGI servers serve.</p>
 <p>Code that reaches the middleware chain <em>without</em> going through <code>ASGIHandler</code> — <code>django.test.AsyncClient</code>, which calls <code>get_response_async()</code> directly — gets no such context, and asgiref falls back to a single process-wide executor thread. Requests do serialise there. Capture still works; only concurrency differs.</p>
 <div class="admonition note">
@@ -2095,7 +2095,10 @@
 <ul>
 <li>Runs analyzers after the view returns, in the executor thread.</li>
 <li>Captures queries from <code>async def</code> views and from sync views alike.</li>
-<li>Captures queries issued inside <code>sync_to_async</code>-wrapped helpers.</li>
+<li>Captures queries issued inside <code>sync_to_async</code>-wrapped helpers — provided
+  they use the default <code>thread_sensitive=True</code>. See
+  <a href="#mixed-syncasync-code">Mixed Sync/Async Code</a> for the <code>thread_sensitive=False</code>
+  exception.</li>
 </ul>
 <div class="admonition warning">
 <p class="admonition-title">Broken before 2.1.2</p>
@@ -2161,12 +2164,12 @@
 <hr />
 <h2 id="the-diagnose-decorator-and-async-views">The <code>@diagnose</code> Decorator and Async Views<a class="headerlink" href="#the-diagnose-decorator-and-async-views" title="Permanent link">&para;</a></h2>
 <blockquote>
-<p><strong>Not supported:</strong> <code>@diagnose</code> does not detect or await coroutine functions. Applied to an <code>async def</code> view, the wrapped call returns the coroutine object and the capture context exits before the view body runs, so nothing useful is captured.</p>
+<p><strong>Not supported:</strong> <code>@diagnose</code> does not detect or await coroutine functions. Applied to an <code>async def</code> view, the wrapped call returns the coroutine object and the capture context exits before the view body runs, so nothing useful is captured. Both halves are pinned by <code>tests/test_decorators.py::TestDiagnoseOnCoroutineFunctions</code>: the decorator returns an un-awaited coroutine, and the attached report shows zero queries because it was finalized before the body ran.</p>
 </blockquote>
 <p>For async views, use the middleware. A <code>with diagnose_queries():</code> block inside an <code>async def</code> view body does not work either -- see the warning above.</p>
 <hr />
 <h2 id="mixed-syncasync-code">Mixed Sync/Async Code<a class="headerlink" href="#mixed-syncasync-code" title="Permanent link">&para;</a></h2>
-<p>Django allows mixing sync and async code using <code>sync_to_async</code> and <code>async_to_sync</code>. Queries made in a <code>sync_to_async</code>-wrapped helper are captured because that helper runs in the same thread-sensitive executor the middleware itself was adapted into (see <a href="#how-capture-works-under-asgi">How capture works under ASGI</a>), so it resolves to the same thread-local connection object the interceptor is installed on:</p>
+<p>Django allows mixing sync and async code using <code>sync_to_async</code> and <code>async_to_sync</code>. Queries made in a <code>sync_to_async</code>-wrapped helper are captured <strong>when the wrapper keeps the default <code>thread_sensitive=True</code></strong>, because the helper then runs in the same thread-sensitive executor the middleware itself was adapted into (see <a href="#how-capture-works-under-asgi">How capture works under ASGI</a>), so it resolves to the same thread-local connection object the interceptor is installed on:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">asgiref.sync</span><span class="w"> </span><span class="kn">import</span> <span class="n">sync_to_async</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
@@ -2184,6 +2187,27 @@
 </span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Sync helper -- queries here are still captured.&quot;&quot;&quot;</span>
 </span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">author</span><span class="o">=</span><span class="n">book</span><span class="o">.</span><span class="n">author</span><span class="p">)</span><span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">book</span><span class="o">.</span><span class="n">pk</span><span class="p">))</span>
 </span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title"><code>thread_sensitive=False</code> is not captured</p>
+<p>Passing <code>thread_sensitive=False</code> sends the helper to a general executor
+thread instead of the thread-sensitive one the middleware was adapted into.
+Django keeps connections in thread-local storage, so the helper resolves a
+<em>different</em> <code>connections["default"]</code> than the one the <code>execute_wrapper</code> is
+installed on, and its queries are never seen — the same cause as the
+hand-embedding limitation above.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Captured -- default thread_sensitive=True</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">await</span> <span class="n">sync_to_async</span><span class="p">(</span><span class="n">get_related_books</span><span class="p">)(</span><span class="n">book</span><span class="p">)</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># NOT captured -- runs on a different thread, different connection</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">await</span> <span class="n">sync_to_async</span><span class="p">(</span><span class="n">get_related_books</span><span class="p">,</span> <span class="n">thread_sensitive</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">book</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Measured both ways by
+<code>tests/test_asgi_middleware_chain.py::TestSyncToAsyncThreadSensitivity</code>,
+which asserts one query captured for the default and zero for
+<code>thread_sensitive=False</code>, and additionally asserts the thread and
+connection identities differ — so a passing result cannot come from a
+harness that captures nothing.</p>
+</div>
 <hr />
 <h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
 <ul>
@@ -2220,7 +2244,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 08:59:11 UTC">July 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 18:12:17 UTC">July 28, 2026</span>
   </span>
 
     

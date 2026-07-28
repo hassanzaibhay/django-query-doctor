@@ -1939,6 +1939,17 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <li><code>ignore.should_ignore_query</code>, which had no caller. Its goal — <code>sql:</code> rules
   matching raw SQL — is now delivered by <code>filter_prescriptions</code> at the
   prescription level.</li>
+<li>Three exception classes that were never raised anywhere in the package:
+  <code>ConfigError</code>, <code>AnalyzerError</code> and <code>InterceptorError</code>. They were not exported
+  from <code>query_doctor</code> and no code path constructed them, but they <em>were</em>
+  published API: <code>docs/api/reference.md</code> autodocs the whole
+  <code>query_doctor.exceptions</code> module, so all three rendered on the API reference
+  page. If you catch them by name, import them from your own module or catch
+  <code>QueryDoctorError</code> instead — the base class, which every remaining package
+  exception still inherits from.</li>
+<li><code>turbo.patch.set_thread_override</code>, a deprecated shim that delegated to
+  <code>turbo.context.set_turbo_override</code>. It had no caller in the package, no test,
+  and no mention in the docs. Use <code>set_turbo_override</code> directly.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
