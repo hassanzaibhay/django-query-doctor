@@ -19,9 +19,9 @@ MIDDLEWARE = [
 
 The middleware declares `sync_capable = True` and `async_capable = False`. Django adapts sync-only middleware with `sync_to_async(thread_sensitive=True)`, which runs it in the same thread-sensitive executor Django uses for **all** synchronous ORM work — including the ORM calls made inside `async def` views, which Django routes through that same executor.
 
-That co-location is the mechanism. Django keeps database connections in thread-local storage, so the `execute_wrapper` the middleware installs is only visible to queries issued on the same thread. Running the middleware in the executor thread puts the wrapper on the connection object the ORM actually uses.
+That co-location is the mechanism. Django keeps database connections in thread-local storage ([Django docs: Databases — connection handling](https://docs.djangoproject.com/en/stable/ref/databases/#connection-management), and `django.db.utils.ConnectionHandler`, which subclasses asgiref's `Local`), so the `execute_wrapper` the middleware installs is only visible to queries issued on the same thread. Running the middleware in the executor thread puts the wrapper on the connection object the ORM actually uses.
 
-This is how Django adapts *every* sync-only middleware under ASGI. It is not a query-doctor-specific compromise.
+This is Django's standard adaptation for any middleware that declares `async_capable = False`, not a query-doctor-specific compromise — see [Django docs: Asynchronous support — Async middleware](https://docs.djangoproject.com/en/stable/topics/async/#async-middleware) and `django.core.handlers.base.BaseHandler.load_middleware`, which wraps such middleware in `sync_to_async(thread_sensitive=True)`.
 
 Under Django's ASGI handler it also costs no request concurrency: `ASGIHandler` opens a separate `ThreadSensitiveContext` per request (`django/core/handlers/asgi.py`), and asgiref allocates one executor thread per such context, so requests do not serialise against one another. This covers normal deployments — `get_asgi_application()` returns an `ASGIHandler`, and the `application` object in a project's `asgi.py` is what Daphne, Uvicorn, Hypercorn and other ASGI servers serve.
 
@@ -39,7 +39,10 @@ Under ASGI, the middleware:
 
 - Runs analyzers after the view returns, in the executor thread.
 - Captures queries from `async def` views and from sync views alike.
-- Captures queries issued inside `sync_to_async`-wrapped helpers.
+- Captures queries issued inside `sync_to_async`-wrapped helpers — provided
+  they use the default `thread_sensitive=True`. See
+  [Mixed Sync/Async Code](#mixed-syncasync-code) for the `thread_sensitive=False`
+  exception.
 
 !!! warning "Broken before 2.1.2"
 
@@ -126,7 +129,7 @@ def process_books(request):
 
 ## The `@diagnose` Decorator and Async Views
 
-> **Not supported:** `@diagnose` does not detect or await coroutine functions. Applied to an `async def` view, the wrapped call returns the coroutine object and the capture context exits before the view body runs, so nothing useful is captured.
+> **Not supported:** `@diagnose` does not detect or await coroutine functions. Applied to an `async def` view, the wrapped call returns the coroutine object and the capture context exits before the view body runs, so nothing useful is captured. Both halves are pinned by `tests/test_decorators.py::TestDiagnoseOnCoroutineFunctions`: the decorator returns an un-awaited coroutine, and the attached report shows zero queries because it was finalized before the body ran.
 
 For async views, use the middleware. A `with diagnose_queries():` block inside an `async def` view body does not work either -- see the warning above.
 
@@ -134,7 +137,7 @@ For async views, use the middleware. A `with diagnose_queries():` block inside a
 
 ## Mixed Sync/Async Code
 
-Django allows mixing sync and async code using `sync_to_async` and `async_to_sync`. Queries made in a `sync_to_async`-wrapped helper are captured because that helper runs in the same thread-sensitive executor the middleware itself was adapted into (see [How capture works under ASGI](#how-capture-works-under-asgi)), so it resolves to the same thread-local connection object the interceptor is installed on:
+Django allows mixing sync and async code using `sync_to_async` and `async_to_sync`. Queries made in a `sync_to_async`-wrapped helper are captured **when the wrapper keeps the default `thread_sensitive=True`**, because the helper then runs in the same thread-sensitive executor the middleware itself was adapted into (see [How capture works under ASGI](#how-capture-works-under-asgi)), so it resolves to the same thread-local connection object the interceptor is installed on:
 
 ```python
 from asgiref.sync import sync_to_async
@@ -154,6 +157,30 @@ def get_related_books(book):
     """Sync helper -- queries here are still captured."""
     return list(Book.objects.filter(author=book.author).exclude(pk=book.pk))
 ```
+
+!!! warning "`thread_sensitive=False` is not captured"
+
+    Passing `thread_sensitive=False` sends the helper to a general executor
+    thread instead of the thread-sensitive one the middleware was adapted into.
+    Django keeps connections in thread-local storage, so the helper resolves a
+    *different* `connections["default"]` than the one the `execute_wrapper` is
+    installed on, and its queries are never seen — the same cause as the
+    hand-embedding limitation above.
+
+    ```python
+    # Captured -- default thread_sensitive=True
+    await sync_to_async(get_related_books)(book)
+
+    # NOT captured -- runs on a different thread, different connection
+    await sync_to_async(get_related_books, thread_sensitive=False)(book)
+    ```
+
+    Measured both ways by
+    `tests/test_asgi_middleware_chain.py::TestSyncToAsyncThreadSensitivity`,
+    which asserts one query captured for the default and zero for
+    `thread_sensitive=False`, and additionally asserts the thread and
+    connection identities differ — so a passing result cannot come from a
+    harness that captures nothing.
 
 ---
 

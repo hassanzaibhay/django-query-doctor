@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 from query_doctor.exceptions import (
-    AnalyzerError,
-    ConfigError,
-    InterceptorError,
     QueryBudgetError,
     QueryDoctorError,
 )
@@ -17,15 +14,6 @@ class TestExceptions:
     def test_base_exception_is_exception(self) -> None:
         assert issubclass(QueryDoctorError, Exception)
 
-    def test_config_error_inherits(self) -> None:
-        assert issubclass(ConfigError, QueryDoctorError)
-
-    def test_analyzer_error_inherits(self) -> None:
-        assert issubclass(AnalyzerError, QueryDoctorError)
-
-    def test_interceptor_error_inherits(self) -> None:
-        assert issubclass(InterceptorError, QueryDoctorError)
-
     def test_budget_error_inherits(self) -> None:
         assert issubclass(QueryBudgetError, QueryDoctorError)
 
@@ -35,7 +23,13 @@ class TestExceptions:
         assert str(err) == "over budget"
 
     def test_can_raise_and_catch(self) -> None:
+        """A subclass must be catchable via the base class, message intact.
+
+        Uses QueryBudgetError because it is now the only QueryDoctorError
+        subclass; the property under test is the single-except-clause contract
+        the module docstring promises, not this particular exception.
+        """
         try:
-            raise ConfigError("bad config")
+            raise QueryBudgetError("over budget")
         except QueryDoctorError as e:
-            assert str(e) == "bad config"
+            assert str(e) == "over budget"

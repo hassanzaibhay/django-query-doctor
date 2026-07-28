@@ -99,21 +99,6 @@ def _is_turbo_active() -> bool:
     return bool(is_turbo_enabled())
 
 
-def set_thread_override(enabled: bool | None) -> None:
-    """Set turbo override (deprecated — use context.set_turbo_override).
-
-    Kept for backward compatibility. Delegates to contextvars-based
-    override in context.py.
-
-    Args:
-        enabled: True to force enable, False to force disable,
-                 None to clear the override and use global setting.
-    """
-    from query_doctor.turbo.context import set_turbo_override
-
-    set_turbo_override(enabled)
-
-
 def _patched_execute_sql(
     self: SQLCompiler,
     result_type: str = "multi",

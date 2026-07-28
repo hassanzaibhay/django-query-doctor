@@ -28,18 +28,6 @@ class QueryDoctorWarning(UserWarning):
     """
 
 
-class ConfigError(QueryDoctorError):
-    """Raised when there is a configuration error."""
-
-
-class AnalyzerError(QueryDoctorError):
-    """Raised when an analyzer encounters an error."""
-
-
-class InterceptorError(QueryDoctorError):
-    """Raised when the query interceptor encounters an error."""
-
-
 class QueryBudgetError(QueryDoctorError):
     """Raised when a function exceeds its query budget.
 

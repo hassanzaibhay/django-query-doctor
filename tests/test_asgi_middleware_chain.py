@@ -386,6 +386,47 @@ class TestConcurrentRequestIsolation:
         assert seen == {f"/async/burst/{n}/": n for n in counts}
 
 
+class TestSyncToAsyncThreadSensitivity:
+    """The two halves of the sync_to_async capture story.
+
+    docs/guides/async-support.md:42 states flatly that queries issued inside
+    ``sync_to_async``-wrapped helpers are captured. That holds for the default,
+    ``thread_sensitive=True``, and these two tests pin which half is which so
+    the qualification in the docs is measured rather than assumed.
+    """
+
+    @pytest.mark.django_db
+    def test_thread_sensitive_default_is_captured(self, analysis_spy: AnalysisSpy) -> None:
+        """Positive control: the default routes into the middleware's executor.
+
+        Without this the negative below would not distinguish "thread_sensitive
+        =False breaks capture" from "this harness captures nothing".
+        """
+        with override_settings(MIDDLEWARE=[*STARTPROJECT_DEFAULTS, QD]):
+            status, _ = asgi_get_sync("/async/probe/")
+
+        assert status == 200
+        assert analysis_spy.queries == 1
+        assert views.view_execution_record["thread"] == analysis_spy.thread
+        assert views.view_execution_record["connection"] == analysis_spy.connection_id
+
+    @pytest.mark.django_db
+    def test_thread_insensitive_is_not_captured(self, analysis_spy: AnalysisSpy) -> None:
+        """``thread_sensitive=False`` runs the helper off the middleware's thread.
+
+        Django keeps connections in thread-local storage, so the helper resolves
+        a different ``connections["default"]`` than the one the execute_wrapper
+        was installed on, and its query is never seen.
+        """
+        with override_settings(MIDDLEWARE=[*STARTPROJECT_DEFAULTS, QD]):
+            status, _ = asgi_get_sync("/async/probe/thread-insensitive/")
+
+        assert status == 200
+        assert analysis_spy.queries == 0
+        assert views.view_execution_record["thread"] != analysis_spy.thread
+        assert views.view_execution_record["connection"] != analysis_spy.connection_id
+
+
 class TestWSGIUnaffected:
     """The sync path must keep working exactly as before."""
 
