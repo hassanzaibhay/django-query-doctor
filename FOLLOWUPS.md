@@ -40,7 +40,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 7**
+**Open entries: 6**
 
 ---
 
@@ -984,6 +984,77 @@ number is not silently reused and the duplication stays visible.
   changed. `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`
   must not be cited as backing for it — that test passes on thread separation
   alone.
+- **Resolved:** 2.2.0 (S8) — **rewritten, and this entry's own diagnosis was
+  understated.** The disposition asked for one of two outcomes: build a test
+  that isolates contextvars from thread separation, or rewrite. The answer is
+  the rewrite, and the reason is stronger than "thread separation is
+  sufficient".
+
+  **The operative mechanism is neither contextvars nor thread separation: it
+  is per-request instantiation.** `build_interceptor()` is called per request
+  (`middleware.py:162,194`) and the result is a local variable. All eleven
+  construction sites in `src/` do the same — `context_managers.py:33`,
+  `celery_integration.py:102`, `pytest_plugin.py:88`,
+  `project_diagnoser.py:218`, and three management commands. No interceptor is
+  ever shared across requests, so there is no shared state for any mechanism
+  to protect.
+
+  **Constructibility verdict: not constructible for the claim as written**, and
+  this was measured rather than argued. Two probes, run under
+  `asyncio.gather` with `await asyncio.sleep(0)` forcing interleaving on a
+  single thread:
+
+  *Probe 1 — positive control, one **shared** store:*
+
+  ```
+  CtxVarStore      task A: n=3 ['A0','A1','A2']            isolated == True
+  ThreadLocalStore task A: n=5 ['B0','A1','B1','A2','B2']  isolated == False
+  ```
+
+  *Probe 2 — a **fresh** store per request, which is what the code does:*
+
+  ```
+  CtxStore   per-request-fresh -> isolated == True
+  PlainStore per-request-fresh -> isolated == True
+  ```
+
+  Probe 1 is what makes probe 2 mean anything: it shows the comparison *can*
+  discriminate, so probe 2's `True/True` is a real negative result and not a
+  probe that would have printed `True` for anything. Read together: contextvars
+  is genuinely distinguishable from `threading.local()` — but only when a store
+  is shared, which this codebase never does. Swapping the `ContextVar` for
+  `self._queries = []` would leave every existing test green.
+
+  **Disposition applied:** the claim is rewritten to state what is
+  demonstrable. `architecture.md` now attributes cross-request isolation to
+  per-request instantiation (plus Django's per-request `ThreadSensitiveContext`
+  under ASGI), keeps the narrower and backed contextvars claim — correctness
+  within one interceptor across `await` and across threads — and says
+  explicitly that a causal contextvars claim would be asserted, not
+  demonstrated. The `TestConcurrentRequestIsolation` citation is retained only
+  for the *behaviour* it does establish, with an explicit note that it
+  identifies no mechanism. It is nowhere cited as backing for contextvars.
+
+  **A discriminating test was deliberately not added.** Probe 1 shows one is
+  constructible for a *shared* interceptor, but no code path shares one, so
+  such a test would pin a usage the package does not have — and would function
+  as exactly the smuggled backing this entry warns against. Filed instead as a
+  candidate if a shared-interceptor design is ever introduced.
+
+  **Second mis-named backing found and fixed:**
+  `tests/test_async_support.py:175` was `TestContextVarsIsolation::
+  test_separate_interceptors_isolated`, which constructs two *separate*
+  interceptors — the same defect as `TestConcurrentRequestIsolation`, named for
+  contextvars while testing instance separation. Not cited in any doc, but it
+  would have read as backing to the next person. Renamed to
+  `TestInterceptorInstanceSeparation::
+  test_separate_interceptors_have_separate_query_lists`; the tree was grepped
+  first to confirm nothing referenced the old name.
+
+  **Relationship to entry 18:** 18 established that per-request state *is
+  stored in* contextvars — true, and unchanged. This entry establishes that
+  contextvars is *not* what isolates concurrent requests. The two are separate
+  questions and 18 is not evidence for this one.
 
 ## 26. The `Upload coverage` step cannot report failure
 
