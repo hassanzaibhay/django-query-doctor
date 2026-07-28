@@ -25,6 +25,31 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC = REPO_ROOT / "src" / "query_doctor"
 COMMANDS_DIR = SRC / "management" / "commands"
 
+# Repo-root markdown that documents the package and is therefore swept.
+# An explicit list, deliberately not a glob: a glob over the repo root would
+# pull in gitignored local files (CLAUDE.md, SPEC.md) and anything dropped
+# there later, so the sweep's input would depend on the working tree rather
+# than on what the project publishes.
+ROOT_DOCS = (
+    "README.md",
+    "CHANGELOG.md",
+    "UPGRADING.md",
+    "CONTRIBUTING.md",
+)
+
+# Analyzer options that no longer exist but are legitimately named in prose
+# describing their own removal or rename. Keyed by (relpath, dotted token) so
+# an allowlist entry excuses exactly one reference on one page: the same dead
+# token appearing on a page not listed here is still a violation.
+HISTORICAL_ANALYZER_OPTIONS = {
+    # Documents the 2.1.0 rename of this key to ANALYZERS.fat_select.threshold.
+    # Naming the old key is the point of the entry.
+    ("CHANGELOG.md", "ANALYZERS.fat_select.field_count_threshold"),
+    # Same rename, migration-instruction side: tells 2.0.x users which key to
+    # rename, so the old name has to appear.
+    ("UPGRADING.md", "ANALYZERS.fat_select.field_count_threshold"),
+}
+
 # Django's own management commands that docs may legitimately mention.
 DJANGO_BUILTIN_COMMANDS = {
     "migrate",
@@ -157,7 +182,10 @@ def sweep() -> list[str]:
     known_commands = command_names | DJANGO_BUILTIN_COMMANDS
 
     violations: list[str] = []
-    doc_files = [*sorted((REPO_ROOT / "docs").rglob("*.md")), REPO_ROOT / "README.md"]
+    doc_files = [
+        *sorted((REPO_ROOT / "docs").rglob("*.md")),
+        *(REPO_ROOT / name for name in ROOT_DOCS),
+    ]
 
     for doc in doc_files:
         text = doc.read_text(encoding="utf-8")
@@ -213,9 +241,9 @@ def sweep() -> list[str]:
                 if name not in analyzer_opts:
                     violations.append(f"{relpath}:{lineno}: unknown analyzer 'ANALYZERS.{name}'")
                 elif opt and opt not in analyzer_opts[name]:
-                    violations.append(
-                        f"{relpath}:{lineno}: unknown option 'ANALYZERS.{name}.{opt}'"
-                    )
+                    token = f"ANALYZERS.{name}.{opt}"
+                    if (relpath, token) not in HISTORICAL_ANALYZER_OPTIONS:
+                        violations.append(f"{relpath}:{lineno}: unknown option '{token}'")
 
             # 5. imports from query_doctor
             im = re.match(r"\s*from (query_doctor[\w.]*) import (.+)$", line)

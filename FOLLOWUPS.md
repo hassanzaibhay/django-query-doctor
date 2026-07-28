@@ -42,7 +42,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 7**
+**Open entries: 6**
 
 ---
 
@@ -309,6 +309,40 @@ with no heading (25) cannot inflate it.
   (NOT a glob — a glob pulls in gitignored CLAUDE.md/SPEC.md/scratch
   files) plus a two-entry inline allowlist, one comment per historical
   token.
+- **Resolved:** 2.2.0 (S9) — discovery extended via an explicit `ROOT_DOCS`
+  tuple (`scripts/docs_truth_sweep.py`), exactly as the disposition specified
+  and deliberately not a glob. The measured cost held to the entry's figure:
+  repointing discovery produced precisely the predicted 2 violations, shown
+  RED before allowlisting:
+
+  ```
+  2 violation(s):
+    CHANGELOG.md:301: unknown option 'ANALYZERS.fat_select.field_count_threshold'
+    UPGRADING.md:125: unknown option 'ANALYZERS.fat_select.field_count_threshold'
+  exit=1
+  ```
+
+  Both name the 2.1.0 rename of that config key to
+  `ANALYZERS.fat_select.threshold` — the CHANGELOG entry documenting the
+  rename and the UPGRADING instruction telling 2.0.x users which key to
+  change. Naming the dead key is the point of both, so both are allowlisted.
+  Note the token is not entirely dead: `field_count_threshold` survives as a
+  Python constructor kwarg (`analyzers/fat_select.py:57`); it is only the
+  *config key* that was renamed, which is what the sweep checks.
+
+  The allowlist is keyed on `(relpath, token)` rather than on the token
+  alone, so it excuses exactly two references on two named pages. Verified by
+  positive control rather than by reading: the same dead token written to a
+  non-allowlisted page still fails.
+
+  ```
+  docs/__probe_tmp.md:1: unknown option 'ANALYZERS.fat_select.field_count_threshold'
+  ```
+
+  Without that control the GREEN would not distinguish a scoped allowlist
+  from a blanket mute.
+
+  Stale line reference: the entry cites `:155`; discovery was at `:160` by S9.
 
 ## 10. Programmatic no-caller sweep results (run 2026-07-15)
 
