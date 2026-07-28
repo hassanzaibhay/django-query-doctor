@@ -82,7 +82,15 @@ Two caveats apply on this route:
 
 ## Django Async ORM Methods
 
-Django's async ORM methods (`aget`, `acreate`, `acount`, `aexists`, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's `execute_wrapper` captures them identically. Async iteration over querysets is captured the same way.
+**Through the `MIDDLEWARE` chain**, Django's async ORM methods (`aget`, `acreate`, `acount`, `aexists`, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's `execute_wrapper` captures them identically. Async iteration over querysets is captured the same way. Measured for all five on Django 6.0 and 4.2 by `tests/test_asgi_middleware_chain.py::TestASGIAsyncORMCapture`, which drives a real `ASGIHandler` and asserts the captured query *counts* plus a per-method SQL fragment — a raw `SELECT 1` cannot satisfy it.
+
+!!! warning "Not on the hand-embedding route"
+
+    Those same five methods capture **nothing** when the middleware is embedded by hand around an async handler, the route described under [Embedding the middleware around an async handler](#embedding-the-middleware-around-an-async-handler).
+
+    `__acall__` installs the `execute_wrapper` on the event loop thread's connection, while every `a*` method is internally `sync_to_async(thread_sensitive=True)`, so the ORM runs on an executor thread holding a different `connections["default"]`. This is the thread-placement caveat on that route applied to async ORM calls, and the same cause as the `diagnose_queries()` limitation below. The behaviour is pinned by `tests/test_asgi_middleware_chain.py::TestDirectEmbedAsyncORMNotCaptured`, against a sync view doing identical ORM work through the same driver that captures 2 queries.
+
+    Use the `MIDDLEWARE` chain to diagnose async ORM calls.
 
 ---
 

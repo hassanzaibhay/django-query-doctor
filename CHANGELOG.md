@@ -144,6 +144,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   returns a fresh `list`, so callers may mutate the result as before; a new
   `discover_analyzers.cache_clear()` forces a rescan, which any test patching
   discovery must call.
+- `docs/guides/async-support.md` no longer claims that Django's async ORM
+  methods are captured without saying on which route. `aget`, `acreate`,
+  `acount`, `aexists` and async iteration are captured through the `MIDDLEWARE`
+  chain — now measured for all five rather than argued from the mechanism — and
+  capture **nothing** when the middleware is embedded by hand around an async
+  handler, because `__acall__` installs its wrapper on the event loop thread's
+  connection while those methods run on an executor thread holding a different
+  one. The section now states the route and carries the counter-case; the claim
+  is qualified, not withdrawn.
 
 ## [2.1.2] - 2026-07-22
 
