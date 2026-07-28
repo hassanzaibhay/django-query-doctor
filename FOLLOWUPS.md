@@ -40,7 +40,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 12**
+**Open entries: 8**
 
 ---
 
@@ -726,6 +726,48 @@ zero in-src references. Classification:
   not `:134`; `__acall__` is `middleware.py:144`, not `:108`. The sync-path copy
   of the same call at `:202` is correct there and out of scope — it already runs
   in a worker thread.
+- **Resolved:** 2.2.0 (S7b) — **disposition (b): left synchronous, and now
+  documented as a cheap inline post-response step.** No change to
+  `middleware.py`; the only edit is the disclosure at
+  `docs/guides/async-support.md:79`, which already said `__acall__` runs
+  analyzers and reporters without yielding and now carries the measured
+  magnitude.
+
+  (b) became writable only because entry 29 landed first. At ~8 ms it would have
+  been the fifth false doc claim of this release. Post-cache, on one development
+  machine, `pipeline.analyze` costs 0.144 ms for a request that issued no
+  queries.
+
+  **One premise of this entry's note did not survive the fix, and the doc says
+  what was measured rather than what was predicted.** "Flat in query count" was
+  true *because* ~8 ms of entry-point scanning dominated everything; with the
+  scanning gone it is false. Re-measured post-cache, `pipeline.analyze` scales
+  roughly linearly with captured query count:
+
+  | queries | ms/call |
+  |---:|---:|
+  | 0 | 0.144 |
+  | 1 | 0.189 |
+  | 10 | 0.368 |
+  | 50 | 1.176 |
+  | 100 | 2.177 |
+  | 500 | 10.275 |
+
+  So the disclosure states linear scaling in captured queries, not flatness. The
+  worst case — single-digit milliseconds at several hundred queries — is a
+  request the tool exists to flag, which is the argument for (b) rather than a
+  hole in it. Note what this means for the pre-cache reading: a 500-query request
+  used to cost ~8 ms of discovery *plus* ~10 ms of analysis, and the flatness
+  observed then was an artifact of measuring against small query counts where
+  discovery swamped the linear term.
+
+  The candidate fix and the hazards stand as recorded above:
+  `sync_to_async(thread_sensitive=False)` is measured wrong; the hazards are the
+  check-then-set lazy init at `admin_panel.py:40-53` and interleaved reporter
+  stream writes, **not** a `deque.append` race, which is thread-safe
+  (16 threads x 5000 appends, 80000/80000 intact). Corrected line numbers stand:
+  the blocking call is `middleware.py:170` (not `:134`), `__acall__` is `:144`
+  (not `:108`).
 
 ## 18. `docs/guides/middleware.md` claims `threading.local()` per-request state
 
@@ -1099,6 +1141,28 @@ the falsified half is the useful part of the record.
   on. **Destination: S8** (docs corrections). Deliberately not fixed in S7: S7
   is scoped to measurement, and this is the fourth false claim of the release,
   which is a finding to record rather than to fix in passing.
+- **Resolved:** 2.2.0 (S7b) — **qualified, not deleted**, as proposed. `:85` now
+  opens with the route ("Through the `MIDDLEWARE` chain, ...") and cites
+  `TestASGIAsyncORMCapture` as the measurement, and a warning admonition beneath
+  it states the hand-embedding counter-case, gives the thread-placement cause,
+  links back to the route section, and cites
+  `TestDirectEmbedAsyncORMNotCaptured`. Pulled forward from S8 into S7b because
+  S7b was already opening this file for entry 17, and leaving a claim known false
+  in a shipped document for the length of another step is not a scheduling
+  decision worth making.
+
+  The page already carried a thread-placement caveat for that route at `:78`,
+  but seven lines above the async-ORM heading and phrased generally, so the two
+  read as independent — which is why an unqualified claim survived a doc sweep
+  that had the counter-argument on the same page. The admonition connects them
+  explicitly. The anchor it links to was verified present in the built HTML
+  (`id="embedding-the-middleware-around-an-async-handler"` in
+  `site/guides/async-support/index.html`) rather than assumed from the heading
+  text.
+
+  Scope held: one claim. The claim-by-claim audit of this page — four of its
+  claims measured false in one release — remains S8's question and was not
+  started here.
 
 ## 29. `discover_analyzers()` rescans entry points on every call
 
@@ -1151,6 +1215,74 @@ the falsified half is the useful part of the record.
   three-test fix. **Destination: S7b**, a new step. Entry 17 closes in the same
   step and cannot close before it — 17's disposition (b) describes the analysis
   as "a cheap inline post-response step", which is not true at ~8 ms.
+- **Resolved:** 2.2.0 (S7b.1). `functools.lru_cache(maxsize=1)` on a private
+  `_discover_analyzers_cached()` (`plugin_api.py:81`); the public
+  `discover_analyzers()` (`:113`) returns `list(...)` of it. Measured on this
+  tree, before and after, at 87 installed distributions:
+
+  | | before | after |
+  |---|---:|---:|
+  | `_load_entry_point_analyzers` calls, over 5 `discover_analyzers()` | 5 | 1 |
+  | `entry_points.txt` reads, over 5 calls | 435 | 87 |
+  | `pipeline.analyze([])`, 50 reps | 7.860 ms/call | 0.302 ms/call |
+
+  `435 / 5 = 87` = the installed-distribution count exactly. The timing is on an
+  **empty** query list, so every millisecond of it is discovery — which is what
+  makes "the cost is discovery, not analysis" a measurement rather than an
+  inference.
+
+  **Blast radius wider than this entry recorded.** Seven surfaces route through
+  `pipeline.analyze` — `middleware.py:246`, `context_managers.py:48`,
+  `celery_integration.py:158`, `pytest_plugin.py:185`,
+  `project_diagnoser.py:242`, `check_queries.py:213`, `fix_queries.py:196` — and
+  `project_diagnoser.py:242` sits inside `_diagnose_url`, called once per
+  discovered URL from the loop at `:170`. A project scan therefore paid a **full
+  entry-point rescan per URL**. That is the strongest single piece of evidence
+  for the fix and it was not in this entry as written.
+
+  Against the four constraints:
+  1. **Satisfied structurally rather than literally.** The `lru_cache` sits on
+     the private function; the public `discover_analyzers` — the name
+     `pipeline.py:21` binds at import — routes through it, so there is no
+     uncached second path to miss.
+  2. **Copy, not tuple, and the copy is free.** `list(...)` of seven analyzers
+     costs **0.0971 µs**, four orders of magnitude below the 0.302 ms residual it
+     protects. Returning a tuple would have been a breaking change to a
+     `list[BaseAnalyzer]`-annotated function on the public plugin surface, bought
+     with nothing.
+  3. `discover_analyzers.cache_clear()` is attached and documented as contract.
+     **`cache_info` is deliberately not attached**: it reports hit/miss counts,
+     which is diagnostic rather than contractual, and exposing it invites callers
+     to depend on cache statistics this package does not want to promise.
+     `cache_clear` is attached because the cache is only safe to introduce if
+     callers can drop it.
+  4. **Three tests, and vacuity is now structurally impossible.** All the tests
+     in `tests/test_plugin_api.py` run under a module-level autouse fixture that
+     clears the cache before **and after** each test, and each patched test
+     asserts `mock_load.called`. Clearing *after* is not symmetry: a result
+     cached under a patch would otherwise leak into
+     `test_analyzer_discovery_wiring.py:67`'s exact-count assertion.
+
+  Caching *instances* was verified safe on the config axis, not assumed:
+  `analyzers/fat_select.py:57` is the only `__init__` in all of
+  `src/query_doctor/analyzers/` and it reads no config, while `is_enabled()` and
+  `_get_threshold()` read `get_config()` at analyze time — so `override_settings`
+  still takes effect through a cached instance. No caller mutates the returned
+  list: `pipeline.py:48` iterates, `test_analyzer_discovery_wiring.py:53,67` read
+  names and length, and `examples/scripts/08_custom_analyzer.py:44` is inside a
+  printed string.
+
+  **Do not read a scaling law into the wall-clock number.** The *read count*
+  scales with installed distributions (87 per call at 87 distributions, 142 at
+  152). Wall time does not track it: 87 distributions gave 7.860 ms/call here and
+  152 gave 7.684 ms/call on the reviewer's machine. Two data points contradict a
+  scaling law, so both the shipped `CHANGELOG` entry and this record scope the
+  timing to the environment that produced it.
+
+  One consequence recorded for whoever reads entry 30 next: `cache_clear()` in
+  tests is untypechecked today, because the gate runs `mypy` on `src/` and
+  `scripts/` only. Harmless now; it becomes an error the day tests enter mypy's
+  scope, and the attribute needs a typed shim then.
 
 ## 30. `test_plugin_error_logged` does not assert on logging
 
@@ -1171,3 +1303,38 @@ the falsified half is the useful part of the record.
   caching change, and it would remain true if entry 29 were never done. Filed
   separately for that reason rather than folded into 29's three-test fix.
   **Destination: S9b** (tooling tests, with entries 7, 8, 9 and 10).
+- **Resolved:** 2.2.0 (S7b.2). The test now asserts exactly one `query_doctor`
+  WARNING record, its message, and that `exc_info` is present — the traceback is
+  the actionable half, since without it a user learns that *some* plugin failed
+  and nothing about which one or why. The `len(result) >= 3` assertion stays and
+  is labelled as the graceful-degradation half rather than standing in for both.
+  Pulled forward from S9b for the same reason as entry 28: S7b.1 already had this
+  file open and had just made two of its siblings temporarily vacuous, so fixing
+  the third assertion gap in the same module was cheaper than scheduling it.
+
+  Verified falsifiable by breaking the thing it tests: replacing the
+  `logger.warning` with `pass` fails the test at `assert len(warnings) == 1` ->
+  `assert 0 == 1`.
+
+  **The ordering against entry 29 was demonstrated, not merely obeyed.** Running
+  the identical assertion with the discovery cache warm and never cleared:
+
+  ```
+  mock_load.called: False
+  query_doctor WARNING records: 0
+  len(result): 7
+  assert len(warnings) == 1
+  E  assert 0 == 1
+  ```
+
+  A cache hit returns without entering the `try`, so the patched loader is never
+  called, never raises, and no warning is emitted — the assertion would have
+  failed for a reason with nothing to do with the logging it tests. Had this
+  entry been fixed before entry 29, the test would have been rewritten to
+  accommodate a cache that did not exist yet. The two entries are the same loop
+  seen from both ends: the warning entry 30 fails to assert on is the warning
+  entry 29's cache silences.
+
+  Line reference moved during the fix: the warning was at `plugin_api.py:95` when
+  this entry was filed; S7b.1 moved the `try` into `_discover_analyzers_cached`
+  and it is now at `:105`.

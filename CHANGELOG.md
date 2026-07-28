@@ -131,6 +131,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   file; the linked release notes now carry the status instead. The dated
   disclaimers at `comparison.md:5` and `faq.md:131` are deliberately unchanged —
   those record when a comparison was made and stay true permanently.
+- `discover_analyzers()` no longer rescans installed entry points on every call.
+  It walked every installed distribution and read its `entry_points.txt` from
+  disk each time analysis ran — measured at 87 reads per call against 87
+  installed distributions, roughly 8 ms of synchronous filesystem I/O. The cost
+  was flat in query count, so a request issuing no queries paid the same as one
+  issuing a hundred, and it was paid by every surface: the middleware,
+  `diagnose_queries()`, the pytest plugin, the Celery integration and all three
+  management commands. `diagnose_project` paid it once per URL pattern. The scan
+  is now cached for the process, taking a zero-query `pipeline.analyze()` from
+  7.86 ms to 0.30 ms in the same environment. `discover_analyzers()` still
+  returns a fresh `list`, so callers may mutate the result as before; a new
+  `discover_analyzers.cache_clear()` forces a rescan, which any test patching
+  discovery must call.
+- `docs/guides/async-support.md` no longer claims that Django's async ORM
+  methods are captured without saying on which route. `aget`, `acreate`,
+  `acount`, `aexists` and async iteration are captured through the `MIDDLEWARE`
+  chain — now measured for all five rather than argued from the mechanism — and
+  capture **nothing** when the middleware is embedded by hand around an async
+  handler, because `__acall__` installs its wrapper on the event loop thread's
+  connection while those methods run on an executor thread holding a different
+  one. The section now states the route and carries the counter-case; the claim
+  is qualified, not withdrawn.
+- The hand-embedding caveat in `docs/guides/async-support.md` now gives the
+  measured cost of running analysis inline on the caller's event loop. It said
+  only that `__acall__` blocks for "the duration of analysis"; it now states
+  that the duration scales roughly linearly with the number of captured queries
+  and gives the numbers, so a reader can decide whether it matters on their
+  workload instead of guessing. No behaviour change — the analysis stays
+  synchronous, which is now defensible because analyzer discovery no longer
+  costs ~8 ms per call.
 
 ## [2.1.2] - 2026-07-22
 
