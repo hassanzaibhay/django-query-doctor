@@ -313,10 +313,21 @@ failing the check. See `UPGRADING.md` for the full 2.1.0 upgrade checklist.
 ### Removed
 - Removed `DRFSerializerAnalyzer`, a builtin analyzer that always returned no
   results through any code path reachable from `fix_queries`, the middleware,
-  or any management command. DRF serializer N+1 detection is unaffected —
-  it's covered by the static `SerializerMethodAnalyzer` (`check_serializers`
-  command), which is unchanged aside from its issue type (see Added). The
+  or any management command. Nothing detectable was lost — not because another
+  analyzer took the work over, but because this one emitted nothing in any
+  reachable path (see the [1.0.0] historical note, and the `fix_queries` entry
+  below: `drf_serializer` is never emitted by the runtime pipeline). The
   built-in analyzer count is now 7.
+
+  The static `SerializerMethodAnalyzer` (`check_serializers` command) is
+  **not** a replacement for it — the two target different DRF N+1 patterns.
+  `SerializerMethodAnalyzer` reads `SerializerMethodField` declarations and
+  parses the bodies of the matching `get_<field>` methods; it inspects nothing
+  else. `DRFSerializerAnalyzer` aimed at nested serializer fields whose view
+  queryset lacked `select_related`/`prefetch_related` — a nested
+  `AuthorSerializer()` is not a `SerializerMethodField`, so `check_serializers`
+  never looks at it. That pattern is currently uncovered. It was uncovered
+  before this removal too, since the analyzer never fired.
 
 ## [2.0.1] - 2026-07-13
 

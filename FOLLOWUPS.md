@@ -23,7 +23,9 @@ where the one remaining async-ORM claim measured false on a second route rather
 than being edited in passing; 29 from profiling the blocking call entry 17
 names, which found the cost is analyzer *discovery* rather than analysis; and 30
 from reading the three tests entry 29's fix moves, one of which asserts nothing
-its name promises.
+its name promises. Entry 31 came out of S8 (2026-07-28): a claim-by-claim
+inventory of `docs/guides/async-support.md`, commissioned because four claims
+in that one file measured false within a single release.
 
 Each entry: evidence, current user-visible impact, proposed disposition.
 
@@ -40,7 +42,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 8**
+**Open entries: 7**
 
 ---
 
@@ -771,9 +773,10 @@ zero in-src references. Classification:
 
 ## 18. `docs/guides/middleware.md` claims `threading.local()` per-request state
 
-- **Evidence:** `docs/guides/middleware.md:35` — "The middleware uses
+- **Evidence:** `docs/guides/middleware.md:39` — "The middleware uses
   `threading.local()` to store per-request state, so it is fully thread-safe
-  under WSGI." `src/query_doctor/middleware.py` holds no per-request state at
+  under WSGI." (Filed as `:35`; the line had drifted to `:39` by S8, corrected
+  here.) `src/query_doctor/middleware.py` holds no per-request state at
   all: the interceptor is a local variable in `_sync_call`/`__acall__`, and
   `QueryInterceptor` uses `contextvars.ContextVar`
   (`docs/deep-dive/architecture.md` documents the contextvars design). No
@@ -785,6 +788,27 @@ zero in-src references. Classification:
   cross-link the architecture page. Out of scope for 2.1.2: that release
   corrects only doc text the fix falsified or changed, and this sentence was
   wrong before and after it.
+- **Resolved:** 2.2.0 (S8) — corrected, and the claim was in **three** places,
+  not the one this entry filed. `docs/guides/middleware.md:39` and
+  `docs/contributing.md:162` both stated `threading.local()`; the second is a
+  *contributor instruction*, so leaving it would have regenerated the first.
+  A third copy sat in a test docstring, `tests/test_interceptor.py:114`
+  ("Each thread should have its own query list via threading.local") — the
+  test itself is correct and passes precisely *because* the storage is a
+  `ContextVar`: a new thread starts a fresh context, so the lookup resolves to
+  the default rather than to the main thread's list. All three now name
+  `contextvars.ContextVar` and the two doc surfaces cross-link
+  `docs/deep-dive/architecture.md#per-instance-contextvar-storage`.
+
+  The true mechanism is cited at `src/query_doctor/interceptor.py:10,56-63`;
+  `threading.local` appears nowhere in `src/query_doctor/` except
+  `turbo/context.py:7`, where it is prose naming what is used *instead* and
+  was deliberately left alone.
+
+  **Scope boundary against entry 24:** this entry establishes only that
+  per-request state *is stored in* contextvars. It is not evidence that
+  contextvars is what *isolates concurrent requests* — see entry 24, which
+  reaches the opposite conclusion on that separate question.
 
 ## 19. `__acall__` is unreachable through Django's middleware chain
 
@@ -962,6 +986,77 @@ number is not silently reused and the duplication stays visible.
   changed. `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`
   must not be cited as backing for it — that test passes on thread separation
   alone.
+- **Resolved:** 2.2.0 (S8) — **rewritten, and this entry's own diagnosis was
+  understated.** The disposition asked for one of two outcomes: build a test
+  that isolates contextvars from thread separation, or rewrite. The answer is
+  the rewrite, and the reason is stronger than "thread separation is
+  sufficient".
+
+  **The operative mechanism is neither contextvars nor thread separation: it
+  is per-request instantiation.** `build_interceptor()` is called per request
+  (`middleware.py:162,194`) and the result is a local variable. All eleven
+  construction sites in `src/` do the same — `context_managers.py:33`,
+  `celery_integration.py:102`, `pytest_plugin.py:88`,
+  `project_diagnoser.py:218`, and three management commands. No interceptor is
+  ever shared across requests, so there is no shared state for any mechanism
+  to protect.
+
+  **Constructibility verdict: not constructible for the claim as written**, and
+  this was measured rather than argued. Two probes, run under
+  `asyncio.gather` with `await asyncio.sleep(0)` forcing interleaving on a
+  single thread:
+
+  *Probe 1 — positive control, one **shared** store:*
+
+  ```
+  CtxVarStore      task A: n=3 ['A0','A1','A2']            isolated == True
+  ThreadLocalStore task A: n=5 ['B0','A1','B1','A2','B2']  isolated == False
+  ```
+
+  *Probe 2 — a **fresh** store per request, which is what the code does:*
+
+  ```
+  CtxStore   per-request-fresh -> isolated == True
+  PlainStore per-request-fresh -> isolated == True
+  ```
+
+  Probe 1 is what makes probe 2 mean anything: it shows the comparison *can*
+  discriminate, so probe 2's `True/True` is a real negative result and not a
+  probe that would have printed `True` for anything. Read together: contextvars
+  is genuinely distinguishable from `threading.local()` — but only when a store
+  is shared, which this codebase never does. Swapping the `ContextVar` for
+  `self._queries = []` would leave every existing test green.
+
+  **Disposition applied:** the claim is rewritten to state what is
+  demonstrable. `architecture.md` now attributes cross-request isolation to
+  per-request instantiation (plus Django's per-request `ThreadSensitiveContext`
+  under ASGI), keeps the narrower and backed contextvars claim — correctness
+  within one interceptor across `await` and across threads — and says
+  explicitly that a causal contextvars claim would be asserted, not
+  demonstrated. The `TestConcurrentRequestIsolation` citation is retained only
+  for the *behaviour* it does establish, with an explicit note that it
+  identifies no mechanism. It is nowhere cited as backing for contextvars.
+
+  **A discriminating test was deliberately not added.** Probe 1 shows one is
+  constructible for a *shared* interceptor, but no code path shares one, so
+  such a test would pin a usage the package does not have — and would function
+  as exactly the smuggled backing this entry warns against. Filed instead as a
+  candidate if a shared-interceptor design is ever introduced.
+
+  **Second mis-named backing found and fixed:**
+  `tests/test_async_support.py:175` was `TestContextVarsIsolation::
+  test_separate_interceptors_isolated`, which constructs two *separate*
+  interceptors — the same defect as `TestConcurrentRequestIsolation`, named for
+  contextvars while testing instance separation. Not cited in any doc, but it
+  would have read as backing to the next person. Renamed to
+  `TestInterceptorInstanceSeparation::
+  test_separate_interceptors_have_separate_query_lists`; the tree was grepped
+  first to confirm nothing referenced the old name.
+
+  **Relationship to entry 18:** 18 established that per-request state *is
+  stored in* contextvars — true, and unchanged. This entry establishes that
+  contextvars is *not* what isolates concurrent requests. The two are separate
+  questions and 18 is not evidence for this one.
 
 ## 26. The `Upload coverage` step cannot report failure
 
@@ -1338,3 +1433,77 @@ the falsified half is the useful part of the record.
   Line reference moved during the fix: the warning was at `plugin_api.py:95` when
   this entry was filed; S7b.1 moved the `try` into `_discover_analyzers_cached`
   and it is now at `:105`.
+
+## 31. `docs/guides/async-support.md` claim inventory — backing status of all 25 claims
+
+Filed by S8 as **inventory only**. No claim in this file was edited by S8; the
+point is to size the fix effort before spending it. Four claims in this one
+file measured false during 2.1.2, which is why it gets a claim-by-claim pass
+rather than a spot check.
+
+**Destination:** the asserted-unbacked table below is the work item. Closable
+within 2.2.0 if the two flagged claims measure true; otherwise each false one
+becomes its own entry with a named disposition, as entry 28 did.
+
+### Test-backed (no action)
+
+| Line | Claim | Backing |
+|---|---|---|
+| 20 | `sync_capable = True`, `async_capable = False` | `test_async_support.py:76,80`; source `middleware.py:111-112` |
+| 26 | `ASGIHandler` opens a per-request `ThreadSensitiveContext`; requests do not serialise | `test_asgi_middleware_chain.py:221`, `:355` |
+| 28 | `AsyncClient` gets no such context; capture still works | `TestAsyncClientCapture` `:402-425` |
+| 41 | Captures `async def` and sync views alike | `TestASGICapture:201`, parametrized `:209` |
+| 46-49 | 2.0.0-2.1.1 either crashed the chain or captured nothing | `TestASGIChainServesRequests:135`, `RESPONSE_TOUCHING_STACKS:165`, `PASS_THROUGH_STACKS:178` |
+| 64, 74 | Hand-embed route reaches `__acall__`; detected at construction | `TestDirectInstantiationPredicate:427,437,465` |
+| 85 | Five async ORM methods captured via the `MIDDLEWARE` chain on Django 6.0 and 4.2, counts plus per-method SQL fragment | `TestASGIAsyncORMCapture:277-313` |
+| 89-91 | Those same five capture nothing on the hand-embed route | `TestDirectEmbedAsyncORMNotCaptured:315-341`, with positive control at `:343` |
+| 101-103 | `diagnose_queries()` captures nothing inside `async def` | entry 22; cause matches `middleware.py:100-108` |
+
+### Source-traceable but ungated
+
+- **`:79` — the three timing figures.** "0.14 ms for a request that issued
+  none, 2.2 ms at 100 queries and 10.3 ms at 500."
+
+  **These are not unsourced.** S8's plan first reported them as having no
+  origin in the tree; that was an artifact of grepping the rounded strings.
+  They trace exactly to the measured table in entry 17 — `0.144`, `2.177`,
+  `10.275` — which the doc rounds correctly, and both surfaces carry the same
+  "on one development machine" provenance. The adjacent "roughly linearly"
+  matches entry 17's re-measurement too. So the claim is accurate and its
+  origin is recorded.
+
+  **The gap is that nothing re-measures it.** There is no benchmark script, no
+  test, and no row in `claims.json`. `scripts/claims_check.py` did not catch
+  this and could not have: it checks only claims registered in the manifest, so
+  an unregistered number is invisible to it rather than failing. The figures
+  would go stale silently the moment `pipeline.analyze` changed cost — which is
+  precisely what happened to the *previous* generation of this claim, whose
+  "flat in query count" survived until entry 29's cache falsified it.
+
+  **Consequence for the fix:** this one must be re-measured and registered, not
+  reworded. Rewording preserves exactly the property that makes it rot.
+
+### Asserted-unbacked (the fix surface)
+
+| Line | Claim | Note |
+|---|---|---|
+| **42** | Captures queries issued inside `sync_to_async`-wrapped helpers | **No test located.** Prose plus example only (`:137-156`). Most likely of the set to be false — measure first. |
+| **129** | `@diagnose` on an `async def` returns the coroutine object and the capture context exits before the body runs | **No async-decorator test located.** Second-most likely to be false. |
+| 105 | "The interceptor's per-instance `ContextVar` storage is correct and does propagate across `await`" | Same class as entry 24. Not currently discriminable, for the reason recorded there. S8's probe 1 shows a discriminating test *is* constructible for a shared store — but no code path shares one. |
+| 22 | Django keeps DB connections in thread-local storage | Upstream Django fact, uncited |
+| 24 | "This is how Django adapts *every* sync-only middleware under ASGI" | Universal claim, uncited |
+| 32-34 | Middleware listed before query-doctor runs in sync mode too; "does not affect request concurrency" | Asserted |
+| 36 | "not a change relative to 2.1.1" | Asserted |
+| 78 | Hand-embed route: "you own the thread placement" | Consistent with `:89-91` but not separately tested |
+| 79 | "The `MIDDLEWARE`-chain path does not have this property at all" | Asserted; distinct from the figures above |
+| 109 | `diagnose_queries()` works inside a `def` view served under ASGI | Example only, no test |
+| 123 | `async with diagnose_queries()` raises `TypeError` | No test located |
+| 162-164 | `@query_budget` on coroutines unsupported; connection-pooler compatibility; raw `asyncpg` uncaptured | Asserted |
+
+### Size of the effort
+
+One figure set to register (`:79`), one entry-24-class assertion (`:105`), and
+twelve asserted-unbacked claims of which **`:42` and `:129` are the two most
+likely to be false** and should be measured before any wording is touched. The
+remainder are upstream-Django facts or scope statements where a citation, not a
+test, is the appropriate backing.

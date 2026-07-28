@@ -111,7 +111,12 @@ class TestQueryInterceptor:
             assert result is not None
 
     def test_thread_safety(self) -> None:
-        """Each thread should have its own query list via threading.local."""
+        """Each thread should have its own query list via contextvars.
+
+        A new thread starts with a fresh context, so the interceptor's
+        per-instance ``ContextVar`` resolves to its default there rather than
+        to the list the main thread appended to.
+        """
         interceptor = QueryInterceptor()
 
         # Capture a query on the main thread

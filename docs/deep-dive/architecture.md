@@ -351,7 +351,7 @@ src/query_doctor/
 
 ### Per-Instance ContextVar Storage
 
-django-query-doctor stores all per-request state in `contextvars.ContextVar` instances. Each `QueryInterceptor` instance gets its own unique `ContextVar`, ensuring isolation across both threads and concurrent async coroutines.
+django-query-doctor stores all per-request state in `contextvars.ContextVar` instances. Each `QueryInterceptor` instance gets its own unique `ContextVar`, which keeps that one interceptor's captures context-local — they propagate across `await` and do not bleed into a sibling context.
 
 ```python
 # interceptor.py
@@ -372,13 +372,19 @@ class QueryInterceptor:
         self._queries_var.set([])
 ```
 
-This ensures that concurrent requests in both multi-threaded WSGI servers (e.g., gunicorn with sync workers) and ASGI servers (e.g., uvicorn, daphne) do not interfere with each other.
+What keeps *concurrent requests* from interfering with each other, however, is not the `ContextVar` — it is that every request builds its **own interceptor**. `build_interceptor()` is called per request (`middleware.py:162,194`), and the result is a local variable; no two requests ever share one. Under ASGI, Django additionally opens a `ThreadSensitiveContext` per request, so they do not share an executor thread either.
+
+Cross-request isolation is therefore over-determined: it holds in multi-threaded WSGI servers (e.g. gunicorn with sync workers) and in ASGI servers (e.g. uvicorn, daphne), and it would still hold if the `ContextVar` were replaced by a plain instance attribute. The `ContextVar` earns its place on the narrower guarantee stated above — correctness *within* one interceptor across `await` boundaries and across threads — not on cross-request isolation.
 
 ### Async Django Support
 
 The query interceptor and the QueryTurbo context managers hold their state in `contextvars.ContextVar`.
 
-Concurrent ASGI requests do not contaminate each other's reports. This is covered by `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`, which drives ten interleaved requests through a real `ASGIHandler`, each issuing a different number of queries, and asserts that every report holds exactly its own count.
+Concurrent ASGI requests do not contaminate each other's reports. This behaviour — and only this behaviour, not any particular mechanism behind it — is covered by `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`, which drives ten interleaved requests through a real `ASGIHandler`, each issuing a different number of queries, and asserts that every report holds exactly its own count.
+
+!!! note "What that test does and does not establish"
+
+    It pins the observable behaviour, which is what users depend on. It does **not** identify the cause: per-request interceptor instances, per-request executor threads, and contextvars all independently produce the same passing result, so the test would stay green if any one of them were removed. No test in this repository discriminates between them, and while interceptors are built per request none can — there is no shared state left for a mechanism to protect. The contextvars *storage* claim above is backed (`src/query_doctor/interceptor.py:56-63`); a causal claim that contextvars is what isolates requests would be asserted, not demonstrated, so this page does not make one.
 
 Django's `execute_wrapper()` is per-connection, and Django stores connections in thread-local storage. Under ASGI that makes *which thread the middleware runs on* decisive: it must be the same thread the ORM runs on, or the wrapper is installed on a connection object the queries never touch. `QueryDoctorMiddleware` therefore declares `async_capable = False`, so Django adapts it with `sync_to_async(thread_sensitive=True)` and runs it in the same thread-sensitive executor it runs ORM work in.
 

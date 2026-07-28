@@ -6,6 +6,8 @@
 - [ ] fix
 - [ ] feat
 - [ ] docs
+- [ ] test
+- [ ] refactor
 - [ ] chore
 
 ## Breaking change?

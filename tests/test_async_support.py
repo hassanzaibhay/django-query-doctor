@@ -172,10 +172,17 @@ class TestMiddlewareAsyncPath:
         assert response.status_code == 200
 
 
-class TestContextVarsIsolation:
-    """Tests for contextvars isolation between requests."""
+class TestInterceptorInstanceSeparation:
+    """Two interceptor instances do not share a query list.
 
-    def test_separate_interceptors_isolated(self) -> None:
+    Named for what it actually establishes. This passes on instance
+    separation alone — a plain ``self._queries = []`` attribute would satisfy
+    it — so it is not evidence about contextvars, despite the storage being a
+    ``ContextVar``. See docs/deep-dive/architecture.md, "What that test does
+    and does not establish", for why no test here discriminates the two.
+    """
+
+    def test_separate_interceptors_have_separate_query_lists(self) -> None:
         """Two interceptor instances should have isolated query lists."""
         interceptor1 = QueryInterceptor(capture_stack=False)
         interceptor2 = QueryInterceptor(capture_stack=False)
