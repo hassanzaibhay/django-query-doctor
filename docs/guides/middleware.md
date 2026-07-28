@@ -36,7 +36,7 @@ On each request, the middleware performs the following steps:
 4. **Passes to reporters** -- Any prescriptions produced by the analyzers are formatted by the configured reporters (console, JSON, log, etc.) and output.
 5. **Removes the wrapper** -- The connection wrapper is removed, leaving no overhead for subsequent requests.
 
-The middleware uses `threading.local()` to store per-request state, so it is fully thread-safe under WSGI.
+The middleware itself holds no per-request state: the interceptor is a local variable for the duration of the call. That interceptor stores its captured queries in a per-instance `contextvars.ContextVar`, which is correct under threads *and* coroutines — so the middleware is safe under WSGI and ASGI alike. See [Per-Instance ContextVar Storage](../deep-dive/architecture.md#per-instance-contextvar-storage) for the design.
 
 ---
 

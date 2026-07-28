@@ -40,7 +40,7 @@ minus tombstones, minus entries carrying a `- **Resolved:**` line.
 `- **Resolved (partial):**` does not count as resolved, and a reserved number
 with no heading (25) cannot inflate it.
 
-**Open entries: 8**
+**Open entries: 7**
 
 ---
 
@@ -771,9 +771,10 @@ zero in-src references. Classification:
 
 ## 18. `docs/guides/middleware.md` claims `threading.local()` per-request state
 
-- **Evidence:** `docs/guides/middleware.md:35` — "The middleware uses
+- **Evidence:** `docs/guides/middleware.md:39` — "The middleware uses
   `threading.local()` to store per-request state, so it is fully thread-safe
-  under WSGI." `src/query_doctor/middleware.py` holds no per-request state at
+  under WSGI." (Filed as `:35`; the line had drifted to `:39` by S8, corrected
+  here.) `src/query_doctor/middleware.py` holds no per-request state at
   all: the interceptor is a local variable in `_sync_call`/`__acall__`, and
   `QueryInterceptor` uses `contextvars.ContextVar`
   (`docs/deep-dive/architecture.md` documents the contextvars design). No
@@ -785,6 +786,27 @@ zero in-src references. Classification:
   cross-link the architecture page. Out of scope for 2.1.2: that release
   corrects only doc text the fix falsified or changed, and this sentence was
   wrong before and after it.
+- **Resolved:** 2.2.0 (S8) — corrected, and the claim was in **three** places,
+  not the one this entry filed. `docs/guides/middleware.md:39` and
+  `docs/contributing.md:162` both stated `threading.local()`; the second is a
+  *contributor instruction*, so leaving it would have regenerated the first.
+  A third copy sat in a test docstring, `tests/test_interceptor.py:114`
+  ("Each thread should have its own query list via threading.local") — the
+  test itself is correct and passes precisely *because* the storage is a
+  `ContextVar`: a new thread starts a fresh context, so the lookup resolves to
+  the default rather than to the main thread's list. All three now name
+  `contextvars.ContextVar` and the two doc surfaces cross-link
+  `docs/deep-dive/architecture.md#per-instance-contextvar-storage`.
+
+  The true mechanism is cited at `src/query_doctor/interceptor.py:10,56-63`;
+  `threading.local` appears nowhere in `src/query_doctor/` except
+  `turbo/context.py:7`, where it is prose naming what is used *instead* and
+  was deliberately left alone.
+
+  **Scope boundary against entry 24:** this entry establishes only that
+  per-request state *is stored in* contextvars. It is not evidence that
+  contextvars is what *isolates concurrent requests* — see entry 24, which
+  reaches the opposite conclusion on that separate question.
 
 ## 19. `__acall__` is unreachable through Django's middleware chain
 
