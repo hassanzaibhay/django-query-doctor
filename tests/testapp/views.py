@@ -71,6 +71,19 @@ async def async_probe(request):
     return HttpResponse("async ok")
 
 
+async def async_probe_thread_insensitive(request):
+    """Async view issuing one query via ``sync_to_async(thread_sensitive=False)``.
+
+    The non-default half of the sync_to_async story. ``thread_sensitive=True``
+    (the default, used by ``async_probe`` above) routes the helper into the same
+    thread-sensitive executor the middleware was adapted into. Passing False
+    sends it to a general executor thread instead, which resolves to a different
+    thread-local ``connections["default"]``.
+    """
+    await sync_to_async(_run_one_query, thread_sensitive=False)()
+    return HttpResponse("async ok")
+
+
 # Async ORM probe views. Each issues its queries through Django's async ORM API
 # and creates the rows it needs inside the same request, so every statement is
 # issued on whichever connection that request's ORM work resolves to. Publisher

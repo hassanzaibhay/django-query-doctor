@@ -1600,11 +1600,11 @@ becomes its own entry with a named disposition, as entry 28 did.
 
 | Line | Claim | Note |
 |---|---|---|
-| **42** | Captures queries issued inside `sync_to_async`-wrapped helpers | **No test located.** Prose plus example only (`:137-156`). Most likely of the set to be false — measure first. |
-| **129** | `@diagnose` on an `async def` returns the coroutine object and the capture context exits before the body runs | **No async-decorator test located.** Second-most likely to be false. |
+| ~~**42**~~ | Captures queries issued inside `sync_to_async`-wrapped helpers | **S9: this row was wrong.** It was already backed — see the correction below. Measured, partially false as *worded*; now qualified and split to entry 32. |
+| ~~**129**~~ | `@diagnose` on an `async def` returns the coroutine object and the capture context exits before the body runs | **S9: measured TRUE**, both halves, by `tests/test_decorators.py::TestDiagnoseOnCoroutineFunctions`. Now test-backed. |
 | 105 | "The interceptor's per-instance `ContextVar` storage is correct and does propagate across `await`" | Same class as entry 24. Not currently discriminable, for the reason recorded there. S8's probe 1 shows a discriminating test *is* constructible for a shared store — but no code path shares one. |
-| 22 | Django keeps DB connections in thread-local storage | Upstream Django fact, uncited |
-| 24 | "This is how Django adapts *every* sync-only middleware under ASGI" | Universal claim, uncited |
+| ~~22~~ | Django keeps DB connections in thread-local storage | **S9: cited** — Django databases/connection-management docs plus `django.db.utils.ConnectionHandler`. |
+| ~~24~~ | "This is how Django adapts *every* sync-only middleware under ASGI" | **S9: cited and narrowed** — the universal "every sync-only middleware" is now scoped to middleware declaring `async_capable = False`, citing Django's async-middleware docs and `BaseHandler.load_middleware`. |
 | 32-34 | Middleware listed before query-doctor runs in sync mode too; "does not affect request concurrency" | Asserted |
 | 36 | "not a change relative to 2.1.1" | Asserted |
 | 78 | Hand-embed route: "you own the thread placement" | Consistent with `:89-91` but not separately tested |
@@ -1620,3 +1620,50 @@ twelve asserted-unbacked claims of which **`:42` and `:129` are the two most
 likely to be false** and should be measured before any wording is touched. The
 remainder are upstream-Django facts or scope statements where a citation, not a
 test, is the appropriate backing.
+
+### S9 progress — measured, with one correction to this entry
+
+`:42`, `:129`, `:22` and `:24` are closed; `:79` and `:105` remain, which is why
+this entry stays open.
+
+**`:42`'s row in the table above was wrong, and it was the row this entry
+flagged as most likely false.** It was already fully backed when the inventory
+was written. `tests/testapp/views.py::async_probe` issues its query through
+`await sync_to_async(_run_one_query)()`, and
+`TestASGICapture::test_both_view_flavours_captured` drives it through a real
+`ASGIHandler` asserting the query is captured;
+`test_middleware_and_view_share_thread_and_connection` additionally pins the
+mechanism the claim names. The inventory missed it because it searched for
+tests by *name and keyword* rather than by *behaviour*, so a test that exercises
+a claim without naming it was invisible. That is the same method failure that
+produced the `:79` error in this entry — two wrong rows from one cause, which is
+the more useful finding than either row.
+
+What was genuinely wrong with `:42` was its *wording*, not its backing: it
+claimed capture for `sync_to_async` unconditionally. Measured both ways, the
+qualification is real — filed as entry 32 rather than reworded in passing.
+
+`:129` measured **true**, both halves.
+
+## 32. `async-support.md:42` claims `sync_to_async` capture unconditionally
+
+Split out of entry 31 in S9 rather than silently reworded, per the rule that a
+claim measuring false gets its own record.
+
+- **Evidence:** `docs/guides/async-support.md:42` listed "Captures queries
+  issued inside `sync_to_async`-wrapped helpers" with no qualification, and the
+  Mixed Sync/Async section stated the same. `sync_to_async` accepts
+  `thread_sensitive`, defaulting to `True`.
+- **Impact:** true for the default, false for `thread_sensitive=False`. That
+  variant runs the helper on a general executor thread, which resolves a
+  different thread-local `connections["default"]` than the one the
+  `execute_wrapper` is installed on, so its queries are never captured. Same
+  cause as entry 22 and as the hand-embedding limitation. A user who passes
+  `thread_sensitive=False` for throughput would get a silently empty report.
+- **Resolved:** 2.2.0 (S9) — measured, then qualified. Both halves pinned by
+  `tests/test_asgi_middleware_chain.py::TestSyncToAsyncThreadSensitivity`: one
+  query captured for the default, zero for `thread_sensitive=False`. The
+  negative test also asserts the thread *and* connection identities differ, so
+  it cannot pass on a harness that captures nothing; the default-case test is
+  its positive control. The docs now carry the exception explicitly with both
+  call forms shown.

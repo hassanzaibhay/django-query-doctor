@@ -99,6 +99,60 @@ class TestDiagnoseDecorator:
             assert result == "ok"
 
 
+class TestDiagnoseOnCoroutineFunctions:
+    """Pins the documented non-support of @diagnose on ``async def``.
+
+    docs/guides/async-support.md:129 states that @diagnose does not detect or
+    await coroutine functions: the wrapped call returns the coroutine object and
+    the capture context exits before the view body runs. That was asserted but
+    unbacked; these tests measure it, so a future change that silently starts
+    awaiting coroutines fails here rather than quietly falsifying the doc.
+    """
+
+    @pytest.mark.django_db
+    def test_wrapped_coroutine_function_returns_an_un_awaited_coroutine(self) -> None:
+        """The decorator hands back the coroutine object, not the view's result."""
+        import inspect
+
+        from query_doctor.decorators import diagnose
+
+        @diagnose
+        async def my_view() -> str:
+            BookFactory()
+            return "done"
+
+        result = my_view()
+
+        assert inspect.iscoroutine(result), (
+            "diagnose is awaiting coroutines now; async-support.md:129 is stale"
+        )
+        # Close it explicitly: an un-awaited coroutine otherwise emits a
+        # RuntimeWarning at GC time and pollutes unrelated tests.
+        result.close()
+
+    @pytest.mark.django_db
+    def test_capture_context_closes_before_the_coroutine_body_runs(self) -> None:
+        """The report is finalized while the body is still un-executed, so it is empty.
+
+        This is the half that matters to users: the decorator does not merely
+        return the wrong object, it also reports a query count that has nothing
+        to do with the view.
+        """
+        from query_doctor.decorators import diagnose
+
+        @diagnose
+        async def my_view() -> str:
+            BookFactory()
+            return "done"
+
+        result = my_view()
+        result.close()
+
+        report = my_view._query_doctor_report  # type: ignore[attr-defined]
+        assert report.total_queries == 0
+        assert report.captured_queries == []
+
+
 class TestQueryBudgetDecorator:
     """Tests for the @query_budget decorator."""
 

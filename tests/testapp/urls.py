@@ -14,6 +14,11 @@ urlpatterns = [
     path("async/ok/", views.async_ok, name="async-ok"),
     path("sync/probe/", views.sync_probe, name="sync-probe"),
     path("async/probe/", views.async_probe, name="async-probe"),
+    path(
+        "async/probe/thread-insensitive/",
+        views.async_probe_thread_insensitive,
+        name="async-probe-thread-insensitive",
+    ),
     path("async/burst/<int:count>/", views.query_burst, name="async-burst"),
     path("async/orm/acreate/", views.async_orm_acreate, name="async-orm-acreate"),
     path("async/orm/aget/", views.async_orm_aget, name="async-orm-aget"),
