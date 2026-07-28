@@ -2140,11 +2140,21 @@ failing the check. See <code>UPGRADING.md</code> for the full 2.1.0 upgrade chec
 <ul>
 <li>Removed <code>DRFSerializerAnalyzer</code>, a builtin analyzer that always returned no
   results through any code path reachable from <code>fix_queries</code>, the middleware,
-  or any management command. DRF serializer N+1 detection is unaffected —
-  it's covered by the static <code>SerializerMethodAnalyzer</code> (<code>check_serializers</code>
-  command), which is unchanged aside from its issue type (see Added). The
+  or any management command. Nothing detectable was lost — not because another
+  analyzer took the work over, but because this one emitted nothing in any
+  reachable path (see the [1.0.0] historical note, and the <code>fix_queries</code> entry
+  below: <code>drf_serializer</code> is never emitted by the runtime pipeline). The
   built-in analyzer count is now 7.</li>
 </ul>
+<p>The static <code>SerializerMethodAnalyzer</code> (<code>check_serializers</code> command) is
+  <strong>not</strong> a replacement for it — the two target different DRF N+1 patterns.
+  <code>SerializerMethodAnalyzer</code> reads <code>SerializerMethodField</code> declarations and
+  parses the bodies of the matching <code>get_&lt;field&gt;</code> methods; it inspects nothing
+  else. <code>DRFSerializerAnalyzer</code> aimed at nested serializer fields whose view
+  queryset lacked <code>select_related</code>/<code>prefetch_related</code> — a nested
+  <code>AuthorSerializer()</code> is not a <code>SerializerMethodField</code>, so <code>check_serializers</code>
+  never looks at it. That pattern is currently uncovered. It was uncovered
+  before this removal too, since the analyzer never fired.</p>
 <h2 id="201-2026-07-13">[2.0.1] - 2026-07-13<a class="headerlink" href="#201-2026-07-13" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p><strong>Never published to PyPI.</strong> This version was merged and tagged in the

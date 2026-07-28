@@ -2843,7 +2843,7 @@
 <hr />
 <h2 id="threading-and-concurrency">Threading and Concurrency<a class="headerlink" href="#threading-and-concurrency" title="Permanent link">&para;</a></h2>
 <h3 id="per-instance-contextvar-storage">Per-Instance ContextVar Storage<a class="headerlink" href="#per-instance-contextvar-storage" title="Permanent link">&para;</a></h3>
-<p>django-query-doctor stores all per-request state in <code>contextvars.ContextVar</code> instances. Each <code>QueryInterceptor</code> instance gets its own unique <code>ContextVar</code>, ensuring isolation across both threads and concurrent async coroutines.</p>
+<p>django-query-doctor stores all per-request state in <code>contextvars.ContextVar</code> instances. Each <code>QueryInterceptor</code> instance gets its own unique <code>ContextVar</code>, which keeps that one interceptor's captures context-local — they propagate across <code>await</code> and do not bleed into a sibling context.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># interceptor.py</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">contextvars</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
@@ -2861,10 +2861,15 @@
 </span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="p">)</span>
 </span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_queries_var</span><span class="o">.</span><span class="n">set</span><span class="p">([])</span>
 </span></code></pre></div>
-<p>This ensures that concurrent requests in both multi-threaded WSGI servers (e.g., gunicorn with sync workers) and ASGI servers (e.g., uvicorn, daphne) do not interfere with each other.</p>
+<p>What keeps <em>concurrent requests</em> from interfering with each other, however, is not the <code>ContextVar</code> — it is that every request builds its <strong>own interceptor</strong>. <code>build_interceptor()</code> is called per request (<code>middleware.py:162,194</code>), and the result is a local variable; no two requests ever share one. Under ASGI, Django additionally opens a <code>ThreadSensitiveContext</code> per request, so they do not share an executor thread either.</p>
+<p>Cross-request isolation is therefore over-determined: it holds in multi-threaded WSGI servers (e.g. gunicorn with sync workers) and in ASGI servers (e.g. uvicorn, daphne), and it would still hold if the <code>ContextVar</code> were replaced by a plain instance attribute. The <code>ContextVar</code> earns its place on the narrower guarantee stated above — correctness <em>within</em> one interceptor across <code>await</code> boundaries and across threads — not on cross-request isolation.</p>
 <h3 id="async-django-support">Async Django Support<a class="headerlink" href="#async-django-support" title="Permanent link">&para;</a></h3>
 <p>The query interceptor and the QueryTurbo context managers hold their state in <code>contextvars.ContextVar</code>.</p>
-<p>Concurrent ASGI requests do not contaminate each other's reports. This is covered by <code>tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation</code>, which drives ten interleaved requests through a real <code>ASGIHandler</code>, each issuing a different number of queries, and asserts that every report holds exactly its own count.</p>
+<p>Concurrent ASGI requests do not contaminate each other's reports. This behaviour — and only this behaviour, not any particular mechanism behind it — is covered by <code>tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation</code>, which drives ten interleaved requests through a real <code>ASGIHandler</code>, each issuing a different number of queries, and asserts that every report holds exactly its own count.</p>
+<div class="admonition note">
+<p class="admonition-title">What that test does and does not establish</p>
+<p>It pins the observable behaviour, which is what users depend on. It does <strong>not</strong> identify the cause: per-request interceptor instances, per-request executor threads, and contextvars all independently produce the same passing result, so the test would stay green if any one of them were removed. No test in this repository discriminates between them, and while interceptors are built per request none can — there is no shared state left for a mechanism to protect. The contextvars <em>storage</em> claim above is backed (<code>src/query_doctor/interceptor.py:56-63</code>); a causal claim that contextvars is what isolates requests would be asserted, not demonstrated, so this page does not make one.</p>
+</div>
 <p>Django's <code>execute_wrapper()</code> is per-connection, and Django stores connections in thread-local storage. Under ASGI that makes <em>which thread the middleware runs on</em> decisive: it must be the same thread the ORM runs on, or the wrapper is installed on a connection object the queries never touch. <code>QueryDoctorMiddleware</code> therefore declares <code>async_capable = False</code>, so Django adapts it with <code>sync_to_async(thread_sensitive=True)</code> and runs it in the same thread-sensitive executor it runs ORM work in.</p>
 <p>This is the behaviour from 2.1.2 onwards. Releases 2.0.0 through 2.1.1 declared <code>async_capable = True</code> and, under ASGI, either crashed the middleware chain or captured nothing. See <a href="../../guides/async-support/">Async Support</a> for the mechanism in full, including the per-request <code>ThreadSensitiveContext</code> Django opens in <code>django/core/handlers/asgi.py</code>.</p>
 <blockquote>
@@ -2969,7 +2974,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 24, 2026 06:31:26 UTC">July 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 12:45:48 UTC">July 28, 2026</span>
   </span>
 
     
