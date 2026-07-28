@@ -153,6 +153,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   connection while those methods run on an executor thread holding a different
   one. The section now states the route and carries the counter-case; the claim
   is qualified, not withdrawn.
+- The hand-embedding caveat in `docs/guides/async-support.md` now gives the
+  measured cost of running analysis inline on the caller's event loop. It said
+  only that `__acall__` blocks for "the duration of analysis"; it now states
+  that the duration scales roughly linearly with the number of captured queries
+  and gives the numbers, so a reader can decide whether it matters on their
+  workload instead of guessing. No behaviour change — the analysis stays
+  synchronous, which is now defensible because analyzer discovery no longer
+  costs ~8 ms per call.
 
 ## [2.1.2] - 2026-07-22
 
