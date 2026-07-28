@@ -2124,11 +2124,17 @@
 <p>Two caveats apply on this route:</p>
 <ul>
 <li><strong>You own the thread placement.</strong> Django is not adapting the middleware into its thread-sensitive executor here, so capture is correct only when the ORM work runs on the same thread as the <code>await</code> — see <a href="#the-context-manager-in-async-code">The Context Manager in Async Code</a> for the same thread-locality constraint.</li>
-<li><strong>The analysis runs inline on your loop.</strong> <code>__acall__</code> runs analyzers and reporters without yielding, so on a busy event loop it blocks the loop for the duration of analysis. The <code>MIDDLEWARE</code>-chain path does not have this property because Django runs the whole middleware in the executor thread.</li>
+<li><strong>The analysis runs inline on your loop.</strong> <code>__acall__</code> runs analyzers and reporters without yielding, so on a busy event loop it blocks the loop for the duration of analysis. That duration scales with the number of <em>captured queries</em>, roughly linearly — on one development machine, 0.14 ms for a request that issued none, 2.2 ms at 100 queries and 10.3 ms at 500. An ordinary request therefore costs a fraction of a millisecond, and only a request already issuing hundreds of queries — the case this tool exists to flag — reaches single-digit milliseconds. The <code>MIDDLEWARE</code>-chain path does not have this property at all, because Django runs the whole middleware in the executor thread.</li>
 </ul>
 <hr />
 <h2 id="django-async-orm-methods">Django Async ORM Methods<a class="headerlink" href="#django-async-orm-methods" title="Permanent link">&para;</a></h2>
-<p>Django's async ORM methods (<code>aget</code>, <code>acreate</code>, <code>acount</code>, <code>aexists</code>, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's <code>execute_wrapper</code> captures them identically. Async iteration over querysets is captured the same way.</p>
+<p><strong>Through the <code>MIDDLEWARE</code> chain</strong>, Django's async ORM methods (<code>aget</code>, <code>acreate</code>, <code>acount</code>, <code>aexists</code>, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's <code>execute_wrapper</code> captures them identically. Async iteration over querysets is captured the same way. Measured for all five on Django 6.0 and 4.2 by <code>tests/test_asgi_middleware_chain.py::TestASGIAsyncORMCapture</code>, which drives a real <code>ASGIHandler</code> and asserts the captured query <em>counts</em> plus a per-method SQL fragment — a raw <code>SELECT 1</code> cannot satisfy it.</p>
+<div class="admonition warning">
+<p class="admonition-title">Not on the hand-embedding route</p>
+<p>Those same five methods capture <strong>nothing</strong> when the middleware is embedded by hand around an async handler, the route described under <a href="#embedding-the-middleware-around-an-async-handler">Embedding the middleware around an async handler</a>.</p>
+<p><code>__acall__</code> installs the <code>execute_wrapper</code> on the event loop thread's connection, while every <code>a*</code> method is internally <code>sync_to_async(thread_sensitive=True)</code>, so the ORM runs on an executor thread holding a different <code>connections["default"]</code>. This is the thread-placement caveat on that route applied to async ORM calls, and the same cause as the <code>diagnose_queries()</code> limitation below. The behaviour is pinned by <code>tests/test_asgi_middleware_chain.py::TestDirectEmbedAsyncORMNotCaptured</code>, against a sync view doing identical ORM work through the same driver that captures 2 queries.</p>
+<p>Use the <code>MIDDLEWARE</code> chain to diagnose async ORM calls.</p>
+</div>
 <hr />
 <h2 id="the-context-manager-in-async-code">The Context Manager in Async Code<a class="headerlink" href="#the-context-manager-in-async-code" title="Permanent link">&para;</a></h2>
 <div class="admonition danger">
@@ -2214,7 +2220,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 24, 2026 06:31:26 UTC">July 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 08:59:11 UTC">July 28, 2026</span>
   </span>
 
     

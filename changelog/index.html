@@ -1954,6 +1954,36 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   file; the linked release notes now carry the status instead. The dated
   disclaimers at <code>comparison.md:5</code> and <code>faq.md:131</code> are deliberately unchanged —
   those record when a comparison was made and stay true permanently.</li>
+<li><code>discover_analyzers()</code> no longer rescans installed entry points on every call.
+  It walked every installed distribution and read its <code>entry_points.txt</code> from
+  disk each time analysis ran — measured at 87 reads per call against 87
+  installed distributions, roughly 8 ms of synchronous filesystem I/O. The cost
+  was flat in query count, so a request issuing no queries paid the same as one
+  issuing a hundred, and it was paid by every surface: the middleware,
+  <code>diagnose_queries()</code>, the pytest plugin, the Celery integration and all three
+  management commands. <code>diagnose_project</code> paid it once per URL pattern. The scan
+  is now cached for the process, taking a zero-query <code>pipeline.analyze()</code> from
+  7.86 ms to 0.30 ms in the same environment. <code>discover_analyzers()</code> still
+  returns a fresh <code>list</code>, so callers may mutate the result as before; a new
+  <code>discover_analyzers.cache_clear()</code> forces a rescan, which any test patching
+  discovery must call.</li>
+<li><code>docs/guides/async-support.md</code> no longer claims that Django's async ORM
+  methods are captured without saying on which route. <code>aget</code>, <code>acreate</code>,
+  <code>acount</code>, <code>aexists</code> and async iteration are captured through the <code>MIDDLEWARE</code>
+  chain — now measured for all five rather than argued from the mechanism — and
+  capture <strong>nothing</strong> when the middleware is embedded by hand around an async
+  handler, because <code>__acall__</code> installs its wrapper on the event loop thread's
+  connection while those methods run on an executor thread holding a different
+  one. The section now states the route and carries the counter-case; the claim
+  is qualified, not withdrawn.</li>
+<li>The hand-embedding caveat in <code>docs/guides/async-support.md</code> now gives the
+  measured cost of running analysis inline on the caller's event loop. It said
+  only that <code>__acall__</code> blocks for "the duration of analysis"; it now states
+  that the duration scales roughly linearly with the number of captured queries
+  and gives the numbers, so a reader can decide whether it matters on their
+  workload instead of guessing. No behaviour change — the analysis stays
+  synchronous, which is now defensible because analyzer discovery no longer
+  costs ~8 ms per call.</li>
 </ul>
 <h2 id="212-2026-07-22">[2.1.2] - 2026-07-22<a class="headerlink" href="#212-2026-07-22" title="Permanent link">&para;</a></h2>
 <h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
