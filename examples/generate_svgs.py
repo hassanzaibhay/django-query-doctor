@@ -106,7 +106,7 @@ create_terminal_svg(
         {"text": ""},
         {"text": "============================================================", "color": "#569CD6"},
         {"text": "Query Doctor Report", "color": "#569CD6", "bold": True},
-        {"text": "Total queries: 15 | Time: 0.4ms | Issues: 4", "color": "#569CD6"},
+        {"text": "Total queries: 15 | Time: 0.2ms | Issues: 4", "color": "#569CD6"},
         {"text": "============================================================", "color": "#569CD6"},
         {"text": ""},
         {"text": "CRITICAL: N+1 detected: 12 queries for table \"testapp_author\" (field: author)", "color": "#F44747", "bold": True},

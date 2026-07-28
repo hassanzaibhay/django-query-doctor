@@ -14,7 +14,7 @@
 </text>
 <text x="16" y="90" class="terminal-text" font-size="13" fill="#569CD6" >============================================================</text>
 <text x="16" y="110" class="terminal-text" font-size="13" fill="#569CD6" font-weight="700">Query Doctor Report</text>
-<text x="16" y="130" class="terminal-text" font-size="13" fill="#569CD6" >Total queries: 15 | Time: 0.4ms | Issues: 4</text>
+<text x="16" y="130" class="terminal-text" font-size="13" fill="#569CD6" >Total queries: 15 | Time: 0.2ms | Issues: 4</text>
 <text x="16" y="150" class="terminal-text" font-size="13" fill="#569CD6" >============================================================</text>
 <text x="16" y="190" class="terminal-text" font-size="13" fill="#F44747" font-weight="700">CRITICAL: N+1 detected: 12 queries for table &quot;testapp_author&quot; (field: author)</text>
 <text x="40" y="210" class="terminal-text" font-size="13" fill="#808080" >Location: myapp/views.py:26 in book_list</text>
