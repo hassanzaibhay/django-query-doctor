@@ -115,14 +115,36 @@ class TestDiscoverAnalyzers:
     def test_plugin_error_logged(
         self, mock_load: MagicMock, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """Plugin that raises should log a warning."""
+        """Plugin that raises should log a warning and still return built-ins.
+
+        FOLLOWUPS entry 30: this test opened ``caplog`` and then asserted only
+        ``len(result) >= 3``, so the warning its name and docstring promise was
+        pinned by nothing -- the ``logger.warning`` in the plugin-load ``except``
+        could have been deleted and this test would have stayed green. Verified
+        by doing exactly that: replacing it with ``pass`` fails this test at the
+        record-count assertion. Both halves are asserted now.
+        """
         mock_load.side_effect = Exception("plugin load error")
 
         with caplog.at_level(logging.WARNING, logger="query_doctor"):
             result = discover_analyzers()
 
         assert mock_load.called  # the patch must actually be consulted
-        # Should still return built-in analyzers
+
+        # The promised warning (plugin_api.py:105). This assertion is only
+        # meaningful because the module fixture cleared the discovery cache:
+        # on a cache hit discover_analyzers() never enters the try, the plugin
+        # loader never raises, and no warning is emitted.
+        warnings = [
+            r for r in caplog.records if r.name == "query_doctor" and r.levelno == logging.WARNING
+        ]
+        assert len(warnings) == 1
+        assert "failed to load analyzer plugins" in warnings[0].getMessage()
+        # exc_info is the actionable half: without the traceback a user learns
+        # that some plugin failed and nothing about which one or why.
+        assert warnings[0].exc_info is not None
+
+        # Graceful degradation: a raising loader must not take discovery down.
         assert len(result) >= 3
 
 
