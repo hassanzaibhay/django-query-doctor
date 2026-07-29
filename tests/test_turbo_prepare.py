@@ -309,12 +309,12 @@ class TestMockPreparedExecution:
         strategy = PsycopgPrepareStrategy(threshold=3)
         cursor = MagicMock()
 
-        # Below threshold — no prepare
+        # Below threshold -- no prepare
         assert strategy.should_prepare(2) is False
         strategy.execute(cursor, "SELECT 1", (), prepare=False)
         cursor.execute.assert_called_with("SELECT 1", ())
 
-        # At threshold — prepare
+        # At threshold -- prepare
         assert strategy.should_prepare(3) is True
         cursor.reset_mock()
         strategy.execute(cursor, "SELECT 1", (), prepare=True)

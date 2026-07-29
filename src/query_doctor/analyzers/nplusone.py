@@ -31,13 +31,13 @@ from query_doctor.types import (
 
 logger = logging.getLogger("query_doctor")
 
-# Matches WHERE "table"."id" = ? (PK lookup — FK N+1 access)
+# Matches WHERE "table"."id" = ? (PK lookup -- FK N+1 access)
 _PK_LOOKUP_RE = re.compile(
     r'where\s+"?(\w+)"?\."?id"?\s*=\s*\?',
     re.IGNORECASE,
 )
 
-# Matches WHERE "table"."something_id" = ? (FK column lookup — M2M or reverse FK)
+# Matches WHERE "table"."something_id" = ? (FK column lookup -- M2M or reverse FK)
 _FK_COL_LOOKUP_RE = re.compile(
     r'where\s+"?(\w+)"?\."?(\w+_id)"?\s*=\s*\?',
     re.IGNORECASE,
@@ -218,7 +218,7 @@ class NPlusOneAnalyzer(BaseAnalyzer):
                 fp=fp,
             )
 
-        # Second check: WHERE "table"."id" = ? (PK lookup — forward FK)
+        # Second check: WHERE "table"."id" = ? (PK lookup -- forward FK)
         pk_match = _PK_LOOKUP_RE.search(normalized)
         if pk_match:
             target_table = pk_match.group(1)

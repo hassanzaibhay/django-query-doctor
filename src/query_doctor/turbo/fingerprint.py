@@ -2,7 +2,7 @@
 
 Computes a structural fingerprint of a Django ORM Query object by walking
 the WHERE tree, SELECT columns, JOINs, ORDER BY, GROUP BY, annotations,
-and other structural metadata — excluding parameter values. The fingerprint
+and other structural metadata -- excluding parameter values. The fingerprint
 is a blake2b hash that identifies query structure for cache lookups.
 """
 
@@ -138,7 +138,7 @@ def _fingerprint_where(node: WhereNode, parts: list[str], depth: int = 0) -> Non
         elif isinstance(child, Lookup):
             _fingerprint_lookup(child, parts, depth)
         else:
-            # Unknown node type — include class name for safety
+            # Unknown node type -- include class name for safety
             parts.append(f"{prefix}:unknown={type(child).__name__}")
 
 
@@ -163,7 +163,7 @@ def _fingerprint_lookup(lookup: Lookup[Any], parts: list[str], depth: int) -> No
         if isinstance(rhs, (list, tuple)):
             parts.append(f"{prefix}:in_count={len(rhs)}")
         elif hasattr(rhs, "query"):
-            # Subquery — SQL structure depends on the inner query
+            # Subquery -- SQL structure depends on the inner query
             parts.append(f"{prefix}:in_subquery")
 
 

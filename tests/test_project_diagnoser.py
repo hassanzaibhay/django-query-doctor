@@ -75,7 +75,7 @@ class TestProjectDiagnoser:
         # URL with parameters that can't be resolved
         url = _make_url(pattern="/no/such/endpoint/")
         result = diagnoser.diagnose([url])
-        # Should not crash — result is valid
+        # Should not crash -- result is valid
         assert isinstance(result, ProjectDiagnosisResult)
 
     def test_groups_by_app(self) -> None:

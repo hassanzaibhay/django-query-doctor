@@ -1,6 +1,6 @@
 """Minimal Django settings for the benchmark suite.
 
-Self-contained — does not depend on the test suite or any external project.
+Self-contained -- does not depend on the test suite or any external project.
 """
 
 from __future__ import annotations

@@ -1,5 +1,5 @@
 """
-DRF integration — how to optimize serializers flagged by query-doctor.
+DRF integration -- how to optimize serializers flagged by query-doctor.
 """
 
 # BEFORE (what query-doctor flags):
@@ -16,7 +16,7 @@ DRF integration — how to optimize serializers flagged by query-doctor.
 #
 # class BookViewSet(viewsets.ReadOnlyModelViewSet):
 #     serializer_class = BookSerializer
-#     queryset = Book.objects.all()  # No optimization — query-doctor flags this
+#     queryset = Book.objects.all()  # No optimization -- query-doctor flags this
 
 
 # AFTER (the fix query-doctor prescribes):

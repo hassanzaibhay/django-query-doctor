@@ -173,7 +173,7 @@ def _handle_trusted_hit(
     chunked_fetch: bool,
     chunk_size: int,
 ) -> Any:
-    """Handle a TRUSTED cache hit — skip as_sql() entirely.
+    """Handle a TRUSTED cache hit -- skip as_sql() entirely.
 
     Extracts params from the Query tree without SQL compilation.
     Validates param count matches the cached template. On mismatch,
@@ -197,7 +197,7 @@ def _handle_trusted_hit(
         extracted = extract_params(compiler.query, compiler)
 
         if len(extracted) != entry.param_count:
-            # Param count mismatch — demote to untrusted
+            # Param count mismatch -- demote to untrusted
             entry.trusted = False
             entry.validated_count = 0
             logger.warning(
@@ -212,7 +212,7 @@ def _handle_trusted_hit(
                 compiler, result_type, chunked_fetch, chunk_size
             )
 
-        # SUCCESS — true compilation skip!
+        # SUCCESS -- true compilation skip!
         assert _cache is not None
         _cache.record_trusted_hit()
         cached_sql = entry.sql
@@ -242,7 +242,7 @@ def _handle_trusted_hit(
             compiler.as_sql = original_as_sql  # type: ignore[method-assign]
 
     except ParamExtractionError:
-        # Extraction failed — demote and fall back
+        # Extraction failed -- demote and fall back
         entry.trusted = False
         entry.validated_count = 0
         logger.debug("Param extraction failed, demoting %s", fingerprint[:16])
@@ -265,7 +265,7 @@ def _handle_untrusted_hit(
     chunked_fetch: bool,
     chunk_size: int,
 ) -> Any:
-    """Handle an UNTRUSTED cache hit — validate via as_sql().
+    """Handle an UNTRUSTED cache hit -- validate via as_sql().
 
     Calls as_sql() to get fresh (sql, params), validates that
     fresh_sql == cached_sql. On match, increments validated_count
@@ -315,7 +315,7 @@ def _handle_untrusted_hit(
             finally:
                 compiler.as_sql = original_as_sql  # type: ignore[method-assign]
 
-        # Validation passed — increment validated_count
+        # Validation passed -- increment validated_count
         entry.validated_count += 1
         if entry.validated_count >= threshold:
             entry.trusted = True
@@ -364,7 +364,7 @@ def _handle_cache_miss(
     chunked_fetch: bool,
     chunk_size: int,
 ) -> Any:
-    """Handle a cache miss — execute normally, then cache the SQL template.
+    """Handle a cache miss -- execute normally, then cache the SQL template.
 
     Args:
         compiler: The SQLCompiler instance.

@@ -1,7 +1,7 @@
 """Prepared statement bridge with backend-adaptive strategies.
 
 Detects the database driver and enables prepared statements where supported.
-The SQL compilation cache from Phase 1 already reuses identical SQL strings —
+The SQL compilation cache from Phase 1 already reuses identical SQL strings --
 this module leverages that for automatic preparation after a hit-count threshold.
 
 Supported backends:
@@ -45,7 +45,7 @@ class PrepareStrategy(Protocol):
     ) -> None:
         """Execute SQL on the cursor, optionally as a prepared statement.
 
-        Must never raise — falls back to normal execute on any error.
+        Must never raise -- falls back to normal execute on any error.
 
         Args:
             cursor: The database cursor.
@@ -64,7 +64,7 @@ class NoPrepareStrategy:
     """
 
     def should_prepare(self, hit_count: int) -> bool:
-        """Always returns False — no preparation support.
+        """Always returns False -- no preparation support.
 
         Args:
             hit_count: Number of cache hits (ignored).
@@ -169,14 +169,14 @@ class OracleImplicitCacheStrategy:
     Oracle's client library has implicit statement caching. By reusing
     identical SQL strings (which our compilation cache already does),
     Oracle's internal cache hits automatically. This strategy simply
-    logs that Oracle implicit caching is active — no special execute call.
+    logs that Oracle implicit caching is active -- no special execute call.
     """
 
     _logged_once: bool = False
     _log_lock: threading.Lock = threading.Lock()
 
     def should_prepare(self, hit_count: int) -> bool:
-        """Always returns False — Oracle handles caching implicitly.
+        """Always returns False -- Oracle handles caching implicitly.
 
         Uses double-check locking for thread-safe one-time logging.
 
@@ -201,7 +201,7 @@ class OracleImplicitCacheStrategy:
         *,
         prepare: bool = False,
     ) -> None:
-        """Execute SQL normally — Oracle handles caching implicitly.
+        """Execute SQL normally -- Oracle handles caching implicitly.
 
         Args:
             cursor: The database cursor.

@@ -1,10 +1,10 @@
 #!/bin/bash
-# Quick Start — 30 seconds to working query diagnosis
+# Quick Start -- 30 seconds to working query diagnosis
 
 # Install
 pip install django-query-doctor
 
-# Add to settings.py — ONE line:
+# Add to settings.py -- ONE line:
 # MIDDLEWARE = [
 #     ...
 #     "query_doctor.QueryDoctorMiddleware",

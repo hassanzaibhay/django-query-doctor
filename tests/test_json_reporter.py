@@ -166,7 +166,7 @@ class TestJSONReporter:
         """Reporter without output_path should not crash."""
         reporter = JSONReporter()
         report = _make_report(prescriptions=[_make_prescription()])
-        # Should not raise — just renders internally
+        # Should not raise -- just renders internally
         reporter.report(report)
 
     def test_prescription_without_callsite(self) -> None:

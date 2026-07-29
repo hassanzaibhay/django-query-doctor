@@ -97,7 +97,7 @@ class SQLCompilationCache:
         self._misses = 0
         self._evictions = 0
         self._trusted_hits = 0
-        # Poisoned fingerprints — never evicted by LRU, never cleared by clear().
+        # Poisoned fingerprints -- never evicted by LRU, never cleared by clear().
         self._poisoned_fps: set[str] = set()
 
     def get(self, fingerprint: str) -> CacheEntry | None:
@@ -196,7 +196,7 @@ class SQLCompilationCache:
                 del self._cache[fp]
                 self._evictions += 1
                 return
-        # All entries are poisoned (edge case) — evict oldest anyway
+        # All entries are poisoned (edge case) -- evict oldest anyway
         if self._cache:
             self._cache.popitem(last=False)
             self._evictions += 1
@@ -240,7 +240,7 @@ class SQLCompilationCache:
         """Remove all entries from the cache.
 
         Thread-safe. Resets hit/miss/eviction counters.
-        Preserves _poisoned_fps — poisoned fingerprints survive clear().
+        Preserves _poisoned_fps -- poisoned fingerprints survive clear().
         """
         with self._lock:
             self._cache.clear()

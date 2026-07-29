@@ -37,6 +37,6 @@ def get_turbo_config() -> dict[str, Any]:
 def is_turbo_enabled() -> bool:
     """Check if QueryTurbo is enabled in settings.
 
-    Returns False by default — users must opt in explicitly.
+    Returns False by default -- users must opt in explicitly.
     """
     return bool(get_turbo_config().get("ENABLED", False))

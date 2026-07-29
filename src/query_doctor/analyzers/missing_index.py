@@ -69,7 +69,7 @@ def _field_is_indexed(model: Any, field_name: str) -> bool:
     try:
         field = model._meta.get_field(field_name)
     except Exception:
-        return True  # Unknown field — assume indexed to avoid false positives
+        return True  # Unknown field -- assume indexed to avoid false positives
 
     # Primary key is always indexed
     if getattr(field, "primary_key", False):

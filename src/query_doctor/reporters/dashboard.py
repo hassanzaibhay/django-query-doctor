@@ -5,7 +5,7 @@ cache performance metrics. The report is a static snapshot of the
 current process's cache state.
 
 The HTML is self-contained: inline CSS, Chart.js loaded from CDN.
-No Django template engine dependency — uses Python string formatting.
+No Django template engine dependency -- uses Python string formatting.
 """
 
 from __future__ import annotations
@@ -58,7 +58,7 @@ class DashboardReporter:
         """Build the complete HTML string.
 
         Uses f-strings for template rendering. Does NOT require Django's
-        template engine — works standalone in management commands.
+        template engine -- works standalone in management commands.
 
         Args:
             stats: The statistics snapshot dict.

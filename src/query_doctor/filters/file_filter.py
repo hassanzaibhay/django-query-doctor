@@ -1,7 +1,7 @@
 """Per-file and per-module prescription filtering.
 
 Filters prescriptions based on their callsite file path or module name.
-Applied post-collection, before reporting — all queries are still
+Applied post-collection, before reporting -- all queries are still
 intercepted and analyzed, but the reporter only shows prescriptions
 matching the filter criteria.
 """
@@ -18,7 +18,7 @@ class PrescriptionFilter:
     """Filters prescriptions by file path or module name patterns.
 
     Supports substring matching: --file=views matches myapp/views.py.
-    Multiple patterns are OR'd together — a prescription matching any
+    Multiple patterns are OR'd together -- a prescription matching any
     pattern is included.
 
     Args:

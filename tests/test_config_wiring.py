@@ -1,9 +1,9 @@
 """Tests that documented config keys actually reach the code they configure.
 
 Each test here pins a settings key to the behaviour it claims to control. The
-keys covered were present in ``DEFAULT_CONFIG`` but read by no code path
-(FOLLOWUPS.md entries 2 and 3), so the failure mode these guard against is a
-setting that is accepted, documented, and silently ignored.
+keys covered were present in ``DEFAULT_CONFIG`` but read by no code path, so
+the failure mode these guard against is a setting that is accepted,
+documented, and silently ignored.
 """
 
 from __future__ import annotations

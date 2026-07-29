@@ -304,7 +304,7 @@ class TestPoisonedEntries:
         with turbo_enabled():
             list(Book.objects.filter(price=20))
 
-        # Hit 2: should bypass (poisoned) — still works correctly
+        # Hit 2: should bypass (poisoned) -- still works correctly
         with turbo_enabled():
             result = list(Book.objects.filter(price=30))
 

@@ -8,25 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- A claims gate (`scripts/claims_check.py` + `claims.json`) that regenerates
-  every quantitative claim this project publishes — analyzer count, test count,
-  coverage, supported Django and Python ranges, open follow-up count — from the
-  tree and fails on drift. Surfaces in this repository are read on every run;
-  surfaces published elsewhere are fetched over HTTP on every run; in both cases
-  a recorded locator must appear verbatim, so a reworded claim fails loudly
-  rather than leaving its row checking nothing. A surface that can be neither
-  fetched nor corrected from a commit must say so in `unverifiable_reason` and
-  is reported on every run, including clean ones, because such a row proves the
-  manifest is self-consistent and proves nothing about the surface.
-  The gate also rejects two shapes of claim outright: build durations quoted as
-  facts, and dated assertions about something's *current* status, which rot
-  without an edit. Dated *provenance* ("comparisons current as of ...") is
-  exempt, because recording when a comparison was made stays true permanently.
-  A row whose surface currently disagrees and cannot be corrected from here can
-  be marked deferred; a deferral must carry a reason and a named action, is
-  printed on every run, and fails the gate once the surface agrees again.
-- The docs truth sweep and the claims gate now run in CI and as pre-push hooks.
-  Neither was wired into anything before; both had to be remembered.
+- The docs truth sweep now runs in CI and as a pre-push hook. It was not wired
+  into anything before; it had to be remembered.
 - The `query_doctor` pytest fixture now produces observable output. A
   `pytest_terminal_summary` hook prints a `query_doctor` section at end of
   session: one header line with the number of fixture-using tests observed and
@@ -72,19 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   anything else. Note for contributors: bumping the version requires
   `pip install -e "."` before the suite passes, because distribution metadata is
   snapshotted at install time.
-- The claims gate now reads published surfaces instead of trusting its own
-  manifest about them. As first shipped it compared only the recorded value
-  against the tree for anything outside this repository, so 7 of its 13 rows
-  were never read at all and a drifted profile page could not be detected by
-  any code path — the entry above is worded to describe what the gate does
-  after this change, not what it did when the row was written. Five rows now
-  fetch the surface (`Cache-Control: no-cache`, since the host is CDN-served
-  and a stale read is a false green); a fetch failure is a violation, never a
-  skip.
-- A failed `pytest --collect-only` no longer yields a test count. The exit code
-  was previously unchecked, and the count regex reads the denominator of
-  `N/M tests collected`, so a broken collection produced an inflated number
-  rather than an error.
 - CI and the pre-push hooks now invoke the gate scripts identically
   (`python -m scripts.x`). The paths already matched; the invocation form did
   not, and the two forms put different directories on `sys.path[0]`.
@@ -92,8 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   success on a run whose upload was refused outright.
 - `scripts/` is now linted and type-checked. `ruff` and `mypy` covered
   `src/` and `tests/` only, in both the hooks and CI, while `scripts/` holds the
-  docs truth sweep, the claims gate and the hook launcher that every other check
-  runs through.
+  docs truth sweep and the hook launcher that every other check runs through.
 - Pre-push hooks no longer resolve `ruff`, `mypy` and `pytest` from `PATH`.
   Every entry now runs through `scripts/hookenv.py`, which resolves this
   repository's virtualenv explicitly (both the `Scripts/` and `bin/` layouts),
@@ -228,7 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   real ASGI handler, that block reports zero queries — same thread-locality
   cause as the middleware defect, applied to the context manager. The
   recommendation has been removed and the limitation documented. No code change;
-  the fix is tracked in `FOLLOWUPS.md` entry 22.
+  the fix is tracked for a future release.
 - The async predicate now comes from `asgiref.sync` rather than `inspect`, which
   is the predicate Django itself uses. `inspect.iscoroutinefunction` does not
   recognise asgiref-wrapped callables before Python 3.12

@@ -4,7 +4,7 @@ Scans installed Django apps or specific modules to find all classes that
 subclass rest_framework.serializers.Serializer. Used by the check_serializers
 management command and the SerializerMethodAnalyzer.
 
-DRF may not be installed — all imports are guarded with try/except.
+DRF may not be installed -- all imports are guarded with try/except.
 """
 
 from __future__ import annotations

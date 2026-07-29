@@ -2,7 +2,7 @@
 
 Statically analyzes DRF serializer source code using Python's ast module.
 Detects get_<field> methods that may trigger database queries at serialization
-time — the #1 hidden N+1 source in DRF apps.
+time -- the #1 hidden N+1 source in DRF apps.
 
 Detection Patterns:
 1. Related manager access on obj (e.g., obj.items.count())
@@ -10,7 +10,7 @@ Detection Patterns:
 3. Chained attribute access suggesting missing select_related (e.g., obj.author.name)
 4. For loops iterating over querysets (e.g., for i in obj.items.all())
 
-This is a STATIC analyzer — it reads source code, not runtime queries.
+This is a STATIC analyzer -- it reads source code, not runtime queries.
 """
 
 from __future__ import annotations
@@ -99,7 +99,7 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
     """Analyzes DRF serializer classes for SerializerMethodField methods.
 
     Detects methods that may cause N+1 queries.
-    This is a STATIC analyzer — it reads source code, not runtime queries.
+    This is a STATIC analyzer -- it reads source code, not runtime queries.
     It should be invoked separately from the runtime query interception pipeline
     via the ``analyze_serializer()`` method.
 
@@ -122,7 +122,7 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
         runtime queries. Use ``analyze_serializer()`` instead.
 
         Args:
-            queries: Ignored — this analyzer does not use captured queries.
+            queries: Ignored -- this analyzer does not use captured queries.
             models_meta: Ignored.
 
         Returns:
@@ -430,7 +430,7 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
                         "code_context": "",
                     }
 
-        # Check for obj.related_set (without .all() — implicit iteration)
+        # Check for obj.related_set (without .all() -- implicit iteration)
         if isinstance(iter_node, ast.Attribute):
             chain = self._get_attribute_chain(iter_node)
             if chain and chain[0] == obj_param and len(chain) >= 2:

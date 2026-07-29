@@ -179,5 +179,5 @@ def _detect_methods(callback: Any) -> list[str]:
     if actions and isinstance(actions, dict):
         return [m.upper() for m in actions]
 
-    # Function views — assume GET
+    # Function views -- assume GET
     return ["GET"]

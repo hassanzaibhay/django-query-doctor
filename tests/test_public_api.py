@@ -69,7 +69,7 @@ class TestPublicAPI:
         removed or emptied, the second when the runtime version and the distribution
         metadata drift apart. A hardcoded literal here -- what this test used to compare
         against -- was a third place a release had to remember to edit, and it could not
-        detect the drift it looked like it was guarding (FOLLOWUPS.md item 16).
+        detect the drift it looked like it was guarding.
         """
         import importlib.metadata
 

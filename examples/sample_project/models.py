@@ -10,7 +10,7 @@ class Publisher(models.Model):
     name = models.CharField(max_length=100)
     country = models.CharField(max_length=50)
     founded_year = models.IntegerField(default=2000)
-    description = models.TextField(blank=True)  # Large field — fat SELECT target
+    description = models.TextField(blank=True)  # Large field -- fat SELECT target
 
     class Meta:
         app_label = "sample_project"
@@ -22,7 +22,7 @@ class Publisher(models.Model):
 class Author(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField()
-    bio = models.TextField(blank=True)  # Large field — fat SELECT target
+    bio = models.TextField(blank=True)  # Large field -- fat SELECT target
 
     class Meta:
         app_label = "sample_project"
@@ -49,7 +49,7 @@ class Book(models.Model):
     publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE, related_name="books")
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="books")
     price = models.DecimalField(max_digits=6, decimal_places=2)
-    # BUG: No db_index on published_date — used in ORDER BY and WHERE
+    # BUG: No db_index on published_date -- used in ORDER BY and WHERE
     published_date = models.DateField()
     isbn = models.CharField(max_length=13, unique=True)
     description = models.TextField(blank=True)

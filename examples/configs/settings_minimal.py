@@ -1,5 +1,5 @@
 """
-Minimal setup — just the middleware, zero other config.
+Minimal setup -- just the middleware, zero other config.
 This is all you need to get started.
 """
 
