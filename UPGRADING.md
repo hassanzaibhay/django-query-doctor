@@ -70,6 +70,41 @@ The default is `True`, so **only users who explicitly set it to `False` are
 affected** — for them, stack traces stop being captured on those seven surfaces,
 which means prescriptions from them lose their `file:line` callsite.
 
+**7. `diagnose_queries()` now warns when entered from a coroutine.** A `with
+diagnose_queries():` block inside an `async def` function has always reported
+zero queries however many the block issued — it installs its `execute_wrapper`
+on the entering thread's database connection, and Django routes ORM work in
+async code to a separate executor thread holding a different connection. It now
+emits a `QueryDoctorWarning` saying so instead of returning an empty report in
+silence. **The capture behaviour is unchanged**; only the silence is. Suites
+that escalate warnings to errors (`-W error`, or `filterwarnings = error`) go
+red on any such block.
+
+The warning fires only on the path that is actually broken. Its predicate is
+whether an event loop is running on the entering thread, so a `def` view served
+under ASGI and a `sync_to_async`-wrapped helper — both of which run in the
+executor thread and capture correctly — do not warn. If your block is one of
+those and you are seeing the warning, that is a bug worth reporting.
+
+To diagnose an async view, use the middleware, which Django adapts into the
+executor thread:
+
+```python
+MIDDLEWARE = [
+    # ...
+    "query_doctor.middleware.QueryDoctorMiddleware",
+]
+```
+
+Or suppress the category if you have another reason to keep the block:
+
+```ini
+[pytest]
+filterwarnings =
+    error
+    ignore::query_doctor.QueryDoctorWarning
+```
+
 ## From 2.1.0 to 2.1.1
 
 ### Breaking / behavior changes

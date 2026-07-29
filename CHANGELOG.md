@@ -44,6 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   so only users who set it `False` are affected.
 - A `QUERYIGNORE_PATH` that cannot be resolved warns and falls back to
   discovery beside `manage.py`, rather than being dropped silently.
+- `diagnose_queries()` now emits a `QueryDoctorWarning` when entered from a
+  coroutine. Inside an `async def` function the block has always reported zero
+  queries however many it issued — it installs its `execute_wrapper` on the
+  entering thread's connection, and Django routes async ORM work to a separate
+  executor thread holding a different one — and it did so silently, so the
+  empty report looked like a clean result. The capture behaviour is unchanged;
+  only the silence is. The predicate is whether an event loop is running on the
+  entering thread, so the two shapes that do capture correctly — a `def` view
+  served under ASGI, and a `sync_to_async`-wrapped helper — do not warn. Use the
+  middleware to diagnose async views. Suites running `-W error` will fail on
+  such a block — see `UPGRADING.md`.
 
 - The distribution metadata and the runtime `__version__` can no longer
   disagree. The version was previously declared independently in

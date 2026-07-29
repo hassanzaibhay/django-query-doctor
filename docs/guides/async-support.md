@@ -103,6 +103,8 @@ Two caveats apply on this route:
 
     Measured on Django 6.0 under a real ASGI handler: a `with diagnose_queries():` block inside an `async def` view reports **zero queries**, however many the block issues.
 
+    **Since 2.2.0 it says so.** Entering the block from a coroutine emits a `QueryDoctorWarning` naming the limitation and steering you to the middleware. The behaviour is unchanged — the block still captures nothing — but it no longer does so silently. The predicate is whether an event loop is running on the entering thread, which fires only on this broken path: a `def` view served under ASGI and a `sync_to_async`-wrapped helper both run in the executor thread, capture correctly, and do not warn. Suites that escalate warnings to errors will fail on such a block; see [`UPGRADING.md`](https://github.com/hassanzaibhay/django-query-doctor/blob/main/UPGRADING.md).
+
     The cause is the same thread-locality described above, applied to the context manager instead of the middleware. The `with` block runs on the event loop thread and installs its `execute_wrapper` on *that* thread's connection object. The ORM work inside it is routed to the thread-sensitive executor on a different thread, which resolves to a different connection. The wrapper never sees the queries.
 
     `contextvars` do not help here. The interceptor's per-instance `ContextVar` storage is correct and does propagate across `await` -- but Django's connection registry is thread-local, not context-local, so the wrapper is on the wrong object before contextvars are ever consulted.
