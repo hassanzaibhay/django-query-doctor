@@ -1860,9 +1860,20 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   <code>CAPTURE_STACK_TRACES: False</code> previously took effect only in the middleware;
   the seven other surfaces captured stack traces regardless. Default is <code>True</code>,
   so only users who set it <code>False</code> are affected.</li>
+<li>A <code>QUERYIGNORE_PATH</code> that cannot be resolved warns and falls back to
+  discovery beside <code>manage.py</code>, rather than being dropped silently.</li>
 <li>
-<p>A <code>QUERYIGNORE_PATH</code> that cannot be resolved warns and falls back to
-  discovery beside <code>manage.py</code>, rather than being dropped silently.</p>
+<p><code>diagnose_queries()</code> now emits a <code>QueryDoctorWarning</code> when entered from a
+  coroutine. Inside an <code>async def</code> function the block has always reported zero
+  queries however many it issued — it installs its <code>execute_wrapper</code> on the
+  entering thread's connection, and Django routes async ORM work to a separate
+  executor thread holding a different one — and it did so silently, so the
+  empty report looked like a clean result. The capture behaviour is unchanged;
+  only the silence is. The predicate is whether an event loop is running on the
+  entering thread, so the two shapes that do capture correctly — a <code>def</code> view
+  served under ASGI, and a <code>sync_to_async</code>-wrapped helper — do not warn. Use the
+  middleware to diagnose async views. Suites running <code>-W error</code> will fail on
+  such a block — see <code>UPGRADING.md</code>.</p>
 </li>
 <li>
 <p>The distribution metadata and the runtime <code>__version__</code> can no longer
