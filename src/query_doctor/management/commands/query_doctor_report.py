@@ -2,7 +2,7 @@
 
 Generates a standalone HTML report with Chart.js graphs showing cache
 performance metrics. The report shows data from the CURRENT process's
-cache — if the server is restarted, the cache is empty and the report
+cache -- if the server is restarted, the cache is empty and the report
 shows zeros.
 
 Usage:

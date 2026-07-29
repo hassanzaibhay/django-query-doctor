@@ -76,12 +76,12 @@ class QueryInterceptor:
         the original execute function and returns its result. Never raises
         exceptions from our analysis code.
         """
-        # Always execute the query — never break the host app
+        # Always execute the query -- never break the host app
         start = time.perf_counter()
         try:
             result = execute(sql, params, many, context)
         except Exception:
-            # Re-raise database exceptions — those are not ours to handle
+            # Re-raise database exceptions -- those are not ours to handle
             raise
         finally:
             # Capture metadata even if the query raised (for diagnostics)

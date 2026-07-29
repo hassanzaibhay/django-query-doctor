@@ -2,7 +2,7 @@
 
 Provides turbo_enabled() and turbo_disabled() context managers that
 override the global TURBO.ENABLED setting for the current scope.
-Supports nesting — the outer override is restored when the inner exits.
+Supports nesting -- the outer override is restored when the inner exits.
 
 Uses contextvars.ContextVar instead of threading.local() so overrides
 are isolated per-coroutine in async/ASGI deployments AND per-thread

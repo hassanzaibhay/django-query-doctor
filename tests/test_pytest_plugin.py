@@ -166,7 +166,7 @@ class TestRunAnalyzers:
         report = DiagnosisReport()
         # Pass invalid data that might cause issues but should be handled gracefully
         _run_analyzers(report, [MagicMock()])
-        # Should not raise — analyzers protect themselves
+        # Should not raise -- analyzers protect themselves
 
 
 class TestPluginImport:
@@ -318,7 +318,7 @@ class TestRunAnalyzersExtended:
 
         report = DiagnosisReport()
         _run_analyzers(report, queries)
-        # Should not raise — all optional analyzers loaded
+        # Should not raise -- all optional analyzers loaded
         assert isinstance(report.prescriptions, list)
 
     def test_run_analyzers_survives_analyzer_failure(self) -> None:

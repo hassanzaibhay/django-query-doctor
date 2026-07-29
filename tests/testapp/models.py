@@ -57,7 +57,7 @@ class Book(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     description = models.TextField(blank=True)  # Large field
     published_date = models.DateField(null=True)
-    # NO index on published_date — good for missing index testing
+    # NO index on published_date -- good for missing index testing
 
     class Meta:
         app_label = "testapp"

@@ -1,9 +1,9 @@
 """
-Full configuration reference — every option with explanation.
+Full configuration reference -- every option with explanation.
 """
 
 QUERY_DOCTOR = {
-    # Master switch — set False to disable all analysis
+    # Master switch -- set False to disable all analysis
     "ENABLED": True,
     # Fraction of requests to analyze (0.0 = none, 1.0 = all)
     # Use < 1.0 in production to reduce overhead
@@ -11,7 +11,7 @@ QUERY_DOCTOR = {
     # Include source file:line in prescriptions
     # Disable if stack traces cause performance issues
     "CAPTURE_STACK_TRACES": True,
-    # Analyzer configuration — each can be enabled/disabled independently
+    # Analyzer configuration -- each can be enabled/disabled independently
     "ANALYZERS": {
         "nplusone": {
             "enabled": True,
@@ -39,7 +39,7 @@ QUERY_DOCTOR = {
             "threshold": 8,  # Complexity score to flag (higher = more tolerant)
         },
     },
-    # Active reporters — output destinations for middleware reports.
+    # Active reporters -- output destinations for middleware reports.
     # Recognized names: "console", "json", "log" (only these three).
     "REPORTERS": ["console"],
     # Where the "json" reporter writes its report after each analyzed request
@@ -47,12 +47,12 @@ QUERY_DOCTOR = {
     # URL prefixes to skip analysis entirely
     "IGNORE_URLS": [],
     # Defaults for the @query_budget decorator when called without
-    # explicit limits — raises QueryBudgetError if exceeded
+    # explicit limits -- raises QueryBudgetError if exceeded
     "QUERY_BUDGET": {
         "DEFAULT_MAX_QUERIES": None,  # None = no limit
         "DEFAULT_MAX_TIME_MS": None,  # None = no limit
     },
-    # Admin dashboard — in-memory ring buffer for recent reports
+    # Admin dashboard -- in-memory ring buffer for recent reports
     "ADMIN_DASHBOARD": {
         "enabled": False,  # Must be explicitly enabled
         # Ring buffer size, read once when the buffer is first used

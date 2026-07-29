@@ -92,9 +92,10 @@ One-time setup, after installing dev deps:
 pre-commit install --hook-type pre-push
 ```
 
-This runs `ruff check`, `ruff format --check`, `mypy`, and `pytest` on
-`git push`; any failure aborts the push. It needs the dev deps
-(`pip install -e ".[dev]"`) on `PATH` — normally your activated virtualenv.
+This runs `ruff check`, `ruff format --check`, `mypy`, the docs truth sweep,
+and `pytest` on `git push`; any failure aborts the push. It needs the dev
+deps (`pip install -e ".[dev]"`) on `PATH` — normally your activated
+virtualenv.
 
 **This is local convenience, not enforcement.** `git push --no-verify`
 bypasses it, and a contributor who hasn't run `pre-commit install` gets no

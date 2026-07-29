@@ -6,7 +6,7 @@ For in-test assertions, use the diagnose_queries() context manager: its
 report is populated as soon as the `with` block exits.
 
 (A `query_doctor` fixture is also auto-registered via the pytest11 entry
-point, but its report is populated at test TEARDOWN — assertions on it
+point, but its report is populated at test TEARDOWN -- assertions on it
 inside the test body see an empty report. Prefer diagnose_queries().)
 """
 

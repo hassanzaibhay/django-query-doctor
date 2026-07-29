@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Example 3: Decorators — @diagnose and @query_budget
+Example 3: Decorators -- @diagnose and @query_budget
 """
 
 print("=" * 60)

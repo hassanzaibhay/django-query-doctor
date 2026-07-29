@@ -1,5 +1,5 @@
 """
-Sample views — each one triggers a specific query anti-pattern.
+Sample views -- each one triggers a specific query anti-pattern.
 """
 
 from django.http import JsonResponse
@@ -28,13 +28,13 @@ def book_detail(request, pk):
     book = Book.objects.get(pk=pk)
     reviews = book.reviews.all()
 
-    # BUG: Duplicate — accessing book.author here and in template
+    # BUG: Duplicate -- accessing book.author here and in template
     author_name = book.author.name
 
-    # BUG: QuerySet eval — len() instead of .count()
+    # BUG: QuerySet eval -- len() instead of .count()
     review_count = len(list(reviews))
 
-    # BUG: QuerySet eval — bool() instead of .exists()
+    # BUG: QuerySet eval -- bool() instead of .exists()
     if reviews:
         has_reviews = True
     else:
@@ -56,7 +56,7 @@ def author_books(request, author_id):
     - Fat SELECT: fetching all fields when only title and price needed
     """
     author = Author.objects.get(pk=author_id)
-    # BUG: N+1 — no select_related for publisher, category
+    # BUG: N+1 -- no select_related for publisher, category
     books = Book.objects.filter(author=author)
     return render(request, "books/list.html", {"books": books, "author": author})
 
@@ -70,9 +70,9 @@ def publisher_stats(request):
     publishers = Publisher.objects.all()
     stats = []
     for pub in publishers:
-        # BUG: N+1 — separate query per publisher
+        # BUG: N+1 -- separate query per publisher
         book_count = pub.books.count()
-        # BUG: N+1 — another query per publisher for reviews
+        # BUG: N+1 -- another query per publisher for reviews
         review_count = Review.objects.filter(book__publisher=pub).count()
         stats.append({
             "publisher": pub.name,

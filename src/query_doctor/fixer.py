@@ -19,7 +19,7 @@ from query_doctor.types import IssueType, Prescription
 logger = logging.getLogger("query_doctor")
 
 # Issue types whose fix handler edits the *callsite* line, which for N+1/fat_select
-# is the in-loop attribute-access line rather than the queryset definition — applying
+# is the in-loop attribute-access line rather than the queryset definition -- applying
 # blindly can write syntactically or semantically broken code. This is an allowlist,
 # not a denylist, so any future/unknown issue type defaults to NOT auto-applied
 # (fail-safe) until its handler is verified safe and added here explicitly.
@@ -290,7 +290,7 @@ class QueryFixer:
         Only issue types in ``AUTO_APPLIABLE_ISSUE_TYPES`` are written; the rest
         are refused and recorded in ``last_skipped_unsafe`` (see that constant's
         docstring for why). For allowlisted fixes, the candidate file content is
-        parsed with ``ast.parse()`` before anything is written — this floor
+        parsed with ``ast.parse()`` before anything is written -- this floor
         catches syntax errors only, not semantic corruption. A comment silently
         swallowed into another comment, or a fix appended after a valid-but-wrong
         expression, still parses cleanly, so don't add a type to the allowlist

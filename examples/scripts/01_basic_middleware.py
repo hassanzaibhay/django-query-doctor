@@ -6,7 +6,7 @@ The simplest way to use query-doctor. Just add the middleware
 and every request gets diagnosed automatically.
 """
 
-# settings.py — just add one line:
+# settings.py -- just add one line:
 SETTINGS_EXAMPLE = """
 MIDDLEWARE = [
     # ... your other middleware ...

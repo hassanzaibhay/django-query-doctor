@@ -2,12 +2,12 @@
 
 Pre-push hooks declared with ``language: system`` resolve their executables
 from ``PATH``, not from the project environment. That has failed three times
-in this repository (see ``FOLLOWUPS.md`` item 11): ``ruff`` and ``mypy``
-absent from ``PATH`` entirely, and ``pytest`` resolving to an unrelated
-system interpreter with none of the project's dependencies. The dangerous
-version of the same failure is silent -- a ``PATH`` carrying a *different*
-project's virtualenv would run that project's ``pytest`` against this
-repository and could exit 0, producing a green gate that proves nothing.
+in this repository: ``ruff`` and ``mypy`` absent from ``PATH`` entirely, and
+``pytest`` resolving to an unrelated system interpreter with none of the
+project's dependencies. The dangerous version of the same failure is silent
+-- a ``PATH`` carrying a *different* project's virtualenv would run that
+project's ``pytest`` against this repository and could exit 0, producing a
+green gate that proves nothing.
 
 This launcher removes ``PATH`` from the decision. It resolves the interpreter
 explicitly, runs the tool as ``<interpreter> -m <tool>``, and prints which

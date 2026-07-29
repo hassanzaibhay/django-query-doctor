@@ -117,7 +117,7 @@ def _collect_where_params(where_node: Any, compiler: Any, params: list[Any]) -> 
             # This is a Lookup node
             _collect_lookup_params(child, compiler, params)
         elif hasattr(child, "as_sql"):
-            # Some other expression node — collect via expression walking
+            # Some other expression node -- collect via expression walking
             _collect_expression_params(child, compiler, params)
         else:
             logger.debug("Unknown WHERE child type: %s", type(child).__name__)
@@ -148,7 +148,7 @@ def _collect_lookup_params_fallback(lookup: Any, compiler: Any, params: list[Any
 
     Manually walks the lookup's LHS and RHS expressions.
     """
-    # LHS params (rare — only when LHS is an expression, not a simple field)
+    # LHS params (rare -- only when LHS is an expression, not a simple field)
     lhs = lookup.lhs
     if lhs is not None and _is_parameterized_expression(lhs):
         _collect_expression_params(lhs, compiler, params)
@@ -197,16 +197,16 @@ def _collect_expression_params(expr: Any, compiler: Any, params: list[Any]) -> N
 
     from django.db.models.expressions import Col, Value
 
-    # Value node — leaf with a param
+    # Value node -- leaf with a param
     if isinstance(expr, Value):
         params.append(expr.value)
         return
 
-    # Col — field reference, no params
+    # Col -- field reference, no params
     if isinstance(expr, Col):
         return
 
-    # When node — condition is a Q object which needs special handling
+    # When node -- condition is a Q object which needs special handling
     from django.db.models.expressions import When
 
     if isinstance(expr, When):

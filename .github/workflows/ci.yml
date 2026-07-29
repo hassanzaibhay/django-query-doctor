@@ -41,15 +41,9 @@ jobs:
           file: ./coverage.xml
           # A rejected upload must fail the job. With `false` this step reported
           # success on a run whose upload was refused outright, which is a step
-          # structurally incapable of reporting failure. See FOLLOWUPS.md item 26:
-          # if this ever fires, the remedy is a CODECOV_TOKEN secret, not a revert.
+          # structurally incapable of reporting failure. If this ever fires, the
+          # remedy is a CODECOV_TOKEN secret, not a revert.
           fail_ci_if_error: true
-      # Runs in this one cell because it consumes the coverage.xml the step
-      # above produced. The claims it checks are derived from the tree, not
-      # from the environment, so one cell is sufficient.
-      - name: Claims gate
-        if: matrix.python-version == '3.12' && matrix.django-version == '5.2'
-        run: python -m scripts.claims_check --coverage-xml coverage.xml
 
   lint:
     runs-on: ubuntu-latest

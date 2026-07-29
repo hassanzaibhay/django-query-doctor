@@ -53,7 +53,7 @@ class ValidCustomAnalyzer(BaseAnalyzer):
 
 
 class InvalidPlugin:
-    """Not a BaseAnalyzer subclass — should be rejected."""
+    """Not a BaseAnalyzer subclass -- should be rejected."""
 
     name = "invalid"
 

@@ -20,7 +20,7 @@ query_doctor_report.html
 benchmarks/report.html
 benchmarks/results.json
 
-# local planning / scratch — never tracked
+# local planning / scratch -- never tracked
 .scratch/
 
 # Secrets / environments

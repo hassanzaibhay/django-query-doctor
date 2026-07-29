@@ -1,5 +1,5 @@
 """
-DRF serializers — triggering DRF N+1 analyzer.
+DRF serializers -- triggering DRF N+1 analyzer.
 """
 
 from rest_framework import serializers
@@ -26,7 +26,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class BookSerializer(serializers.ModelSerializer):
-    # BUG: DRF N+1 — nested serializers without prefetch on viewset
+    # BUG: DRF N+1 -- nested serializers without prefetch on viewset
     author = AuthorSerializer(read_only=True)
     publisher = PublisherSerializer(read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True, source="reviews.all")

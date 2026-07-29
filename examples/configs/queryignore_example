@@ -1,8 +1,8 @@
-# .queryignore — Query Doctor Ignore Rules
+# .queryignore -- Query Doctor Ignore Rules
 # ==========================================
 # Place this file in your project root (same level as manage.py)
 #
-# SCOPE: these rules are honored on every surface that reports findings — the
+# SCOPE: these rules are honored on every surface that reports findings -- the
 # middleware, the check_queries / fix_queries / diagnose_project commands, the
 # diagnose_queries() context manager, the pytest plugin, and the Celery
 # integration. See docs/guides/query-ignore.md ("Where It Applies") for the
@@ -10,23 +10,23 @@
 # which rot.
 #
 # Supported rule types (see docs/guides/query-ignore.md for full semantics):
-#   sql:<pattern>       — Ignore findings whose DESCRIPTION or raw SQL matches
+#   sql:<pattern>       -- Ignore findings whose DESCRIPTION or raw SQL matches
 #                         the pattern (substring glob; % = wildcard). Matches a
 #                         table name in either the description or the query SQL.
-#   file:<pattern>      — Ignore findings from matching file paths (fnmatch glob
+#   file:<pattern>      -- Ignore findings from matching file paths (fnmatch glob
 #                         against the FULL path, so start patterns with *)
-#   callsite:<file>:<line> — Ignore one exact callsite. Must equal the path
+#   callsite:<file>:<line> -- Ignore one exact callsite. Must equal the path
 #                         exactly as printed in the report (usually absolute).
-#   ignore:<issue_type>:<path>[:<note>] — Ignore one issue type where the path
+#   ignore:<issue_type>:<path>[:<note>] -- Ignore one issue type where the path
 #                         CONTAINS the given substring (not a glob). Issue types
 #                         are the enum values: n_plus_one, duplicate_query,
 #                         missing_index, fat_select, queryset_eval, complexity,
 #                         serializer_method_field.
 #
 # Lines starting with # are comments. Blank lines are ignored. Malformed
-# lines are silently dropped — double-check spelling.
+# lines are silently dropped -- double-check spelling.
 
-# Django internals — these are fine (matches the table name in descriptions)
+# Django internals -- these are fine (matches the table name in descriptions)
 sql:%django_session%
 sql:%django_content_type%
 sql:%auth_permission%
@@ -42,7 +42,7 @@ file:*myapp/management/commands/seed_data.py
 ignore:n_plus_one:django/contrib/admin
 
 # Legacy view we can't refactor until Q3
-# (callsite must match the reported path exactly — copy it from the report)
+# (callsite must match the reported path exactly -- copy it from the report)
 callsite:/app/myapp/views.py:287
 ignore:n_plus_one:myapp/views.py:LegacyOrderExportView
 

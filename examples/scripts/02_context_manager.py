@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Example 2: Context Manager — diagnose_queries()
+Example 2: Context Manager -- diagnose_queries()
 
 Use in tests, scripts, or anywhere you want targeted diagnosis.
 """

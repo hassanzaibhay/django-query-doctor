@@ -134,7 +134,7 @@ def _now_iso() -> str:
 class ProjectDiagnoser:
     """Diagnose all URLs in the project.
 
-    Uses Django's test Client to make requests internally — no running
+    Uses Django's test Client to make requests internally -- no running
     server needed. This is the same approach as Django's test framework.
     """
 

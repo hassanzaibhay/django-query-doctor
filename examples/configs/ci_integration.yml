@@ -48,7 +48,7 @@ jobs:
       - name: Seed test data
         run: python manage.py seed_data --users 10 --products 20
 
-      # check_queries analyzes one URL per invocation — run it once per endpoint
+      # check_queries analyzes one URL per invocation -- run it once per endpoint
       - name: Check queries (diff-aware)
         run: |
           python manage.py check_queries \

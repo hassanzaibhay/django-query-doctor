@@ -41,7 +41,7 @@ _FROM_TABLE_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Default threshold — flag SELECTs with this many columns or more
+# Default threshold -- flag SELECTs with this many columns or more
 _DEFAULT_FIELD_COUNT_THRESHOLD = 8
 
 

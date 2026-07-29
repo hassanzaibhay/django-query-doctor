@@ -322,7 +322,7 @@ def main() -> None:
     json_path.write_text(json.dumps(all_results, indent=2), encoding="utf-8")
     print(f"Results saved: {json_path}")
 
-    # Generate HTML report (compilation-only results — the real story)
+    # Generate HTML report (compilation-only results -- the real story)
     from benchmarks.report import generate_html_report
 
     html_path = str(benchmarks_dir / "report.html")

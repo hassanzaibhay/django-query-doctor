@@ -1,5 +1,5 @@
 """
-CI/CD configuration — strict, fail on any critical issue.
+CI/CD configuration -- strict, fail on any critical issue.
 Use with: python manage.py check_queries --fail-on critical
 """
 

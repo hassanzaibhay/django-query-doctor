@@ -263,7 +263,7 @@ class TestQueryFixerApplyFixes:
         assert not backup.exists()
 
     def test_apply_skips_nplusone_as_unsafe(self, tmp_path: Path) -> None:
-        """N_PLUS_ONE fixes are not in the auto-appliable allowlist — skipped, not written."""
+        """N_PLUS_ONE fixes are not in the auto-appliable allowlist -- skipped, not written."""
         source = tmp_path / "views.py"
         source.write_text("    books = Book.objects.all()\n")
         fix = ProposedFix(
@@ -282,7 +282,7 @@ class TestQueryFixerApplyFixes:
         assert fixer.last_skipped_unsafe[0].prescription.issue_type == IssueType.N_PLUS_ONE
 
     def test_apply_skips_fat_select_as_unsafe(self, tmp_path: Path) -> None:
-        """FAT_SELECT fixes are not in the auto-appliable allowlist — skipped, not written."""
+        """FAT_SELECT fixes are not in the auto-appliable allowlist -- skipped, not written."""
         source = tmp_path / "views.py"
         source.write_text("    books = Book.objects.all()\n")
         fix = ProposedFix(
@@ -300,7 +300,7 @@ class TestQueryFixerApplyFixes:
         assert len(fixer.last_skipped_unsafe) == 1
 
     def test_apply_skips_drf_serializer_as_unsafe(self, tmp_path: Path) -> None:
-        """DRF_SERIALIZER fixes are not in the auto-appliable allowlist — skipped, not written."""
+        """DRF_SERIALIZER fixes are not in the auto-appliable allowlist -- skipped, not written."""
         source = tmp_path / "views.py"
         source.write_text("    name = book.author.name\n")
         fix = ProposedFix(
@@ -384,7 +384,7 @@ class TestQueryFixerApplyFixes:
         fix = ProposedFix(
             file_path=str(source),
             original_line="x = 1\n",
-            fixed_line="x = (\n",  # unbalanced paren — invalid Python
+            fixed_line="x = (\n",  # unbalanced paren -- invalid Python
             line_number=1,
             description="Broken fix",
             prescription=_make_prescription(

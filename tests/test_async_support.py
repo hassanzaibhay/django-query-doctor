@@ -176,8 +176,8 @@ class TestInterceptorInstanceSeparation:
     """Two interceptor instances do not share a query list.
 
     Named for what it actually establishes. This passes on instance
-    separation alone — a plain ``self._queries = []`` attribute would satisfy
-    it — so it is not evidence about contextvars, despite the storage being a
+    separation alone -- a plain ``self._queries = []`` attribute would satisfy
+    it -- so it is not evidence about contextvars, despite the storage being a
     ``ContextVar``. See docs/deep-dive/architecture.md, "What that test does
     and does not establish", for why no test here discriminates the two.
     """

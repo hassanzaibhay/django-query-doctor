@@ -1,6 +1,6 @@
 """Tests for the AST-based SerializerMethodField N+1 analyzer.
 
-Test serializer classes are defined inline — no real Django models needed
+Test serializer classes are defined inline -- no real Django models needed
 since the analyzer reads source code statically via ast.parse().
 """
 
@@ -22,7 +22,7 @@ from query_doctor.types import IssueType, Severity  # noqa: E402
 
 
 class GoodSerializer(serializers.Serializer):
-    """No SerializerMethodField — should produce 0 prescriptions."""
+    """No SerializerMethodField -- should produce 0 prescriptions."""
 
     name = serializers.CharField()
 
@@ -38,7 +38,7 @@ class SafeSerializer(serializers.Serializer):
 
 
 class BadCountSerializer(serializers.Serializer):
-    """Pattern 1: Related manager access — obj.items.count()."""
+    """Pattern 1: Related manager access -- obj.items.count()."""
 
     total = serializers.SerializerMethodField()
 
@@ -58,7 +58,7 @@ class BadFilterSerializer(serializers.Serializer):
 
 
 class BadChainSerializer(serializers.Serializer):
-    """Pattern 3: Deep attribute chain — obj.author.name."""
+    """Pattern 3: Deep attribute chain -- obj.author.name."""
 
     author_name = serializers.SerializerMethodField()
 

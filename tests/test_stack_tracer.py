@@ -41,7 +41,7 @@ class TestCaptureCallsite:
 
     def test_exclude_modules(self) -> None:
         """Custom exclude_modules should filter out matching frames."""
-        # Exclude this test module — should still find a frame (pytest runner)
+        # Exclude this test module -- should still find a frame (pytest runner)
         result = capture_callsite(exclude_modules=["test_stack_tracer"])
         # Should either return None or a different file
         if result is not None:

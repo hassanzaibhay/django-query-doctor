@@ -86,7 +86,7 @@ class TestFatSelectPositive:
 
         # Even with fewer fields, if we detect large fields, it should flag
         results = analyzer.analyze(queries)
-        # This may or may not flag depending on threshold — the key is no crash
+        # This may or may not flag depending on threshold -- the key is no crash
         assert isinstance(results, list)
 
     def test_callsite_preserved(self) -> None:
