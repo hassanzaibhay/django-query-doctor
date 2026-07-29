@@ -77,8 +77,9 @@ mypy src/query_doctor/
 - Use the PR template (`.github/pull_request_template.md`) — it prompts for
   the summary, type, exact CHANGELOG entry, testing performed, and a
   pre-merge checklist.
-- Add your change under `## [Unreleased]` in `CHANGELOG.md` (see
-  [Changelog](#changelog) below). Do not scatter version notes elsewhere.
+- If your change is user-facing, add it under `## [Unreleased]` in
+  `CHANGELOG.md` (see [Changelog](#changelog) below for the test). Do not
+  scatter version notes elsewhere.
 - GitHub's `main-protection` ruleset guards `main`. It is configured by the
   repo owner in GitHub settings; it is not something contributors or tooling
   configure from the CLI. It enforces: pull request required before merge,
@@ -113,11 +114,17 @@ judgement made by whoever reviews the PR.
 
 `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The `## [Unreleased]` section at the top collects changes since the last
-release. Every PR that changes behavior, fixes a bug, or adds a feature
-should add a line under `[Unreleased]` (in `### Added` / `### Changed` /
-`### Fixed` / `### Removed` as appropriate). On release, `[Unreleased]` is
-renamed to the version heading and a new empty `[Unreleased]` is added above
-it.
+release. Add a line under `[Unreleased]` (in `### Added` / `### Changed` /
+`### Fixed` / `### Removed` as appropriate) if, and only if, someone who runs
+`pip install django-query-doctor` could act on your change: a behavior change,
+a new or removed feature, a breaking change, a bug fix, a packaging or version
+change, or a correction to documentation they read. Changes to this
+repository's own development process stay out, however useful: CI wiring,
+pre-commit or pre-push hooks, lint or type-check coverage of `scripts/`, PR
+templates, this guide, coverage-upload settings, badges. Shipping a feature
+*for* users' CI is user-facing; changing *our* CI is not. On release,
+`[Unreleased]` is renamed to the version heading and a new empty
+`[Unreleased]` is added above it.
 
 Version headings carry the actual PyPI upload date. A version that is staged
 but not yet published uses `- Unreleased` in place of the date; setting the

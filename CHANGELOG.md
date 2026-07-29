@@ -8,8 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- The docs truth sweep now runs in CI and as a pre-push hook. It was not wired
-  into anything before; it had to be remembered.
 - The `query_doctor` pytest fixture now produces observable output. A
   `pytest_terminal_summary` hook prints a `query_doctor` section at end of
   session: one header line with the number of fixture-using tests observed and
@@ -55,24 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   anything else. Note for contributors: bumping the version requires
   `pip install -e "."` before the suite passes, because distribution metadata is
   snapshotted at install time.
-- CI and the pre-push hooks now invoke the gate scripts identically
-  (`python -m scripts.x`). The paths already matched; the invocation form did
-  not, and the two forms put different directories on `sys.path[0]`.
-- `Upload coverage` in CI sets `fail_ci_if_error: true`. It previously reported
-  success on a run whose upload was refused outright.
-- `scripts/` is now linted and type-checked. `ruff` and `mypy` covered
-  `src/` and `tests/` only, in both the hooks and CI, while `scripts/` holds the
-  docs truth sweep and the hook launcher that every other check runs through.
-- Pre-push hooks no longer resolve `ruff`, `mypy` and `pytest` from `PATH`.
-  Every entry now runs through `scripts/hookenv.py`, which resolves this
-  repository's virtualenv explicitly (both the `Scripts/` and `bin/` layouts),
-  fails loudly when a tool is not importable in that interpreter instead of
-  falling back, and prints which interpreter it used so each run states its own
-  provenance. Contributor-facing only; no runtime behaviour changes. Verified
-  from a shell with no venv on `PATH`: previously `Executable ruff not found`,
-  `Executable mypy not found`, and a `pytest` hook exiting 1 with no output
-  from an unrelated system interpreter; now all four pass under the repository
-  venv.
 
 ### Removed
 - `IGNORE_PATTERNS` from the default configuration. No code path ever read it;
@@ -141,11 +121,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   workload instead of guessing. No behaviour change — the analysis stays
   synchronous, which is now defensible because analyzer discovery no longer
   costs ~8 ms per call.
-- `CONTRIBUTING.md` and `.pre-commit-config.yaml`: the claim that `main` is
-  guarded by required status checks was false. The `main-protection` ruleset
-  requires a pull request, resolved review threads, linear history and signed
-  commits, and blocks force-push and deletion, but requires no status check.
-  The three sentences asserting otherwise now describe the measured ruleset.
 
 ## [2.1.2] - 2026-07-22
 
@@ -322,22 +297,7 @@ failing the check. See `UPGRADING.md` for the full 2.1.0 upgrade checklist.
 > PyPI in 2.1.0. To check whether a 2.0.0 `--apply` run already damaged
 > your source, see `UPGRADING.md`.
 
-### Added
-- `.github/pull_request_template.md` — PR template (summary, type, changelog
-  entry, testing, checklist).
-
 ### Changed
-- `CONTRIBUTING.md` codifies the PR workflow: all changes via `feat/*` or
-  `fix/*` branch → PR → review → squash-merge to `main`. No direct pushes
-  to `main`.
-- `CHANGELOG.md` adopts [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
-  format with an `[Unreleased]` section at the top. Every PR adds its entry
-  here; on release, `[Unreleased]` is promoted to the version heading.
-- `.github/pull_request_template.md`: replaced the changelog-entry example
-  (previously tied to this very fix, before it shipped) with a generic
-  placeholder; split `breaking` out of the mutually-exclusive `## Type` list
-  into its own `Breaking change?` question; dropped the redundant
-  no-direct-to-main checkbox now that the branch ruleset enforces it.
 - `docs/getting-started/configuration.md`: full rewrite. The previous
   example used dotted class paths for `ANALYZERS` and dotted-path
   `REPORTERS`, neither of which the code accepts; documented fictional keys
@@ -471,8 +431,6 @@ failing the check. See `UPGRADING.md` for the full 2.1.0 upgrade checklist.
 ### Changed
 - Added SVG terminal renders to README for visual feature showcase
 - Added Django 6.0 mention in README requirements
-- Cleaned up committed __pycache__ artifacts
-- Updated .gitignore with additional exclusions
 
 ## [1.0.0] - 2026-03-13
 
