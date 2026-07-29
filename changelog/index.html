@@ -1964,6 +1964,11 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   workload instead of guessing. No behaviour change — the analysis stays
   synchronous, which is now defensible because analyzer discovery no longer
   costs ~8 ms per call.</li>
+<li><code>CONTRIBUTING.md</code> and <code>.pre-commit-config.yaml</code>: the claim that <code>main</code> is
+  guarded by required status checks was false. The <code>main-protection</code> ruleset
+  requires a pull request, resolved review threads, linear history and signed
+  commits, and blocks force-push and deletion, but requires no status check.
+  The three sentences asserting otherwise now describe the measured ruleset.</li>
 </ul>
 <h2 id="212-2026-07-22">[2.1.2] - 2026-07-22<a class="headerlink" href="#212-2026-07-22" title="Permanent link">&para;</a></h2>
 <h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
