@@ -1,5 +1,6 @@
 # Pre-push checks -- local convenience, not enforcement.
-# `git push --no-verify` bypasses this; CI required status checks are the real gate.
+# `git push --no-verify` bypasses this. CI runs on every PR but is not a
+# required status check -- a reviewer reading the CI result is the real gate.
 # One-time setup: pre-commit install --hook-type pre-push
 #
 # Every entry runs through `scripts/hookenv.py`, which resolves this

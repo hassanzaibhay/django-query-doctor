@@ -79,10 +79,14 @@ mypy src/query_doctor/
   pre-merge checklist.
 - Add your change under `## [Unreleased]` in `CHANGELOG.md` (see
   [Changelog](#changelog) below). Do not scatter version notes elsewhere.
-- GitHub branch protection on `main` (require PR before merge, require
-  status checks, disallow force-push) is enabled by the repo owner in
-  GitHub settings — it is not something contributors or tooling configure
-  from the CLI.
+- GitHub's `main-protection` ruleset guards `main`. It is configured by the
+  repo owner in GitHub settings; it is not something contributors or tooling
+  configure from the CLI. It enforces: pull request required before merge,
+  unresolved review threads block merging, force-push blocked, branch
+  deletion blocked, linear history, and signed commits. It requires **no**
+  approving reviews and **no status checks**, so a red CI run does not
+  mechanically block a merge. Keeping the gates green before merge is a
+  convention this project holds by review, not a rule GitHub enforces.
 
 ### Optional: pre-push hook
 
@@ -100,8 +104,10 @@ explicitly rather than reading `PATH`, and prints which one it used.
 
 **This is local convenience, not enforcement.** `git push --no-verify`
 bypasses it, and a contributor who hasn't run `pre-commit install` gets no
-gate at all. The real wall is CI's required status checks (branch
-protection on `main`), not this hook.
+gate at all. Nor is CI a mechanical wall: the `main-protection` ruleset
+requires a pull request but does not require any status check, so CI failing
+will not by itself stop a merge. Whether a red run blocks a merge is a
+judgement made by whoever reviews the PR.
 
 ## Changelog
 
