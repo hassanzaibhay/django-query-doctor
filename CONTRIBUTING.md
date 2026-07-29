@@ -94,8 +94,9 @@ pre-commit install --hook-type pre-push
 
 This runs `ruff check`, `ruff format --check`, `mypy`, the docs truth sweep,
 and `pytest` on `git push`; any failure aborts the push. It needs the dev
-deps (`pip install -e ".[dev]"`) on `PATH` — normally your activated
-virtualenv.
+deps (`pip install -e ".[dev]"`) installed in your active environment —
+normally your virtualenv. `scripts/hookenv.py` resolves that interpreter
+explicitly rather than reading `PATH`, and prints which one it used.
 
 **This is local convenience, not enforcement.** `git push --no-verify`
 bypasses it, and a contributor who hasn't run `pre-commit install` gets no
