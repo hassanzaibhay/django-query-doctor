@@ -83,3 +83,27 @@ jobs:
       # with no project dependencies.
       - name: Docs truth sweep
         run: python -m scripts.docs_truth_sweep
+
+  # Deliberately a separate job from `docs-gate`, not another step in it.
+  # `docs-gate` documents itself as needing no install because the sweep
+  # imports nothing from the package; the strict build needs
+  # `pip install -e ".[docs]"`, so folding it in would silently invalidate
+  # that property. Before this job existed the strict build ran only in a
+  # contributor's terminal: `docs.yml` runs `mkdocs gh-deploy --force` on
+  # push to `main`, which builds without `--strict` and only after a merge.
+  docs-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `mkdocs-git-revision-date-localized-plugin` reads commit history
+          # for every page. A shallow clone makes it fall back to the current
+          # timestamp, and `--strict` promotes build warnings to errors.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e ".[docs]"
+      - name: Build docs strictly
+        run: mkdocs build --strict
