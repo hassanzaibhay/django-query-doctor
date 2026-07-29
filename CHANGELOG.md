@@ -141,6 +141,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   workload instead of guessing. No behaviour change — the analysis stays
   synchronous, which is now defensible because analyzer discovery no longer
   costs ~8 ms per call.
+- `CONTRIBUTING.md` and `.pre-commit-config.yaml`: the claim that `main` is
+  guarded by required status checks was false. The `main-protection` ruleset
+  requires a pull request, resolved review threads, linear history and signed
+  commits, and blocks force-push and deletion, but requires no status check.
+  The three sentences asserting otherwise now describe the measured ruleset.
 
 ## [2.1.2] - 2026-07-22
 
