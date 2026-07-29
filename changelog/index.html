@@ -1825,8 +1825,6 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
-<li>The docs truth sweep now runs in CI and as a pre-push hook. It was not wired
-  into anything before; it had to be remembered.</li>
 <li>The <code>query_doctor</code> pytest fixture now produces observable output. A
   <code>pytest_terminal_summary</code> hook prints a <code>query_doctor</code> section at end of
   session: one header line with the number of fixture-using tests observed and
@@ -1876,24 +1874,6 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   <code>pip install -e "."</code> before the suite passes, because distribution metadata is
   snapshotted at install time.</p>
 </li>
-<li>CI and the pre-push hooks now invoke the gate scripts identically
-  (<code>python -m scripts.x</code>). The paths already matched; the invocation form did
-  not, and the two forms put different directories on <code>sys.path[0]</code>.</li>
-<li><code>Upload coverage</code> in CI sets <code>fail_ci_if_error: true</code>. It previously reported
-  success on a run whose upload was refused outright.</li>
-<li><code>scripts/</code> is now linted and type-checked. <code>ruff</code> and <code>mypy</code> covered
-  <code>src/</code> and <code>tests/</code> only, in both the hooks and CI, while <code>scripts/</code> holds the
-  docs truth sweep and the hook launcher that every other check runs through.</li>
-<li>Pre-push hooks no longer resolve <code>ruff</code>, <code>mypy</code> and <code>pytest</code> from <code>PATH</code>.
-  Every entry now runs through <code>scripts/hookenv.py</code>, which resolves this
-  repository's virtualenv explicitly (both the <code>Scripts/</code> and <code>bin/</code> layouts),
-  fails loudly when a tool is not importable in that interpreter instead of
-  falling back, and prints which interpreter it used so each run states its own
-  provenance. Contributor-facing only; no runtime behaviour changes. Verified
-  from a shell with no venv on <code>PATH</code>: previously <code>Executable ruff not found</code>,
-  <code>Executable mypy not found</code>, and a <code>pytest</code> hook exiting 1 with no output
-  from an unrelated system interpreter; now all four pass under the repository
-  venv.</li>
 </ul>
 <h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1964,11 +1944,6 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   workload instead of guessing. No behaviour change — the analysis stays
   synchronous, which is now defensible because analyzer discovery no longer
   costs ~8 ms per call.</li>
-<li><code>CONTRIBUTING.md</code> and <code>.pre-commit-config.yaml</code>: the claim that <code>main</code> is
-  guarded by required status checks was false. The <code>main-protection</code> ruleset
-  requires a pull request, resolved review threads, linear history and signed
-  commits, and blocks force-push and deletion, but requires no status check.
-  The three sentences asserting otherwise now describe the measured ruleset.</li>
 </ul>
 <h2 id="212-2026-07-22">[2.1.2] - 2026-07-22<a class="headerlink" href="#212-2026-07-22" title="Permanent link">&para;</a></h2>
 <h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
@@ -2148,24 +2123,8 @@ including the <code>fix_queries --apply</code> corruption fix below — first re
 PyPI in 2.1.0. To check whether a 2.0.0 <code>--apply</code> run already damaged
 your source, see <code>UPGRADING.md</code>.</p>
 </blockquote>
-<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
-<ul>
-<li><code>.github/pull_request_template.md</code> — PR template (summary, type, changelog
-  entry, testing, checklist).</li>
-</ul>
 <h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>CONTRIBUTING.md</code> codifies the PR workflow: all changes via <code>feat/*</code> or
-  <code>fix/*</code> branch → PR → review → squash-merge to <code>main</code>. No direct pushes
-  to <code>main</code>.</li>
-<li><code>CHANGELOG.md</code> adopts <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>
-  format with an <code>[Unreleased]</code> section at the top. Every PR adds its entry
-  here; on release, <code>[Unreleased]</code> is promoted to the version heading.</li>
-<li><code>.github/pull_request_template.md</code>: replaced the changelog-entry example
-  (previously tied to this very fix, before it shipped) with a generic
-  placeholder; split <code>breaking</code> out of the mutually-exclusive <code>## Type</code> list
-  into its own <code>Breaking change?</code> question; dropped the redundant
-  no-direct-to-main checkbox now that the branch ruleset enforces it.</li>
 <li><code>docs/getting-started/configuration.md</code>: full rewrite. The previous
   example used dotted class paths for <code>ANALYZERS</code> and dotted-path
   <code>REPORTERS</code>, neither of which the code accepts; documented fictional keys
@@ -2205,7 +2164,7 @@ your source, see <code>UPGRADING.md</code>.</p>
   <code>drf_serializer</code> is never emitted by the runtime pipeline <code>fix_queries</code>
   uses, so it never reaches the fixer at all.</p>
 <h2 id="200-2026-03-21">[2.0.0] - 2026-03-21<a class="headerlink" href="#200-2026-03-21" title="Permanent link">&para;</a></h2>
-<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
+<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>QueryTurbo</strong>: SQL compilation cache with three-phase trust lifecycle
   (UNTRUSTED → TRUSTED → POISONED). On cache miss, compiles and caches.
@@ -2301,8 +2260,6 @@ history; its changes first shipped to PyPI as part of 2.0.0.</p>
 <ul>
 <li>Added SVG terminal renders to README for visual feature showcase</li>
 <li>Added Django 6.0 mention in README requirements</li>
-<li>Cleaned up committed <strong>pycache</strong> artifacts</li>
-<li>Updated .gitignore with additional exclusions</li>
 </ul>
 <h2 id="100-2026-03-13">[1.0.0] - 2026-03-13<a class="headerlink" href="#100-2026-03-13" title="Permanent link">&para;</a></h2>
 <blockquote>
@@ -2317,7 +2274,7 @@ render project-report data; that dead code — the function, its global, and
 the unused context key — was removed in 2.2.0. The original entries are
 preserved unchanged below.</p>
 </blockquote>
-<h3 id="added_5">Added<a class="headerlink" href="#added_5" title="Permanent link">&para;</a></h3>
+<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
 <h4 id="core-pipeline">Core Pipeline<a class="headerlink" href="#core-pipeline" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Query interception via <code>connection.execute_wrapper()</code> — works without <code>DEBUG=True</code></li>
