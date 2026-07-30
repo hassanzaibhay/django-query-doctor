@@ -13,10 +13,16 @@ rows.
 
 It groups non-`SELECT` captures by fingerprint -- normalization collapses the
 literal values, so the same statement shape repeated in a loop shares a single
-fingerprint -- and reports any group that reaches the threshold. Transaction
-control statements (`BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT`) are captured the
-same way a write is, and are excluded, so a request that opens several
-transactions is not reported as a write N+1.
+fingerprint -- and reports any group that reaches the threshold. Three kinds of
+non-`SELECT` statement are excluded before grouping, because none of them is a
+repeated single-row write:
+
+- **Transaction control** (`BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT`) is
+  captured the same way a write is, so a request opening several transactions
+  would otherwise be reported.
+- **Schema statements** (`CREATE`, `ALTER`, `DROP`) write no rows; a migration
+  creating several tables would otherwise be reported.
+- **Multi-row `INSERT`s**, which are the bulk form this analyzer prescribes.
 
 ## Problem Code
 
@@ -93,8 +99,12 @@ And for deletes, go through the queryset rather than per object:
 Book.objects.filter(status="expired").delete()   # one DELETE
 ```
 
-`bulk_create()` emits a single multi-row `INSERT`, which is one capture and
-never reaches the threshold -- so applying the prescription clears the finding.
+Applying the prescription clears the finding: multi-row `INSERT` statements are
+rejected outright, so the bulk form is never reported as the problem. This is not
+merely a matter of the batch being one query -- Django splits `bulk_create()`
+into several equal multi-row `INSERT`s whenever `batch_size=` is passed, or when
+the backend caps parameters per statement (SQLite's 999-variable limit, MySQL's
+packet size), and those batches share a fingerprint.
 
 ## Prescription Output
 

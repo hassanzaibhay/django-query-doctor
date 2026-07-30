@@ -109,17 +109,42 @@ class TestWriteNPlusOneDetection:
 
         assert WriteNPlusOneAnalyzer().analyze(selects) == []
 
-    def test_a_single_multi_row_insert_is_not_flagged(self) -> None:
-        """bulk_create() emits one INSERT with many value tuples.
+    def test_multi_row_inserts_are_never_flagged(self) -> None:
+        """A multi-row INSERT is the prescribed fix and must never be the finding.
 
-        The prescribed fix must not itself trip the rule.
+        Five of them, so this fails if the rule only passes because a single
+        capture sits below the threshold -- which is what an earlier version of
+        this test actually asserted, despite its name.
         """
         bulk = _write(
             'INSERT INTO "testapp_book" ("title") VALUES (%s), (%s), (%s), (%s), (%s)',
-            1,
+            5,
         )
 
         assert WriteNPlusOneAnalyzer().analyze(bulk) == []
+
+    def test_single_row_insert_is_still_flagged_at_the_same_count(self) -> None:
+        """Positive control for the multi-row rule.
+
+        Identical shape and count as the test above, one tuple instead of five.
+        Without this, a rule that rejected every INSERT would pass that test.
+        """
+        single = _write('INSERT INTO "testapp_book" ("title") VALUES (%s)', 5)
+
+        assert len(WriteNPlusOneAnalyzer().analyze(single)) == 1
+
+    def test_a_parenthesised_value_is_not_counted_as_a_row(self) -> None:
+        """Row counting is depth-aware, so a subquery inside one row stays one row."""
+        nested = _write(
+            'INSERT INTO "testapp_book" ("title", "author_id") '
+            'VALUES (%s, (SELECT "id" FROM "testapp_author" WHERE "name" = %s))',
+            5,
+        )
+
+        prescriptions = WriteNPlusOneAnalyzer().analyze(nested)
+
+        assert len(prescriptions) == 1
+        assert prescriptions[0].extra["statement"] == "insert"
 
     def test_ddl_is_not_a_row_write(self) -> None:
         """Schema statements are non-SELECT but write no rows, so they must be ignored.
@@ -134,6 +159,23 @@ class TestWriteNPlusOneDetection:
             'DROP TABLE "t"',
         ):
             assert WriteNPlusOneAnalyzer().analyze(_write(statement, 5)) == [], statement
+
+    def test_statements_with_no_row_tuples_are_single_row(self) -> None:
+        """``INSERT ... SELECT`` and ``DEFAULT VALUES`` carry no tuples.
+
+        Neither is a bulk insert, so a loop issuing either is still a finding.
+        ``DEFAULT VALUES`` is the one that could go wrong quietly: it contains the
+        VALUES keyword, so the count has to come from the tuples rather than from
+        the keyword's presence.
+        """
+        for statement in (
+            'INSERT INTO "testapp_book" ("title") SELECT "title" FROM "old_book"',
+            'INSERT INTO "testapp_book" DEFAULT VALUES',
+        ):
+            prescriptions = WriteNPlusOneAnalyzer().analyze(_write(statement, 5))
+
+            assert len(prescriptions) == 1, statement
+            assert prescriptions[0].extra["statement"] == "insert"
 
     def test_writes_to_different_tables_do_not_group(self) -> None:
         """Grouping is per statement shape, so two tables below threshold stay silent."""
@@ -255,6 +297,45 @@ class TestWriteNPlusOneAgainstRealDjango:
         assert len(updates) == 1
         assert updates[0].query_count == 4
         assert "bulk_update" in updates[0].fix_suggestion
+
+    def test_batched_bulk_create_produces_no_finding(self) -> None:
+        """Regression: bulk_create(batch_size=N) splits into several INSERTs.
+
+        Nine objects at batch_size=3 emit three multi-row INSERTs sharing one
+        fingerprint, which clears the default threshold of 3. Before the
+        multi-row check this reported "3 single-row INSERT statements" -- the
+        prescribed fix reported as the defect, and reachable without user error
+        because Django also batches when the backend caps parameters per
+        statement (SQLite's 999-variable limit, MySQL's packet size).
+        """
+        author = AuthorFactory()
+        publisher = PublisherFactory()
+
+        def batched_bulk_create() -> None:
+            from tests.testapp.models import Book
+
+            Book.objects.bulk_create(
+                [
+                    Book(
+                        title=f"t{i}",
+                        isbn=f"isbn-batch-{i}",
+                        author=author,
+                        publisher=publisher,
+                    )
+                    for i in range(9)
+                ],
+                batch_size=3,
+            )
+
+        captured = self._capture(batched_bulk_create)
+
+        # The premise of the regression: three same-fingerprint INSERTs really
+        # were captured, so an empty result below cannot come from capturing none.
+        inserts = [q for q in captured if q.normalized_sql.lstrip().startswith("insert")]
+        assert len(inserts) == 3
+        assert len({q.fingerprint for q in inserts}) == 1
+
+        assert WriteNPlusOneAnalyzer().analyze(captured) == []
 
     def test_bulk_create_produces_no_finding(self) -> None:
         """Positive control for the fix: applying the prescription clears the finding.

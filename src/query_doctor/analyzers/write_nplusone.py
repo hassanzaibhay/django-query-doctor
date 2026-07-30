@@ -10,14 +10,18 @@ reads FROM and JOIN clauses only, so an INSERT or UPDATE capture arrives with an
 empty ``tables`` list and the table name has to come from the statement itself.
 
 Algorithm:
-1. Keep non-SELECT captures, dropping transaction-control statements.
+1. Keep non-SELECT captures, dropping transaction control, DDL and multi-row
+   INSERTs -- none of which is a repeated single-row write.
 2. Classify each as insert, update or delete, and read its target table.
 3. Group by fingerprint -- normalization collapses literals, so the same
    statement shape repeated in a loop shares one fingerprint.
 4. For each group at or over the threshold, prescribe the bulk equivalent.
 
-A single multi-row INSERT -- what ``bulk_create()`` emits -- is one capture and
-never reaches the threshold, so applying the prescription clears the finding.
+Multi-row INSERTs -- what ``bulk_create()`` emits -- are rejected outright, so
+applying the prescription clears the finding. Counting captures would not be
+enough: Django splits ``bulk_create()`` into several equal multi-row INSERTs
+whenever ``batch_size=`` is passed or the backend caps parameters per statement,
+and those batches share a fingerprint.
 """
 
 from __future__ import annotations
@@ -61,6 +65,9 @@ _UPDATE_RE = re.compile(r'^update\s+"?(\w+)"?', re.IGNORECASE)
 # DELETE FROM "table" WHERE ...
 _DELETE_RE = re.compile(r'^delete\s+from\s+"?(\w+)"?', re.IGNORECASE)
 
+# The VALUES keyword introducing an INSERT's row tuples.
+_VALUES_RE = re.compile(r"\bvalues\b", re.IGNORECASE)
+
 _STATEMENT_PATTERNS = (
     ("insert", _INSERT_RE),
     ("update", _UPDATE_RE),
@@ -102,11 +109,41 @@ def _model_name_for_table(table_name: str) -> str | None:
     return None
 
 
+def _values_tuple_count(statement: str) -> int:
+    """Count top-level tuples in an INSERT's VALUES clause.
+
+    A depth-aware scan rather than a regex: a value can itself contain
+    parentheses, and counting "(" would read one row with a subquery as many
+    rows.
+
+    Returns 0 for a statement with no row tuples, which covers both
+    ``INSERT ... SELECT`` (no VALUES keyword) and ``INSERT ... DEFAULT VALUES``
+    (the keyword is present but introduces nothing). Both are treated as
+    single-row rather than bulk, so a loop issuing either is still reported.
+    """
+    match = _VALUES_RE.search(statement)
+    if match is None:
+        return 0
+
+    depth = 0
+    tuples = 0
+    for char in statement[match.end() :]:
+        if char == "(":
+            if depth == 0:
+                tuples += 1
+            depth += 1
+        elif char == ")":
+            if depth > 0:
+                depth -= 1
+
+    return tuples
+
+
 def _classify(normalized_sql: str) -> tuple[str, str] | None:
     """Classify a normalized statement as (kind, table).
 
-    Returns None for anything that is not a single-table write, including
-    transaction control statements.
+    Returns None for anything that is not a repeated *single-row* write:
+    transaction control, DDL, and multi-row INSERTs.
     """
     statement = normalized_sql.lstrip()
 
@@ -116,6 +153,17 @@ def _classify(normalized_sql: str) -> tuple[str, str] | None:
     for kind, pattern in _STATEMENT_PATTERNS:
         match = pattern.match(statement)
         if match:
+            # A multi-row INSERT is the bulk form this analyzer prescribes, so it
+            # must never be reported as the problem. Django splits bulk_create()
+            # into several equal multi-row INSERTs whenever batch_size= is passed
+            # or the backend caps parameters per statement (SQLite's 999-variable
+            # limit, MySQL's packet size), and those batches share a fingerprint.
+            # Without this check, bulk_create(objs, batch_size=3) over 9 objects
+            # emits three INSERTs, clears the default threshold, and is reported
+            # as three "single-row" writes -- the prescribed fix flagged as the
+            # defect.
+            if kind == "insert" and _values_tuple_count(statement) > 1:
+                return None
             return kind, match.group(1)
 
     return None

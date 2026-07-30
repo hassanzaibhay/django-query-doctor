@@ -104,6 +104,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   and no mention in the docs. Use `set_turbo_override` directly.
 
 ### Fixed
+- Prescriptions no longer point at a line inside Django on Debian and Ubuntu
+  system Python. Callsite detection named only three Django ORM modules in its
+  exclude list, so `django/db/models/manager.py` (reached by every
+  `.objects.create()`) and `django/db/models/base.py` (every `.save()`) were
+  skipped only because they happen to live under a path containing
+  `site-packages`. Distributions that install to `dist-packages` instead got a
+  `file:line` inside Django for those queries, making the prescription
+  unactionable — and `fix_queries` would have targeted a Django source file. The
+  whole `django/db` package is now excluded by name, and `dist-packages` is
+  recognised alongside `site-packages`. If you set `STACK_TRACE_EXCLUDE` to work
+  around this, that entry is now redundant but still harmless.
 - The Rich console reporter now selects box-drawing characters from the encoding
   of the stream it writes to, not from stdout. Previously, output aimed at a
   terminal whose encoding differed from stdout's could contain characters the

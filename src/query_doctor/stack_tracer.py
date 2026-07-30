@@ -15,18 +15,33 @@ from query_doctor.types import CallSite
 
 logger = logging.getLogger("query_doctor")
 
-# Modules/paths to always exclude from callsite detection
+# Modules/paths to always exclude from callsite detection.
+#
+# ``django/db`` is excluded wholesale rather than module by module. The list
+# previously named only ``backends``, ``models/sql`` and ``models/query``, which
+# left ``models/manager`` (every ``.objects.create()``) and ``models/base``
+# (every ``.save()``) to be caught incidentally by the "site-packages" substring
+# below -- so on a layout that installs to ``dist-packages`` instead, those
+# frames were returned and prescriptions were attributed inside Django. Nothing
+# under ``django/db`` is ever user code, so naming the package is both narrower
+# to state and broader in effect than enumerating its modules.
 _DEFAULT_EXCLUDE_PATTERNS: list[str] = [
     "query_doctor",
-    "django/db/backends",
-    "django/db/models/sql",
-    "django/db/models/query",
-    "django\\db\\backends",
-    "django\\db\\models\\sql",
-    "django\\db\\models\\query",
+    "django/db",
+    "django\\db",
     "importlib",
     "threading",
     "_bootstrap",
+]
+
+# Installed-package and test-runner paths. Both "site-packages" and
+# "dist-packages" are needed: Debian and Ubuntu system Python use the latter.
+_INSTALL_PATH_PATTERNS: list[str] = [
+    "_pytest",
+    "pluggy",
+    "site-packages",
+    "dist-packages",
+    "runpy.py",
 ]
 
 
@@ -53,8 +68,8 @@ def capture_callsite(
             # Skip frames matching any exclude pattern
             if any(pattern in filename for pattern in exclude):
                 continue
-            # Skip frames from pytest/pluggy internals
-            if any(p in filename for p in ["_pytest", "pluggy", "site-packages", "runpy.py"]):
+            # Skip frames from installed packages and test-runner internals
+            if any(p in filename for p in _INSTALL_PATH_PATTERNS):
                 continue
             user_frames.append(frame)
 

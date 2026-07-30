@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import traceback
+from unittest.mock import patch
+
+import pytest
+
 from query_doctor.stack_tracer import capture_callsite
 from query_doctor.types import CallSite
 
@@ -63,3 +68,72 @@ class TestCaptureCallsite:
         result = inner_function()
         assert result is not None
         assert "test_stack_tracer" in result.filepath
+
+
+class TestInstalledPackageLayouts:
+    """Django ORM frames must be skipped regardless of install path layout.
+
+    ``django/db/models/manager.py`` (every ``.objects.create()``) and
+    ``django/db/models/base.py`` (every ``.save()``) were named nowhere in the
+    exclude list and were skipped only by the ``site-packages`` substring test.
+    Debian and Ubuntu system Python install to ``dist-packages``, so on those
+    layouts the frames survived filtering and every prescription from a create
+    or save was attributed to a line inside Django.
+
+    These drive a synthetic stack rather than a real one so the assertion does
+    not depend on where Django happens to be installed on the machine running
+    the suite -- which is exactly the property that let the defect hide.
+    """
+
+    def _stack(self, *filenames: str) -> list[traceback.FrameSummary]:
+        """Build a synthetic stack, outermost first."""
+        return [
+            traceback.FrameSummary(filename, 10 + i, f"fn{i}")
+            for i, filename in enumerate(filenames)
+        ]
+
+    @pytest.mark.parametrize(
+        "django_frame",
+        [
+            "/usr/local/lib/python3.12/dist-packages/django/db/models/manager.py",
+            "/usr/local/lib/python3.12/dist-packages/django/db/models/base.py",
+            "/usr/local/lib/python3.12/dist-packages/django/db/models/query.py",
+            "/usr/lib/python3/dist-packages/django/db/backends/utils.py",
+            # Backslash form, deliberately not under site-packages: this row
+            # must exercise the "django\\db" pattern, not the install-path check.
+            r"C:\vendor\django\db\models\manager.py",
+        ],
+    )
+    def test_django_orm_frames_are_skipped(self, django_frame: str) -> None:
+        """The user frame wins over a Django ORM frame closer to the query."""
+        stack = self._stack("/app/myapp/views.py", django_frame)
+
+        with patch.object(traceback, "extract_stack", return_value=stack):
+            result = capture_callsite()
+
+        assert result is not None
+        assert result.filepath == "/app/myapp/views.py"
+
+    def test_a_dist_packages_frame_alone_yields_no_callsite(self) -> None:
+        """With only installed-package frames there is no user code to point at."""
+        stack = self._stack(
+            "/usr/local/lib/python3.12/dist-packages/django/db/models/manager.py",
+        )
+
+        with patch.object(traceback, "extract_stack", return_value=stack):
+            assert capture_callsite() is None
+
+    def test_positive_control_user_frame_is_returned(self) -> None:
+        """The synthetic stack is really being read.
+
+        Without this, a capture_callsite() that returned None for every synthetic
+        stack would satisfy the tests above.
+        """
+        stack = self._stack("/app/myapp/views.py")
+
+        with patch.object(traceback, "extract_stack", return_value=stack):
+            result = capture_callsite()
+
+        assert result is not None
+        assert result.filepath == "/app/myapp/views.py"
+        assert result.line_number == 10
