@@ -149,6 +149,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   connection while those methods run on an executor thread holding a different
   one. The section now states the route and carries the counter-case; the claim
   is qualified, not withdrawn.
+- `docs/guides/async-support.md` no longer quotes analysis timings that cannot be
+  regenerated. The guide gave 0.14 / 2.2 / 10.3 ms at 0 / 100 / 500 captured
+  queries, traceable to a measurement whose workload shape was never recorded --
+  and shape is what governs the answer, because the grouping analyzers are
+  O(distinct fingerprints) rather than O(queries) and per-query cost is dominated
+  by how much SQL each analyzer parses. Re-measured against a stated workload the
+  same counts cost 0.14 / 7.4 / 35.2 ms, and a narrow-`SELECT` workload costs
+  3.5x less than a wide one at the same count. The guide now publishes a table
+  with its machine, Django version, analyzer count and workload composition, and
+  `python -m scripts.bench_analyze` regenerates it. The figures also no longer
+  imply they cover reporter cost: `__acall__` blocks the loop for analysis **and**
+  reporting, but only the analysis stage is measured.
 - The hand-embedding caveat in `docs/guides/async-support.md` now gives the
   measured cost of running analysis inline on the caller's event loop. It said
   only that `__acall__` blocks for "the duration of analysis"; it now states

@@ -79,7 +79,46 @@ When the wrapped `get_response` is a coroutine function, the middleware detects 
 Two caveats apply on this route:
 
 - **You own the thread placement.** Django is not adapting the middleware into its thread-sensitive executor here, so capture is correct only when the ORM work runs on the same thread as the `await` — see [The Context Manager in Async Code](#the-context-manager-in-async-code) for the same thread-locality constraint.
-- **The analysis and the reporting both run inline on your loop.** `__acall__` calls `_analyze_and_report()` without awaiting it, so the analyzers *and* the reporters run on your event loop thread and block it for their combined duration. The **analysis stage** scales with the number of *captured queries*, roughly linearly — on one development machine, 0.14 ms for a request that issued none, 2.2 ms at 100 queries and 10.3 ms at 500. So an ordinary request costs a fraction of a millisecond of analysis, and only a request already issuing hundreds of queries — the case this tool exists to flag — reaches single-digit milliseconds. **Those three numbers do not include reporter cost**, which is additional and unmeasured: it depends on which reporters you have configured, and a log line and a rendered HTML dashboard are not the same order of magnitude. The `MIDDLEWARE`-chain path does not have this property at all, because Django runs the whole middleware in the executor thread.
+- **The analysis and the reporting both run inline on your loop.** `__acall__` calls `_analyze_and_report()` without awaiting it, so the analyzers *and* the reporters run on your event loop thread and block it for their combined duration. The **analysis stage** scales with the number of *captured queries*, roughly linearly; the measured figures are below. **They do not include reporter cost**, which is additional and unmeasured: it depends on which reporters you have configured, and a log line and a rendered HTML dashboard are not the same order of magnitude. The `MIDDLEWARE`-chain path does not have this property at all, because Django runs the whole middleware in the executor thread.
+
+
+### Analysis cost on the hand-embed route
+
+Regenerate these with `python -m scripts.bench_analyze` — the harness prints the machine, the
+Django version, the number of enabled analyzers, and the shape of the workload, because all four
+change the answer.
+
+| captured queries | distinct fingerprints | findings | median | p10 - p90 |
+|---:|---:|---:|---:|---:|
+| 0 | 0 | 0 | 0.14 ms | 0.14 - 0.16 |
+| 1 | 1 | 1 | 0.27 ms | 0.26 - 0.29 |
+| 10 | 2 | 3 | 0.98 ms | 0.96 - 1.00 |
+| 50 | 3 | 6 | 3.84 ms | 3.40 - 4.07 |
+| 100 | 4 | 8 | 7.36 ms | 7.10 - 7.59 |
+| 500 | 16 | 32 | 35.22 ms | 34.50 - 36.99 |
+
+Measured on one development machine (Python 3.12.0, Django 6.0.7, Windows), all 8 analyzers
+enabled, 200 timed calls per row after 5 discarded warm-up calls, no `.queryignore` loaded. The
+workload is 25% single-row writes and 75% wide `SELECT`s carrying a `WHERE` and an `ORDER BY`,
+spread over one fingerprint per 25 captures.
+
+!!! note "Query count alone does not predict this"
+    Cost is dominated by how much SQL each analyzer has to parse, not by how many queries there
+    are. On the workload above the complexity analyzer accounts for roughly two thirds of the
+    total at 500 captures. Replacing the wide `SELECT` with a single-column one, holding the count
+    and the fingerprint spread fixed, measured **3.5x cheaper at 100 captures (7.3 ms to 2.1 ms)
+    and 3.7x cheaper at 500 (31.8 ms to 8.7 ms)**. The grouping analyzers are additionally
+    O(distinct fingerprints) rather than O(queries), so 500 near-identical queries cost less than
+    the table suggests and 500 distinct wide ones cost more.
+
+    Treat the table as an order of magnitude for a deliberately unfavourable workload, and re-run
+    the harness against your own if the number matters to you.
+
+    **Earlier releases of this guide quoted 2.2 ms at 100 queries and 10.3 ms at 500** without
+    recording the workload behind them. The narrow-query measurement above lands at 2.1 ms and
+    8.7 ms, so those figures were most likely correct for a narrow workload rather than wrong --
+    but nothing in the repository recorded that, which is exactly why they could not be
+    regenerated. The table now states its shape and ships with the harness that produces it.
 
 ---
 
