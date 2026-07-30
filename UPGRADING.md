@@ -105,6 +105,74 @@ filterwarnings =
     ignore::query_doctor.QueryDoctorWarning
 ```
 
+**8. Three exception classes have been removed.** `ConfigError`, `AnalyzerError`
+and `InterceptorError` are gone from `query_doctor.exceptions`. No code path in
+the package ever raised them and they were never exported from `query_doctor`,
+but they **were** published API: the API reference page autodocs the whole
+`query_doctor.exceptions` module, so all three rendered there. If you catch them
+by name, an `ImportError` is what you will see. Catch `QueryDoctorError`
+instead — the base class, which every remaining package exception still inherits
+from — or declare your own:
+
+```python
+from query_doctor.exceptions import QueryDoctorError
+
+try:
+    ...
+except QueryDoctorError:      # was: except ConfigError
+    ...
+```
+
+`QueryBudgetError`, `QueryDoctorWarning` and `QueryDoctorError` are unaffected.
+
+**9. A new analyzer is enabled by default and can turn a green pipeline red.**
+`write_nplusone` detects repeated single-row writes — a `.save()`, `.create()`
+or `.delete()` in a loop — at a threshold of 3 identical statements. It is the
+first analyzer that fires on code doing no reads at all, so **an unchanged
+codebase can produce findings it did not produce on 2.1.x**, and
+`check_queries --fail-on` / `diagnose_project` in CI will act on them. Nothing
+else changes: it prescribes the bulk equivalent and never rewrites your source
+(`fix_queries` skips these findings).
+
+If you are not ready to act on them, raise the threshold or turn it off:
+
+```python
+QUERY_DOCTOR = {
+    "ANALYZERS": {
+        "write_nplusone": {"enabled": False},   # or {"threshold": 25}
+    },
+}
+```
+
+Or suppress individual sites with an `ignore: write_n_plus_one:<path>` rule in
+`.queryignore`.
+
+**10. On Debian and Ubuntu system Python, prescriptions now point at your code —
+which invalidates an existing query baseline.** Callsite detection previously
+skipped `django/db/models/manager.py` and `django/db/models/base.py` only because
+their path contains `site-packages`. Distributions installing to `dist-packages`
+got a `file:line` inside Django for every `.objects.create()` and `.save()`.
+Both are now excluded by name and `dist-packages` is recognised alongside
+`site-packages`.
+
+The prescriptions are correct for the first time. The consequence is that their
+`file_path` changed, and a baseline snapshot keys each issue on
+`analyzer : file_path : message`. So findings recorded with
+`check_queries --save-baseline` on 2.1.x **no longer match**, and a job running
+`--baseline=.query-baseline.json --fail-on-regression` reports them as new
+regressions with no code change. Regenerate the snapshot once, on the upgraded
+version:
+
+```bash
+python manage.py check_queries --save-baseline=.query-baseline.json
+```
+
+Only affected distributions need this — a `site-packages` install produced the
+correct callsites already. This is a second cause of the symptom described in
+item 3's `STACK_TRACE_EXCLUDE` bullet: if prescriptions moved and you set that
+setting too, check both. Any `STACK_TRACE_EXCLUDE` entry you added to work
+around the Django-internal callsite is now redundant, though harmless.
+
 ## From 2.1.0 to 2.1.1
 
 ### Breaking / behavior changes
