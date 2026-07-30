@@ -1127,6 +1127,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#analysis-cost-on-the-hand-embed-route" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Analysis cost on the hand-embed route
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2006,6 +2017,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#analysis-cost-on-the-hand-embed-route" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Analysis cost on the hand-embed route
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2155,8 +2177,108 @@
 <p>Two caveats apply on this route:</p>
 <ul>
 <li><strong>You own the thread placement.</strong> Django is not adapting the middleware into its thread-sensitive executor here, so capture is correct only when the ORM work runs on the same thread as the <code>await</code> — see <a href="#the-context-manager-in-async-code">The Context Manager in Async Code</a> for the same thread-locality constraint.</li>
-<li><strong>The analysis runs inline on your loop.</strong> <code>__acall__</code> runs analyzers and reporters without yielding, so on a busy event loop it blocks the loop for the duration of analysis. That duration scales with the number of <em>captured queries</em>, roughly linearly — on one development machine, 0.14 ms for a request that issued none, 2.2 ms at 100 queries and 10.3 ms at 500. An ordinary request therefore costs a fraction of a millisecond, and only a request already issuing hundreds of queries — the case this tool exists to flag — reaches single-digit milliseconds. The <code>MIDDLEWARE</code>-chain path does not have this property at all, because Django runs the whole middleware in the executor thread.</li>
+<li><strong>The analysis and the reporting both run inline on your loop.</strong> <code>__acall__</code> calls <code>_analyze_and_report()</code> without awaiting it, so the analyzers <em>and</em> the reporters run on your event loop thread and block it for their combined duration. The <strong>analysis stage</strong> scales with the number of <em>captured queries</em>, roughly linearly; the measured figures are below. <strong>They do not include reporter cost</strong>, which is additional and unmeasured: it depends on which reporters you have configured, and a log line and a rendered HTML dashboard are not the same order of magnitude. Reporters run only when the request produced at least one prescription, so a clean request pays none of that — the expensive combination is a request that both issued many queries and has findings to report, which is exactly the case the tool exists to surface. One cost is not conditional on findings: with <code>ADMIN_DASHBOARD.enabled</code> set, the middleware records every report into the dashboard buffer inline, findings or not. The <code>MIDDLEWARE</code>-chain path does not have any of this property, because Django runs the whole middleware in the executor thread.</li>
 </ul>
+<h3 id="analysis-cost-on-the-hand-embed-route">Analysis cost on the hand-embed route<a class="headerlink" href="#analysis-cost-on-the-hand-embed-route" title="Permanent link">&para;</a></h3>
+<p>Regenerate this table with <code>python -m scripts.bench_analyze</code> — the harness prints the machine, the
+Django version, the number of enabled analyzers, the number of <code>.queryignore</code> rules loaded, and the
+shape of the workload, because all five change the answer.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">captured queries</th>
+<th style="text-align: right;">distinct fingerprints</th>
+<th style="text-align: right;">findings</th>
+<th style="text-align: right;">median</th>
+<th style="text-align: right;">p10 - p90</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.14 ms</td>
+<td style="text-align: right;">0.13 - 0.14</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.25 ms</td>
+<td style="text-align: right;">0.24 - 0.25</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.91 ms</td>
+<td style="text-align: right;">0.89 - 0.93</td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">3.68 ms</td>
+<td style="text-align: right;">3.65 - 3.75</td>
+</tr>
+<tr>
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">6.46 ms</td>
+<td style="text-align: right;">6.38 - 7.05</td>
+</tr>
+<tr>
+<td style="text-align: right;">500</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">32.00 ms</td>
+<td style="text-align: right;">31.57 - 32.63</td>
+</tr>
+</tbody>
+</table>
+<p>Measured on one development machine (Python 3.12.0, Django 6.0.7, Windows), all 8 analyzers
+enabled, 200 timed calls per row after 5 discarded warm-up calls, 0 <code>.queryignore</code> rules loaded.
+The workload is 25% single-row writes and 75% wide <code>SELECT</code>s carrying a <code>WHERE</code> and an <code>ORDER BY</code>,
+spread over one fingerprint per 25 captures.</p>
+<p><code>p10 - p90</code> is dispersion <em>within</em> one run, and it understates variation <em>between</em> runs: a second
+run on the same machine moved the medians by up to 7% (0.91 to 0.85 ms at 10 captures, 6.46 to 6.40
+at 100, 32.00 to 31.73 at 500), some of it outside the published band. Read a few percent of
+disagreement between your run and this table as noise, and take the shares below rather than the
+absolute milliseconds as the durable result.</p>
+<p>The 0-query row is the pipeline's floor, not this route's floor: <code>_analyze_and_report()</code> returns at
+<code>middleware.py</code> before reaching the analysis pipeline when nothing was captured, so a request that
+issued no queries costs <code>__acall__</code> config loading and the <code>_should_process()</code> check, not 0.14 ms of
+analysis. That short-circuit is the middleware's alone — <code>diagnose_queries()</code>, the Celery
+integration, the pytest plugin, <code>check_queries</code>, <code>fix_queries</code> and <code>diagnose_project</code> all call
+<code>pipeline.analyze()</code> unguarded, and do pay the floor on an empty query list.</p>
+<div class="admonition note">
+<p class="admonition-title">Query count alone does not predict this</p>
+<p>Cost is dominated by how much SQL each analyzer has to parse, not by how many queries there
+are. The default run prints a per-analyzer breakdown at the largest count: on the workload
+above the complexity analyzer alone is 22.34 ms of the 32.83 ms pipeline total, <strong>68%</strong>, with
+<code>missing_index</code> (15%) and <code>fat_select</code> (12%) next and the remaining five analyzers under 5%
+between them. The eight analyzers sum to 32.58 ms against that 32.83 ms total; the 0.26 ms gap
+is discovery dispatch and the one <code>load_queryignore()</code> call the pipeline makes per invocation,
+which no analyzer is responsible for. The breakdown times the pipeline again in its own loop,
+so its 32.83 ms and the table's 32.00 ms are two samples of the same thing rather than a
+contradiction — compare shares within the breakdown, not across the two.</p>
+<p>Replacing the wide <code>SELECT</code> with a single-column one, holding the count and the fingerprint
+spread fixed — <code>python -m scripts.bench_analyze --select-width narrow</code> — measured <strong>3.2x
+cheaper at 100 captures (6.46 ms to 2.02 ms) and 3.5x cheaper at 500 (32.00 ms to 9.08 ms)</strong>.
+The narrow workload also produces one finding fewer per row from 1 capture up, because
+<code>fat_select</code> has nothing to report on a one-column projection. The grouping analyzers are
+additionally O(distinct fingerprints) rather than O(queries), so 500 near-identical queries
+cost less than the table suggests and 500 distinct wide ones cost more.</p>
+<p>Treat the table as an order of magnitude for a deliberately unfavourable workload, and re-run
+the harness against your own if the number matters to you.</p>
+<p><strong>Earlier releases of this guide quoted 2.2 ms at 100 queries and 10.3 ms at 500</strong> without
+recording the workload behind them. The narrow-<code>SELECT</code> run lands at 2.02 ms and 9.08 ms, so
+those figures were most likely correct for a narrow workload rather than wrong -- but nothing
+in the repository recorded that, which is exactly why they could not be regenerated. The table
+now states its shape and ships with the harness that produces it.</p>
+</div>
 <hr />
 <h2 id="django-async-orm-methods">Django Async ORM Methods<a class="headerlink" href="#django-async-orm-methods" title="Permanent link">&para;</a></h2>
 <p><strong>Through the <code>MIDDLEWARE</code> chain</strong>, Django's async ORM methods (<code>aget</code>, <code>acreate</code>, <code>acount</code>, <code>aexists</code>, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's <code>execute_wrapper</code> captures them identically. Async iteration over querysets is captured the same way. Measured for all five on Django 6.0 and 4.2 by <code>tests/test_asgi_middleware_chain.py::TestASGIAsyncORMCapture</code>, which drives a real <code>ASGIHandler</code> and asserts the captured query <em>counts</em> plus a per-method SQL fragment — a raw <code>SELECT 1</code> cannot satisfy it.</p>
@@ -2273,7 +2395,7 @@ harness that captures nothing.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 29, 2026 16:37:30 UTC">July 29, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 30, 2026 08:54:03 UTC">July 30, 2026</span>
   </span>
 
     
