@@ -79,7 +79,69 @@ When the wrapped `get_response` is a coroutine function, the middleware detects 
 Two caveats apply on this route:
 
 - **You own the thread placement.** Django is not adapting the middleware into its thread-sensitive executor here, so capture is correct only when the ORM work runs on the same thread as the `await` — see [The Context Manager in Async Code](#the-context-manager-in-async-code) for the same thread-locality constraint.
-- **The analysis runs inline on your loop.** `__acall__` runs analyzers and reporters without yielding, so on a busy event loop it blocks the loop for the duration of analysis. That duration scales with the number of *captured queries*, roughly linearly — on one development machine, 0.14 ms for a request that issued none, 2.2 ms at 100 queries and 10.3 ms at 500. An ordinary request therefore costs a fraction of a millisecond, and only a request already issuing hundreds of queries — the case this tool exists to flag — reaches single-digit milliseconds. The `MIDDLEWARE`-chain path does not have this property at all, because Django runs the whole middleware in the executor thread.
+- **The analysis and the reporting both run inline on your loop.** `__acall__` calls `_analyze_and_report()` without awaiting it, so the analyzers *and* the reporters run on your event loop thread and block it for their combined duration. The **analysis stage** scales with the number of *captured queries*, roughly linearly; the measured figures are below. **They do not include reporter cost**, which is additional and unmeasured: it depends on which reporters you have configured, and a log line and a rendered HTML dashboard are not the same order of magnitude. Reporters run only when the request produced at least one prescription, so a clean request pays none of that — the expensive combination is a request that both issued many queries and has findings to report, which is exactly the case the tool exists to surface. One cost is not conditional on findings: with `ADMIN_DASHBOARD.enabled` set, the middleware records every report into the dashboard buffer inline, findings or not. The `MIDDLEWARE`-chain path does not have any of this property, because Django runs the whole middleware in the executor thread.
+
+
+### Analysis cost on the hand-embed route
+
+Regenerate this table with `python -m scripts.bench_analyze` — the harness prints the machine, the
+Django version, the number of enabled analyzers, the number of `.queryignore` rules loaded, and the
+shape of the workload, because all five change the answer.
+
+| captured queries | distinct fingerprints | findings | median | p10 - p90 |
+|---:|---:|---:|---:|---:|
+| 0 | 0 | 0 | 0.14 ms | 0.13 - 0.14 |
+| 1 | 1 | 1 | 0.25 ms | 0.24 - 0.25 |
+| 10 | 2 | 3 | 0.91 ms | 0.89 - 0.93 |
+| 50 | 3 | 6 | 3.68 ms | 3.65 - 3.75 |
+| 100 | 4 | 8 | 6.46 ms | 6.38 - 7.05 |
+| 500 | 16 | 32 | 32.00 ms | 31.57 - 32.63 |
+
+Measured on one development machine (Python 3.12.0, Django 6.0.7, Windows), all 8 analyzers
+enabled, 200 timed calls per row after 5 discarded warm-up calls, 0 `.queryignore` rules loaded.
+The workload is 25% single-row writes and 75% wide `SELECT`s carrying a `WHERE` and an `ORDER BY`,
+spread over one fingerprint per 25 captures.
+
+`p10 - p90` is dispersion *within* one run, and it understates variation *between* runs: a second
+run on the same machine moved the medians by up to 7% (0.91 to 0.85 ms at 10 captures, 6.46 to 6.40
+at 100, 32.00 to 31.73 at 500), some of it outside the published band. Read a few percent of
+disagreement between your run and this table as noise, and take the shares below rather than the
+absolute milliseconds as the durable result.
+
+The 0-query row is the pipeline's floor, not this route's floor: `_analyze_and_report()` returns at
+`middleware.py` before reaching the analysis pipeline when nothing was captured, so a request that
+issued no queries costs `__acall__` config loading and the `_should_process()` check, not 0.14 ms of
+analysis. That short-circuit is the middleware's alone — `diagnose_queries()`, the Celery
+integration, the pytest plugin, `check_queries`, `fix_queries` and `diagnose_project` all call
+`pipeline.analyze()` unguarded, and do pay the floor on an empty query list.
+
+!!! note "Query count alone does not predict this"
+    Cost is dominated by how much SQL each analyzer has to parse, not by how many queries there
+    are. The default run prints a per-analyzer breakdown at the largest count: on the workload
+    above the complexity analyzer alone is 22.34 ms of the 32.83 ms pipeline total, **68%**, with
+    `missing_index` (15%) and `fat_select` (12%) next and the remaining five analyzers under 5%
+    between them. The eight analyzers sum to 32.58 ms against that 32.83 ms total; the 0.26 ms gap
+    is discovery dispatch and the one `load_queryignore()` call the pipeline makes per invocation,
+    which no analyzer is responsible for. The breakdown times the pipeline again in its own loop,
+    so its 32.83 ms and the table's 32.00 ms are two samples of the same thing rather than a
+    contradiction — compare shares within the breakdown, not across the two.
+
+    Replacing the wide `SELECT` with a single-column one, holding the count and the fingerprint
+    spread fixed — `python -m scripts.bench_analyze --select-width narrow` — measured **3.2x
+    cheaper at 100 captures (6.46 ms to 2.02 ms) and 3.5x cheaper at 500 (32.00 ms to 9.08 ms)**.
+    The narrow workload also produces one finding fewer per row from 1 capture up, because
+    `fat_select` has nothing to report on a one-column projection. The grouping analyzers are
+    additionally O(distinct fingerprints) rather than O(queries), so 500 near-identical queries
+    cost less than the table suggests and 500 distinct wide ones cost more.
+
+    Treat the table as an order of magnitude for a deliberately unfavourable workload, and re-run
+    the harness against your own if the number matters to you.
+
+    **Earlier releases of this guide quoted 2.2 ms at 100 queries and 10.3 ms at 500** without
+    recording the workload behind them. The narrow-`SELECT` run lands at 2.02 ms and 9.08 ms, so
+    those figures were most likely correct for a narrow workload rather than wrong -- but nothing
+    in the repository recorded that, which is exactly why they could not be regenerated. The table
+    now states its shape and ships with the harness that produces it.
 
 ---
 
