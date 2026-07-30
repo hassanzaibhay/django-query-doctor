@@ -17,18 +17,23 @@ logger = logging.getLogger("query_doctor")
 
 # Modules/paths to always exclude from callsite detection.
 #
-# ``django/db`` is excluded wholesale rather than module by module. The list
-# previously named only ``backends``, ``models/sql`` and ``models/query``, which
-# left ``models/manager`` (every ``.objects.create()``) and ``models/base``
+# The whole ``django/db`` package is excluded rather than module by module. The
+# list previously named only ``backends``, ``models/sql`` and ``models/query``,
+# which left ``models/manager`` (every ``.objects.create()``) and ``models/base``
 # (every ``.save()``) to be caught incidentally by the "site-packages" substring
 # below -- so on a layout that installs to ``dist-packages`` instead, those
 # frames were returned and prescriptions were attributed inside Django. Nothing
 # under ``django/db`` is ever user code, so naming the package is both narrower
 # to state and broader in effect than enumerating its modules.
+#
+# The separators are part of the pattern. These are substring tests, so an
+# unanchored ``django/db`` would also drop a user's own ``/srv/mydjango/db/``
+# or ``/srv/mydjango/dbrouters.py`` -- dropping a real callsite, which is the
+# same class of harm in the other direction.
 _DEFAULT_EXCLUDE_PATTERNS: list[str] = [
     "query_doctor",
-    "django/db",
-    "django\\db",
+    "/django/db/",
+    "\\django\\db\\",
     "importlib",
     "threading",
     "_bootstrap",
