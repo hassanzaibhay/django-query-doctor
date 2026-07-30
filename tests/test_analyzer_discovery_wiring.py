@@ -6,7 +6,7 @@ subset of analyzer classes (3-5 out of the built-ins). This replaced every
 site with discover_analyzers(), relying on each analyzer's is_enabled()
 self-gate (3a) to honor config toggles instead of bespoke per-site gating.
 
-discover_analyzers() returns 7 analyzers (DRFSerializerAnalyzer was dead code
+discover_analyzers() returns 8 analyzers (DRFSerializerAnalyzer was dead code
 -- analyze() was hardwired to return [] through every reachable path, and
 analyze_view() had no caller outside its own tests -- and was deleted in 3c).
 Assertions here check presence/absence of named analyzers, not a magic total
@@ -46,7 +46,7 @@ class TestDiscoverAnalyzersMembership:
     drf_serializer is asserted ABSENT, not present: DRFSerializerAnalyzer is
     dead code (analyze() is hardwired to return [] through every reachable
     path, and analyze_view() has no caller outside its own tests) and is
-    deleted in 3c. discover_analyzers() must return exactly 7 analyzers.
+    deleted in 3c. discover_analyzers() must return exactly 8 analyzers.
     """
 
     def test_widened_set_present_by_name(self) -> None:
@@ -59,12 +59,13 @@ class TestDiscoverAnalyzersMembership:
             "queryset_eval",
             "complexity",
             "serializer_method",
+            "write_nplusone",
         ):
             assert expected in names
         assert "drf_serializer" not in names
 
-    def test_returns_exactly_seven(self) -> None:
-        assert len(discover_analyzers()) == 7
+    def test_returns_exactly_eight(self) -> None:
+        assert len(discover_analyzers()) == 8
 
 
 @pytest.mark.django_db

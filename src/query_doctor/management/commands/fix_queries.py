@@ -54,8 +54,8 @@ class Command(BaseCommand):
             ],
             help=(
                 "Only fix specific issue types (e.g., n_plus_one duplicate_query). "
-                "Limited to types with a fixer handler -- complexity has none, "
-                "drf_serializer is never emitted."
+                "Limited to types with a fixer handler -- complexity and "
+                "write_n_plus_one have none, drf_serializer is never emitted."
             ),
         )
         parser.add_argument(

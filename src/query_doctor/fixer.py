@@ -99,6 +99,13 @@ class QueryFixer:
 
         original_line = lines[line_idx]
 
+        # IssueType.WRITE_N_PLUS_ONE and IssueType.QUERY_COMPLEXITY have no branch
+        # here by design: both prescribe a multi-line restructure (build a list, then
+        # one bulk call), not a single-line edit, so there is nothing for a line-based
+        # fixer to write. They are live and reach this method; they fall through to
+        # `else: return None` and are simply not fixed, which is why fix_queries'
+        # --issue-type choices exclude them.
+        #
         # IssueType.SERIALIZER_METHOD_FIELD has no branch here and falls through to
         # `else: return None` below -- fail-closed (no fix is ever written) but silent,
         # unlike DRF_SERIALIZER which lands in last_skipped_unsafe / [MANUAL FIX ONLY].

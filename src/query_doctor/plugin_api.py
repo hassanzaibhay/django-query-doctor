@@ -75,6 +75,13 @@ def get_builtin_analyzers() -> list[BaseAnalyzer]:
     except Exception:
         pass
 
+    try:
+        from query_doctor.analyzers.write_nplusone import WriteNPlusOneAnalyzer
+
+        analyzers.append(WriteNPlusOneAnalyzer())
+    except Exception:
+        pass
+
     return analyzers
 
 
@@ -130,7 +137,7 @@ def discover_analyzers() -> list[BaseAnalyzer]:
 
     A fresh list is returned per call rather than the cached container, so a
     caller appending to the result cannot corrupt later calls. The copy costs
-    ~0.1 microseconds for seven analyzers.
+    ~0.1 microseconds for eight analyzers.
 
     Returns:
         List of all available analyzer instances.

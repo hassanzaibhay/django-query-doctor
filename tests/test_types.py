@@ -35,9 +35,10 @@ class TestIssueType:
         assert IssueType.QUERYSET_EVAL.value == "queryset_eval"
         assert IssueType.DRF_SERIALIZER.value == "drf_serializer"
         assert IssueType.SERIALIZER_METHOD_FIELD.value == "serializer_method_field"
+        assert IssueType.WRITE_N_PLUS_ONE.value == "write_n_plus_one"
 
     def test_issue_type_members(self) -> None:
-        assert len(IssueType) == 8
+        assert len(IssueType) == 9
 
 
 class TestCallSite:

@@ -10,7 +10,7 @@ Diagnose and fix slow Django ORM queries. Detects N+1s, duplicates, missing inde
 
 ## The Problem
 
-Every Django app accumulates hidden query inefficiencies — N+1 loops behind serializers, duplicate fetches scattered across views, full table scans on unindexed columns. django-query-doctor intercepts queries at runtime using `connection.execute_wrapper()`, runs them through 7 analyzers, and produces prescriptions with the exact file, line, and code fix. It works in middleware, tests, CI pipelines, and management commands — no `DEBUG=True` required.
+Every Django app accumulates hidden query inefficiencies — N+1 loops behind serializers, duplicate fetches scattered across views, full table scans on unindexed columns. django-query-doctor intercepts queries at runtime using `connection.execute_wrapper()`, runs them through 8 analyzers, and produces prescriptions with the exact file, line, and code fix. It works in middleware, tests, CI pipelines, and management commands — no `DEBUG=True` required.
 
 ## Install
 

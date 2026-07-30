@@ -172,7 +172,7 @@ class TestDiscoverAnalyzersCaching:
         assert mock_load.call_count == 1
         # Positive control: the one scan produced a real result, so a
         # discover_analyzers() that returned nothing cannot satisfy the count.
-        assert len(first) == 7
+        assert len(first) == 8
 
     @patch("query_doctor.plugin_api._load_entry_point_analyzers")
     def test_cache_clear_forces_a_rescan(self, mock_load: MagicMock) -> None:
@@ -208,7 +208,7 @@ class TestDiscoverAnalyzersCaching:
         second = discover_analyzers()
 
         assert first is not second
-        assert len(second) == 7
+        assert len(second) == 8
         assert "custom_test" not in [a.name for a in second]
 
 

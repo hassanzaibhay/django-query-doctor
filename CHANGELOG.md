@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- An eighth built-in analyzer, `write_nplusone`, detects repeated single-row
+  writes — the `.save()`, `.create()` or `.delete()` in a loop that issues one
+  round trip per object. The other seven analyzers all examine `SELECT`
+  statements, so this is the first one that fires on code doing no reads at
+  all: an import job, a bulk status update, a fan-out of rows. It prescribes
+  the bulk equivalent (`bulk_create()`, `bulk_update()`, a queryset `update()`
+  or `delete()`), naming the model where the table resolves to one. Enabled by
+  default at a threshold of 3 identical writes; configure under
+  `ANALYZERS.write_nplusone`, and suppress individual findings with an
+  `ignore: write_n_plus_one:<path>` rule in `.queryignore`. Transaction control
+  statements are excluded, so a request opening several transactions is not
+  reported. `fix_queries` does not rewrite these findings — the fix is a
+  multi-line restructure, not a single-line edit, the same reason `complexity`
+  has no fixer. See the [Write N+1 analyzer guide](https://hassanzaibhay.github.io/django-query-doctor/analyzers/write-nplusone/).
 - The `query_doctor` pytest fixture now produces observable output. A
   `pytest_terminal_summary` hook prints a `query_doctor` section at end of
   session: one header line with the number of fixture-using tests observed and
