@@ -24,6 +24,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "queryset_eval": {"enabled": True},
         "complexity": {"enabled": True, "threshold": 8},
         "serializer_method": {"enabled": True},
+        "write_nplusone": {"enabled": True, "threshold": 3},
     },
     "REPORTERS": ["console"],
     "IGNORE_URLS": [],

@@ -65,7 +65,7 @@ Paths are matched by prefix. If the request path starts with any entry in `IGNOR
 The middleware adds a small overhead to each request:
 
 - **Interception** -- Recording each query adds approximately 0.05ms per query. For a typical request with 20 queries, that is roughly 1ms total.
-- **Analysis** -- Running all 7 analyzers over captured queries typically takes 1-5ms, depending on the number of unique fingerprints.
+- **Analysis** -- Running all 8 analyzers over captured queries typically takes 1-5ms, depending on the number of unique fingerprints.
 - **Reporting** -- Console output adds minimal time. JSON and HTML reporters write to buffers, not disk, during the request.
 
 For most development and staging workloads, this overhead is negligible. For production use, consider the approaches below.

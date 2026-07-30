@@ -1,0 +1,16 @@
+# Codecov configuration.
+#
+# Without this file Codecov runs on its defaults, which post a coverage comment
+# on every pull request. Coverage here is advisory -- the enforced floor is
+# `fail_under` in pyproject.toml, checked by pytest-cov in CI -- so the comment
+# restated a number the gates already guard and pushed the review content down
+# the page.
+#
+# Status checks are deliberately kept. The `codecov/patch` and `codecov/project`
+# check runs stay useful as signals, and `main-protection` requires no status
+# checks, so neither can mechanically block a merge.
+#
+# No coverage targets are set here on purpose. Pinning one is a separate
+# decision from silencing the comment, and changing thresholds inside a
+# comment-disabling commit would bury it.
+comment: false

@@ -93,6 +93,7 @@ The issue type must be one of the values below (these are the `IssueType` enum v
 | `queryset_eval` | queryset_eval analyzer |
 | `complexity` | complexity analyzer |
 | `serializer_method_field` | serializer_method analyzer (`check_serializers`) |
+| `write_n_plus_one` | write_nplusone analyzer |
 
 > **Note:** It is `n_plus_one`, not `nplusone`, and `duplicate_query`, not `duplicate`. A rule written with the analyzer name instead of the issue type value never matches — and no warning is printed.
 

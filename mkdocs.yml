@@ -138,6 +138,7 @@ nav:
     - QuerySet Evaluation: analyzers/queryset-eval.md
     - SerializerMethodField: analyzers/drf-serializer.md
     - Query Complexity: analyzers/query-complexity.md
+    - Write N+1: analyzers/write-nplusone.md
   - Reporters: reporters/index.md
   - Examples: examples/index.md
   - Deep Dive:

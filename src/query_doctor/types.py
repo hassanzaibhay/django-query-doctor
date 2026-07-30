@@ -30,6 +30,7 @@ class IssueType(Enum):
     DRF_SERIALIZER = "drf_serializer"  # unused by any analyzer; kept for plugin/fixer compat
     QUERY_COMPLEXITY = "complexity"
     SERIALIZER_METHOD_FIELD = "serializer_method_field"
+    WRITE_N_PLUS_ONE = "write_n_plus_one"
 
 
 @dataclass(frozen=True)

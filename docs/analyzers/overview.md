@@ -1,6 +1,6 @@
 # Analyzers Overview
 
-django-query-doctor ships with seven built-in analyzers. Each one targets a
+django-query-doctor ships with eight built-in analyzers. Each one targets a
 specific category of ORM performance issue, receives fingerprinted query data
 captured during a request, and returns **Prescription** objects that describe
 the problem, its severity, and the exact code change needed to fix it.
@@ -54,13 +54,14 @@ A `Prescription` contains:
 | [QuerySet Evaluation](queryset-eval.md) | Unintended queryset evaluation patterns such as `len()` vs `.count()` | WARNING | [queryset-eval.md](queryset-eval.md) |
 | [SerializerMethodField](drf-serializer.md) | N+1 queries in DRF `SerializerMethodField` methods (static AST analysis) | WARNING | [drf-serializer.md](drf-serializer.md) |
 | [Query Complexity](query-complexity.md) | Overly complex SQL with excessive JOINs, subqueries, or aggregations | WARNING / CRITICAL | [query-complexity.md](query-complexity.md) |
+| [Write N+1](write-nplusone.md) | Repeated single-row `INSERT`/`UPDATE`/`DELETE` statements from a loop | WARNING / CRITICAL | [write-nplusone.md](write-nplusone.md) |
 
 ## Disabling Specific Analyzers
 
 By default all analyzers are enabled. To disable one, set its `enabled` flag
 under `ANALYZERS` in your Django settings. The keys are the analyzer config
 names: `nplusone`, `duplicate`, `missing_index`, `fat_select`, `queryset_eval`,
-`complexity`, and `serializer_method`:
+`complexity`, `serializer_method`, and `write_nplusone`:
 
 ```python
 # settings.py
