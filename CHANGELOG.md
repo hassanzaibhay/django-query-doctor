@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [2.2.0] - TBD
+## [2.2.0] - 2026-07-30
 
 ### Added
 - An eighth built-in analyzer, `write_nplusone`, detects repeated single-row
