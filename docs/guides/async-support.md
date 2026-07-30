@@ -102,11 +102,13 @@ enabled, 200 timed calls per row after 5 discarded warm-up calls, 0 `.queryignor
 The workload is 25% single-row writes and 75% wide `SELECT`s carrying a `WHERE` and an `ORDER BY`,
 spread over one fingerprint per 25 captures.
 
-`p10 - p90` is dispersion *within* one run, and it understates variation *between* runs: a second
-run on the same machine moved the medians by up to 7% (0.91 to 0.85 ms at 10 captures, 6.46 to 6.40
-at 100, 32.00 to 31.73 at 500), some of it outside the published band. Read a few percent of
-disagreement between your run and this table as noise, and take the shares below rather than the
-absolute milliseconds as the durable result.
+`p10 - p90` is dispersion *within* one run, and it badly understates variation *between* runs. A
+second run on this dedicated machine moved the medians by up to 7% (0.91 to 0.85 ms at 10 captures,
+6.46 to 6.40 at 100, 32.00 to 31.73 at 500), some of it already outside the published band. On a
+shared or virtualised host the swing is far larger: two runs of the same command on one such machine
+measured 26.90 ms and 32.24 ms at 500 captures, **~20% apart**. So a run of yours that disagrees with
+this table by tens of percent is telling you about your host, not about a defect. Take the shares
+below, not the absolute milliseconds, as the durable result.
 
 The 0-query row is the pipeline's floor, not this route's floor: `_analyze_and_report()` returns at
 `middleware.py` before reaching the analysis pipeline when nothing was captured, so a request that
@@ -136,12 +138,6 @@ integration, the pytest plugin, `check_queries`, `fix_queries` and `diagnose_pro
 
     Treat the table as an order of magnitude for a deliberately unfavourable workload, and re-run
     the harness against your own if the number matters to you.
-
-    **Earlier releases of this guide quoted 2.2 ms at 100 queries and 10.3 ms at 500** without
-    recording the workload behind them. The narrow-`SELECT` run lands at 2.02 ms and 9.08 ms, so
-    those figures were most likely correct for a narrow workload rather than wrong -- but nothing
-    in the repository recorded that, which is exactly why they could not be regenerated. The table
-    now states its shape and ships with the harness that produces it.
 
 ---
 
