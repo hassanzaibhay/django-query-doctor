@@ -12,13 +12,13 @@
         <meta name="author" content="Hassan Zaib Hayat">
       
       
-        <link rel="canonical" href="https://hassanzaibhay.github.io/django-query-doctor/guides/pytest-plugin/">
+        <link rel="canonical" href="https://hassanzaibhay.github.io/django-query-doctor/analyzers/write-nplusone/">
       
       
-        <link rel="prev" href="../management-commands/">
+        <link rel="prev" href="../query-complexity/">
       
       
-        <link rel="next" href="../queryturbo/">
+        <link rel="next" href="../../reporters/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Pytest Plugin - django-query-doctor</title>
+        <title>Write N+1 - django-query-doctor</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#pytest-plugin" class="md-skip">
+        <a href="#write-n1-analyzer" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +118,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Pytest Plugin
+              Write N+1
             
           </span>
         </div>
@@ -267,13 +267,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../how-it-works/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../guides/how-it-works/" class="md-tabs__link">
           
   
   
@@ -289,11 +287,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../analyzers/overview/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
           
   
   
@@ -666,31 +666,28 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -708,7 +705,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -726,7 +723,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how-it-works/" class="md-nav__link">
+      <a href="../../guides/how-it-works/" class="md-nav__link">
         
   
   
@@ -754,7 +751,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../middleware/" class="md-nav__link">
+      <a href="../../guides/middleware/" class="md-nav__link">
         
   
   
@@ -782,7 +779,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../management-commands/" class="md-nav__link">
+      <a href="../../guides/management-commands/" class="md-nav__link">
         
   
   
@@ -790,6 +787,630 @@
     
   
     Management Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pytest-plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pytest Plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/queryturbo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QueryTurbo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/auto-fix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auto-Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Baseline Regression
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/grouping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prescription Grouping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/benchmark-dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmark Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ci-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/celery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Celery Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/async-support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Async & ASGI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/admin-dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/custom-plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/query-ignore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Query Ignore
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analyzers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Analyzers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nplusone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    N+1 Queries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../duplicate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Duplicate Queries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../missing-index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Missing Indexes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fat-select/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fat SELECT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../queryset-eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QuerySet Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../drf-serializer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SerializerMethodField
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../query-complexity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Query Complexity
   
 
     
@@ -826,7 +1447,7 @@
   <span class="md-ellipsis">
     
   
-    Pytest Plugin
+    Write N+1
   
 
     
@@ -844,7 +1465,7 @@
   <span class="md-ellipsis">
     
   
-    Pytest Plugin
+    Write N+1
   
 
     
@@ -870,38 +1491,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-query_doctor-fixture" class="md-nav__link">
+  <a href="#what-it-detects" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The query_doctor Fixture
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="The query_doctor Fixture">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#end-of-session-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        End-of-Session Summary
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#context-manager-in-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context Manager in Tests
+        What It Detects
       
     </span>
   </a>
@@ -909,30 +1502,35 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ci-integration" class="md-nav__link">
+  <a href="#problem-code" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CI Integration
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="CI Integration">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example-gradual-adoption" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example: Gradual Adoption
+        Problem Code
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#fix-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fix Code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prescription-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prescription Output
+      
+    </span>
+  </a>
   
 </li>
       
@@ -948,13 +1546,52 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#further-reading" class="md-nav__link">
+  <a href="#common-scenarios" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Further Reading
+        Common Scenarios
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Common Scenarios">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-related-rows-alongside-a-parent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating Related Rows Alongside a Parent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal-handlers-writing-per-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signal Handlers Writing Per Instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_or_create-in-a-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_or_create() in a Loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -962,627 +1599,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../queryturbo/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    QueryTurbo
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../auto-fix/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Auto-Fix
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../baseline/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Baseline Regression
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../grouping/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Prescription Grouping
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../benchmark-dashboard/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Benchmark Dashboard
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ci-integration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CI/CD Integration
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../celery/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Celery Support
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../async-support/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Async & ASGI
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../admin-dashboard/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Admin Dashboard
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../custom-plugins/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Custom Plugins
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../query-ignore/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Query Ignore
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Analyzers
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Analyzers
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../analyzers/overview/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../analyzers/nplusone/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    N+1 Queries
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../analyzers/duplicate/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Duplicate Queries
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../analyzers/missing-index/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Missing Indexes
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../analyzers/fat-select/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Fat SELECT
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../analyzers/queryset-eval/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    QuerySet Evaluation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../analyzers/drf-serializer/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    SerializerMethodField
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../analyzers/query-complexity/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Query Complexity
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../analyzers/write-nplusone/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Write N+1
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1957,38 +1973,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-query_doctor-fixture" class="md-nav__link">
+  <a href="#what-it-detects" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The query_doctor Fixture
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="The query_doctor Fixture">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#end-of-session-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        End-of-Session Summary
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#context-manager-in-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context Manager in Tests
+        What It Detects
       
     </span>
   </a>
@@ -1996,30 +1984,35 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ci-integration" class="md-nav__link">
+  <a href="#problem-code" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CI Integration
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="CI Integration">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example-gradual-adoption" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example: Gradual Adoption
+        Problem Code
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#fix-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fix Code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prescription-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prescription Output
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2035,13 +2028,52 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#further-reading" class="md-nav__link">
+  <a href="#common-scenarios" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Further Reading
+        Common Scenarios
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Common Scenarios">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-related-rows-alongside-a-parent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating Related Rows Alongside a Parent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal-handlers-writing-per-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signal Handlers Writing Per Instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_or_create-in-a-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_or_create() in a Loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2065,161 +2097,199 @@
   
 
 
-<h1 id="pytest-plugin">Pytest Plugin<a class="headerlink" href="#pytest-plugin" title="Permanent link">&para;</a></h1>
-<p>django-query-doctor includes a pytest plugin that is <strong>automatically registered</strong> when the package is installed (via the <code>pytest11</code> entry point). No additional configuration is needed. The plugin provides one fixture, <code>query_doctor</code>; for in-test assertions, the <code>diagnose_queries()</code> context manager is the recommended tool.</p>
-<hr />
-<h2 id="the-query_doctor-fixture">The <code>query_doctor</code> Fixture<a class="headerlink" href="#the-query_doctor-fixture" title="Permanent link">&para;</a></h2>
-<p>Requesting the <code>query_doctor</code> fixture in a test turns on query capture for that test. The fixture returns a <code>DiagnosisReport</code> object:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<h1 id="write-n1-analyzer">Write N+1 Analyzer<a class="headerlink" href="#write-n1-analyzer" title="Permanent link">&para;</a></h1>
+<h2 id="what-it-detects">What It Detects<a class="headerlink" href="#what-it-detects" title="Permanent link">&para;</a></h2>
+<p>The write N+1 analyzer identifies repeated <strong>single-row write statements</strong> --
+the <code>.save()</code>, <code>.create()</code> or <code>.delete()</code> inside a loop that issues one database
+round trip per object where a single bulk statement would do the same work.</p>
+<p>Every other built-in analyzer examines <code>SELECT</code> statements. This one examines
+everything else, which makes it the only analyzer that fires on code doing no
+reads at all: an import job, a bulk status update, a fan-out of notification
+rows.</p>
+<p>It groups non-<code>SELECT</code> captures by fingerprint -- normalization collapses the
+literal values, so the same statement shape repeated in a loop shares a single
+fingerprint -- and reports any group that reaches the threshold. Three kinds of
+non-<code>SELECT</code> statement are excluded before grouping, because none of them is a
+repeated single-row write:</p>
+<ul>
+<li><strong>Transaction control</strong> (<code>BEGIN</code>, <code>COMMIT</code>, <code>ROLLBACK</code>, <code>SAVEPOINT</code>) is
+  captured the same way a write is, so a request opening several transactions
+  would otherwise be reported.</li>
+<li><strong>Schema statements</strong> (<code>CREATE</code>, <code>ALTER</code>, <code>DROP</code>) write no rows; a migration
+  creating several tables would otherwise be reported.</li>
+<li><strong>Bulk write forms</strong>, which are what this analyzer prescribes -- a multi-row
+  <code>INSERT</code>, or an <code>UPDATE</code>/<code>DELETE</code> whose <code>WHERE</code> clause carries an <code>IN</code> list of
+  more than one value. All three matter, not just the <code>INSERT</code>: Django splits
+  <code>bulk_create()</code>, <code>bulk_update()</code> and a chunked queryset <code>delete()</code> into equal
+  batches whenever <code>batch_size=</code> is passed or the backend caps parameters per
+  statement, and those batches share a fingerprint.</li>
+</ul>
+<p>Cardinality is read from the raw SQL, not the normalized form, because
+normalization collapses <code>IN (...)</code> to <code>IN (?)</code> -- which makes a single-object
+<code>obj.delete()</code> and a batched <code>filter(pk__in=[...]).delete()</code> indistinguishable
+there.</p>
+<div class="admonition warning">
+<p class="admonition-title">Two shapes it cannot tell apart</p>
+<p>Neither of these carries its row count in the statement, so both are reported
+as single-row writes even though each may affect many rows:</p>
+<ul>
+<li><code>WHERE id IN (SELECT ...)</code> -- a subquery, not a value list.</li>
+<li><code>Model.objects.filter(status="x").delete()</code> -- emits <code>WHERE "status" = %s</code>
+  with no <code>IN</code> list at all.</li>
+</ul>
+<p>A loop issuing either will be flagged. That is a deliberate trade: the
+alternative rules that would suppress them also suppress
+<code>for obj in qs: obj.delete()</code>, which is the pattern this analyzer exists to
+find. Suppress these with a <a href="../../guides/query-ignore/"><code>.queryignore</code></a> rule.</p>
+</div>
+<h2 id="problem-code">Problem Code<a class="headerlink" href="#problem-code" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># views.py</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_book_list_view</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">query_doctor</span><span class="p">):</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/api/books/&quot;</span><span class="p">)</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">import_books</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">payload</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;books&quot;</span><span class="p">]:</span>            <span class="c1"># 500 rows</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>                <span class="c1"># one INSERT per row -- 500 round trips</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            <span class="n">title</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">],</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">isbn</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;isbn&quot;</span><span class="p">],</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">author_id</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;author_id&quot;</span><span class="p">],</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="p">)</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="k">return</span> <span class="n">JsonResponse</span><span class="p">({</span><span class="s2">&quot;imported&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;books&quot;</span><span class="p">])})</span>
 </span></code></pre></div>
-<blockquote>
-<p><strong>Important:</strong> The report is populated in a test <em>finalizer</em> — after the test body has finished running. Assertions on <code>query_doctor</code> inside the test body see an empty report (<code>total_queries == 0</code>, <code>issues == 0</code>) and pass vacuously. Since 2.1.1 the package says so at runtime: requesting the fixture emits a <code>QueryDoctorWarning</code> naming the requesting test. Suites that escalate warnings to errors (<code>-W error</code>, or <code>filterwarnings = error</code> in pytest configuration) will therefore fail on every test that requests the fixture; suppress the category with <code>ignore::query_doctor.QueryDoctorWarning</code> if you accept this behavior. Use the fixture to enable capture; use the <a href="#context-manager-in-tests"><code>diagnose_queries()</code> context manager</a> when you want to assert on results inside the test.</p>
-</blockquote>
-<p>The <code>DiagnosisReport</code> object exposes:</p>
+<p>The same shape appears with <code>.save()</code> in a loop, which issues one <code>UPDATE</code> per
+object:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">mark_all_reviewed</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;pending&quot;</span><span class="p">):</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="n">book</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;reviewed&quot;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="n">book</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>                         <span class="c1"># one UPDATE per book</span>
+</span></code></pre></div>
+<h2 id="fix-code">Fix Code<a class="headerlink" href="#fix-code" title="Permanent link">&para;</a></h2>
+<p>Build the objects first, then issue one statement:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># views.py</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">import_books</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">payload</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span>               <span class="c1"># one INSERT</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="p">[</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>            <span class="n">Book</span><span class="p">(</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>                <span class="n">title</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">],</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>                <span class="n">isbn</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;isbn&quot;</span><span class="p">],</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>                <span class="n">author_id</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;author_id&quot;</span><span class="p">],</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>            <span class="p">)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;books&quot;</span><span class="p">]</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>        <span class="p">],</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>        <span class="n">batch_size</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="p">)</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="k">return</span> <span class="n">JsonResponse</span><span class="p">({</span><span class="s2">&quot;imported&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;books&quot;</span><span class="p">])})</span>
+</span></code></pre></div>
+<p>For the update case, <code>bulk_update()</code> when the new values differ per row:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">books</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;pending&quot;</span><span class="p">))</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">:</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">book</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;reviewed&quot;</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_update</span><span class="p">(</span><span class="n">books</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">])</span>
+</span></code></pre></div>
+<p>...or a queryset update when every row gets the same value, which is cheaper
+still because it never loads the rows:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;pending&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;reviewed&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>And for deletes, go through the queryset rather than per object:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;expired&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>   <span class="c1"># one DELETE</span>
+</span></code></pre></div>
+<p>Applying the prescription clears the finding: multi-row <code>INSERT</code> statements are
+rejected outright, so the bulk form is never reported as the problem. This is not
+merely a matter of the batch being one query -- Django splits <code>bulk_create()</code>
+into several equal multi-row <code>INSERT</code>s whenever <code>batch_size=</code> is passed, or when
+the backend caps parameters per statement (SQLite's 999-variable limit, MySQL's
+packet size), and those batches share a fingerprint.</p>
+<h2 id="prescription-output">Prescription Output<a class="headerlink" href="#prescription-output" title="Permanent link">&para;</a></h2>
+<p>Console output for four <code>Book.objects.create()</code> calls in a loop:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>WARNING: Write N+1 detected: 4 single-row INSERT statements for Book. One bulk statement replaces all 4.
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>   Location: /app/myapp/views.py:21 in import_books
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>   Fix: Build the objects in a list and issue one write: Book.objects.bulk_create([Book(...), ...]). Pass batch_size= if the list is large enough to strain the driver.
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>   Queries: 4 | Est. savings: ~0.1ms
+</span></code></pre></div>
+<p>The prescription's <code>extra</code> dict carries the parsed statement kind and target:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span><span class="s2">&quot;table&quot;</span><span class="p">:</span> <span class="s2">&quot;testapp_book&quot;</span><span class="p">,</span> <span class="s2">&quot;statement&quot;</span><span class="p">:</span> <span class="s2">&quot;insert&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;Book&quot;</span><span class="p">}</span>
+</span></code></pre></div>
+<p><code>model</code> is <code>None</code> when no installed model maps to the table -- a raw
+<code>cursor.execute()</code> against a table Django does not own, for example. The finding
+is still reported; the fix suggestion falls back to the generic
+<code>Model.objects.bulk_create(...)</code> wording.</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Attribute</th>
-<th>Type</th>
+<th>Setting</th>
+<th>Default</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>captured_queries</code></td>
-<td><code>list[CapturedQuery]</code></td>
-<td>All captured SQL queries</td>
+<td><code>ANALYZERS.write_nplusone.threshold</code></td>
+<td><code>3</code></td>
+<td>Minimum number of identical single-row writes before the group is reported. Raise it if your application legitimately issues a handful of individual writes per request.</td>
 </tr>
 <tr>
-<td><code>total_queries</code></td>
-<td><code>int</code></td>
-<td>Total number of queries executed</td>
-</tr>
-<tr>
-<td><code>total_time_ms</code></td>
-<td><code>float</code></td>
-<td>Total query execution time in milliseconds</td>
-</tr>
-<tr>
-<td><code>prescriptions</code></td>
-<td><code>list[Prescription]</code></td>
-<td>All prescriptions from all analyzers</td>
-</tr>
-<tr>
-<td><code>issues</code></td>
-<td><code>int</code> (property)</td>
-<td>Number of diagnosed issues (<code>len(prescriptions)</code>)</td>
-</tr>
-<tr>
-<td><code>n_plus_one_count</code></td>
-<td><code>int</code> (property)</td>
-<td>Number of N+1 issues</td>
-</tr>
-<tr>
-<td><code>has_critical</code></td>
-<td><code>bool</code> (property)</td>
-<td>True if any issue is CRITICAL severity</td>
+<td><code>ANALYZERS.write_nplusone.enabled</code></td>
+<td><code>True</code></td>
+<td>Whether this analyzer runs at all.</td>
 </tr>
 </tbody>
 </table>
-<p>Each <code>CapturedQuery</code> has <code>sql</code>, <code>params</code>, <code>duration_ms</code>, <code>fingerprint</code>, <code>normalized_sql</code>, <code>callsite</code>, <code>is_select</code>, and <code>tables</code>. Each <code>Prescription</code> has <code>issue_type</code>, <code>severity</code>, <code>description</code>, <code>fix_suggestion</code>, <code>callsite</code>, <code>query_count</code>, <code>time_saved_ms</code>, and <code>fingerprint</code>.</p>
-<h3 id="end-of-session-summary">End-of-Session Summary<a class="headerlink" href="#end-of-session-summary" title="Permanent link">&para;</a></h3>
-<p>Because the report is populated at teardown, its findings are surfaced after the session finishes rather than inside the test. A <code>pytest_terminal_summary</code> hook (<code>src/query_doctor/pytest_plugin.py:140</code>) reads the report each fixture use produced and prints a <code>query_doctor</code> section: one header line stating how many fixture-using tests were observed and how many were clean, then <strong>one line per test that had findings</strong> — tests with zero issues produce no line, so the section stays proportionate to the problems found:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>================================= query_doctor =================================
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>observed 12 test(s); 10 clean, 2 with findings
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  tests/test_views.py::test_book_list: 48 queries, 1 issue(s)
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  tests/test_api.py::test_author_feed: 31 queries, 1 issue(s)
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># settings.py</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="s2">&quot;ANALYZERS&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>        <span class="s2">&quot;write_nplusone&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;threshold&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="p">},</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>This makes the fixture useful for passive, zero-effort reporting across a suite. When you need a test to <strong>fail</strong> on a query problem rather than merely report it, use <code>diagnose_queries()</code> (below).</p>
-<hr />
-<h2 id="context-manager-in-tests">Context Manager in Tests<a class="headerlink" href="#context-manager-in-tests" title="Permanent link">&para;</a></h2>
-<p>For assertions on query behavior, use the <code>diagnose_queries()</code> context manager. Its report is populated as soon as the <code>with</code> block exits, so assertions after the block work as expected:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.context_managers</span><span class="w"> </span><span class="kn">import</span> <span class="n">diagnose_queries</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">myapp.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Book</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_book_list_is_optimized</span><span class="p">():</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="n">books</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;author&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>        <span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">:</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>            <span class="n">_</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">author</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># Should NOT trigger N+1</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">total_queries</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># Only the one SELECT with JOIN</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">issues</span> <span class="o">==</span> <span class="mi">0</span>  <span class="c1"># No prescriptions</span>
+<p>Severity follows the same rule as the <a href="../nplusone/">N+1 analyzer</a>: <code>WARNING</code>
+below ten statements in a group, <code>CRITICAL</code> at ten or more.</p>
+<h2 id="common-scenarios">Common Scenarios<a class="headerlink" href="#common-scenarios" title="Permanent link">&para;</a></h2>
+<h3 id="creating-related-rows-alongside-a-parent">Creating Related Rows Alongside a Parent<a class="headerlink" href="#creating-related-rows-alongside-a-parent" title="Permanent link">&para;</a></h3>
+<p>A parent object followed by a loop over its children is the most common shape,
+and the loop is easy to miss because the parent write looks like the expensive
+part:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">order</span> <span class="o">=</span> <span class="n">Order</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">customer</span><span class="o">=</span><span class="n">customer</span><span class="p">)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="p">:</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">OrderItem</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">product</span><span class="o">=</span><span class="n">item</span><span class="o">.</span><span class="n">product</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="n">item</span><span class="o">.</span><span class="n">qty</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Enforce a query budget the same way:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_dashboard_query_budget</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/dashboard/&quot;</span><span class="p">)</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">total_queries</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">,</span> <span class="p">(</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="sa">f</span><span class="s2">&quot;Query budget exceeded: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">total_queries</span><span class="si">}</span><span class="s2"> queries</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">sql</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">captured_queries</span><span class="p">)</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="p">)</span>
+<p><strong>Fix:</strong> <code>OrderItem.objects.bulk_create([...])</code> after the parent exists.</p>
+<h3 id="signal-handlers-writing-per-instance">Signal Handlers Writing Per Instance<a class="headerlink" href="#signal-handlers-writing-per-instance" title="Permanent link">&para;</a></h3>
+<p>A <code>post_save</code> receiver that writes an audit row turns any bulk operation back
+into per-row writes, and the loop is not visible at the call site:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@receiver</span><span class="p">(</span><span class="n">post_save</span><span class="p">,</span> <span class="n">sender</span><span class="o">=</span><span class="n">Book</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">log_change</span><span class="p">(</span><span class="n">sender</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">AuditEntry</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;Book&quot;</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="n">instance</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Or check for a specific issue type:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">IssueType</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_no_nplusone</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/api/books/&quot;</span><span class="p">)</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">n_plus_one_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="n">p</span><span class="o">.</span><span class="n">description</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">prescriptions</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">issue_type</span> <span class="o">==</span> <span class="n">IssueType</span><span class="o">.</span><span class="n">N_PLUS_ONE</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="p">)</span>
+<p><strong>Fix:</strong> collect the entries and write them once at the end of the request, or
+skip the receiver for bulk paths. Note that <code>bulk_create()</code> does <strong>not</strong> send
+<code>post_save</code>, so converting the caller to <code>bulk_create()</code> silences both the
+original write N+1 and this one -- verify the audit rows are still written some
+other way before doing that.</p>
+<h3 id="get_or_create-in-a-loop"><code>get_or_create()</code> in a Loop<a class="headerlink" href="#get_or_create-in-a-loop" title="Permanent link">&para;</a></h3>
+<p><code>get_or_create()</code> issues a <code>SELECT</code> and, on a miss, an <code>INSERT</code>. In a loop over
+mostly-new values this produces both an N+1 and a write N+1 for the same code:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">tag_names</span><span class="p">:</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">Tag</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 </span></code></pre></div>
-<hr />
-<h2 id="ci-integration">CI Integration<a class="headerlink" href="#ci-integration" title="Permanent link">&para;</a></h2>
-<p>Assertions written with <code>diagnose_queries()</code> fail the test when violated, which fails the CI job — no extra pytest flags are needed:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pytest<span class="w"> </span>-v
+<p><strong>Fix:</strong> fetch the existing rows once, then <code>bulk_create()</code> the difference:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">existing</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">Tag</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">name__in</span><span class="o">=</span><span class="n">tag_names</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">Tag</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">([</span><span class="n">Tag</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">tag_names</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">existing</span><span class="p">])</span>
 </span></code></pre></div>
-<blockquote>
-<p><strong>Tip:</strong> Combine test-level assertions with the <code>check_queries</code> management command in your CI pipeline. Test assertions catch issues in your test scenarios, while <code>check_queries</code> catches issues in endpoint responses that your tests might not cover. See <a href="../ci-integration/">CI Integration</a> for a complete workflow.</p>
-</blockquote>
-<h3 id="example-gradual-adoption">Example: Gradual Adoption<a class="headerlink" href="#example-gradual-adoption" title="Permanent link">&para;</a></h3>
-<p>If you are adding django-query-doctor to an existing project, adopt it incrementally:</p>
-<ol>
-<li>Start by adding <code>diagnose_queries()</code> assertions to your most critical view tests.</li>
-<li>Use generous query budgets on legacy paths.</li>
-<li>Tighten the budgets over time as you optimize.</li>
-</ol>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Start generous</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">django_db</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_legacy_dashboard</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="k">with</span> <span class="n">diagnose_queries</span><span class="p">()</span> <span class="k">as</span> <span class="n">report</span><span class="p">:</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/dashboard/&quot;</span><span class="p">)</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">total_queries</span> <span class="o">&lt;=</span> <span class="mi">50</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="c1"># After optimization: lower the limit to 8</span>
-</span></code></pre></div>
-<hr />
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>Analysis in tests respects the <code>QUERY_DOCTOR</code> setting from your Django settings file (see <a href="../../getting-started/configuration/">Configuration</a>).</p>
-<blockquote>
-<p><strong>Note:</strong> The configuration is read once and cached for the lifetime of the process (<code>get_config()</code> uses an LRU cache). Overriding <code>settings.QUERY_DOCTOR</code> inside an individual test does not take effect after the first configuration read.</p>
-</blockquote>
-<hr />
-<h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../ci-integration/">CI Integration</a> -- Full CI pipeline with pytest and management commands.</li>
-<li><a href="../how-it-works/">How It Works</a> -- Understanding the analysis pipeline.</li>
-<li><a href="../query-ignore/">Query Ignore</a> -- Suppress known issues in tests.</li>
-</ul>
+<div class="admonition note">
+<p class="admonition-title">Not every repeated write is a defect</p>
+<p>Writes that must be individually committed, or that depend on the primary
+key of the previous row, cannot be batched. <code>bulk_create()</code> also skips
+<code>save()</code> overrides and <code>pre_save</code>/<code>post_save</code> signals, so it is not a
+drop-in replacement in every codebase. When a group is legitimate, suppress
+it with a <a href="../../guides/query-ignore/"><code>.queryignore</code></a> rule rather than
+raising the threshold globally.</p>
+</div>
 
 
 
@@ -2242,7 +2312,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 24, 2026 11:03:49 UTC">July 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 30, 2026 04:26:17 UTC">July 30, 2026</span>
   </span>
 
     
@@ -2252,7 +2322,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 18, 2026 18:17:25 UTC">March 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 30, 2026 04:26:17 UTC">July 30, 2026</span>
   </span>
 
     
@@ -2289,7 +2359,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../management-commands/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Management Commands">
+          <a href="../query-complexity/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Query Complexity">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2299,20 +2369,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Management Commands
+                Query Complexity
               </div>
             </div>
           </a>
         
         
           
-          <a href="../queryturbo/" class="md-footer__link md-footer__link--next" aria-label="Next: QueryTurbo">
+          <a href="../../reporters/" class="md-footer__link md-footer__link--next" aria-label="Next: Reporters">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                QueryTurbo
+                Reporters
               </div>
             </div>
             <div class="md-footer__button md-icon">

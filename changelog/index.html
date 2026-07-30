@@ -1421,6 +1421,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../analyzers/write-nplusone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Write N+1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1825,6 +1853,20 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
+<li>An eighth built-in analyzer, <code>write_nplusone</code>, detects repeated single-row
+  writes — the <code>.save()</code>, <code>.create()</code> or <code>.delete()</code> in a loop that issues one
+  round trip per object. The other seven analyzers all examine <code>SELECT</code>
+  statements, so this is the first one that fires on code doing no reads at
+  all: an import job, a bulk status update, a fan-out of rows. It prescribes
+  the bulk equivalent (<code>bulk_create()</code>, <code>bulk_update()</code>, a queryset <code>update()</code>
+  or <code>delete()</code>), naming the model where the table resolves to one. Enabled by
+  default at a threshold of 3 identical writes; configure under
+  <code>ANALYZERS.write_nplusone</code>, and suppress individual findings with an
+  <code>ignore: write_n_plus_one:&lt;path&gt;</code> rule in <code>.queryignore</code>. Transaction control
+  statements are excluded, so a request opening several transactions is not
+  reported. <code>fix_queries</code> does not rewrite these findings — the fix is a
+  multi-line restructure, not a single-line edit, the same reason <code>complexity</code>
+  has no fixer. See the <a href="https://hassanzaibhay.github.io/django-query-doctor/analyzers/write-nplusone/">Write N+1 analyzer guide</a>.</li>
 <li>The <code>query_doctor</code> pytest fixture now produces observable output. A
   <code>pytest_terminal_summary</code> hook prints a <code>query_doctor</code> section at end of
   session: one header line with the number of fixture-using tests observed and
@@ -1913,6 +1955,17 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li>Prescriptions no longer point at a line inside Django on Debian and Ubuntu
+  system Python. Callsite detection named only three Django ORM modules in its
+  exclude list, so <code>django/db/models/manager.py</code> (reached by every
+  <code>.objects.create()</code>) and <code>django/db/models/base.py</code> (every <code>.save()</code>) were
+  skipped only because they happen to live under a path containing
+  <code>site-packages</code>. Distributions that install to <code>dist-packages</code> instead got a
+  <code>file:line</code> inside Django for those queries, making the prescription
+  unactionable — and <code>fix_queries</code> would have targeted a Django source file. The
+  whole <code>django/db</code> package is now excluded by name, and <code>dist-packages</code> is
+  recognised alongside <code>site-packages</code>. If you set <code>STACK_TRACE_EXCLUDE</code> to work
+  around this, that entry is now redundant but still harmless.</li>
 <li>The Rich console reporter now selects box-drawing characters from the encoding
   of the stream it writes to, not from stdout. Previously, output aimed at a
   terminal whose encoding differed from stdout's could contain characters the
