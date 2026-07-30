@@ -2242,11 +2242,13 @@ shape of the workload, because all five change the answer.</p>
 enabled, 200 timed calls per row after 5 discarded warm-up calls, 0 <code>.queryignore</code> rules loaded.
 The workload is 25% single-row writes and 75% wide <code>SELECT</code>s carrying a <code>WHERE</code> and an <code>ORDER BY</code>,
 spread over one fingerprint per 25 captures.</p>
-<p><code>p10 - p90</code> is dispersion <em>within</em> one run, and it understates variation <em>between</em> runs: a second
-run on the same machine moved the medians by up to 7% (0.91 to 0.85 ms at 10 captures, 6.46 to 6.40
-at 100, 32.00 to 31.73 at 500), some of it outside the published band. Read a few percent of
-disagreement between your run and this table as noise, and take the shares below rather than the
-absolute milliseconds as the durable result.</p>
+<p><code>p10 - p90</code> is dispersion <em>within</em> one run, and it badly understates variation <em>between</em> runs. A
+second run on this dedicated machine moved the medians by up to 7% (0.91 to 0.85 ms at 10 captures,
+6.46 to 6.40 at 100, 32.00 to 31.73 at 500), some of it already outside the published band. On a
+shared or virtualised host the swing is far larger: two runs of the same command on one such machine
+measured 26.90 ms and 32.24 ms at 500 captures, <strong>~20% apart</strong>. So a run of yours that disagrees with
+this table by tens of percent is telling you about your host, not about a defect. Take the shares
+below, not the absolute milliseconds, as the durable result.</p>
 <p>The 0-query row is the pipeline's floor, not this route's floor: <code>_analyze_and_report()</code> returns at
 <code>middleware.py</code> before reaching the analysis pipeline when nothing was captured, so a request that
 issued no queries costs <code>__acall__</code> config loading and the <code>_should_process()</code> check, not 0.14 ms of
@@ -2273,11 +2275,6 @@ additionally O(distinct fingerprints) rather than O(queries), so 500 near-identi
 cost less than the table suggests and 500 distinct wide ones cost more.</p>
 <p>Treat the table as an order of magnitude for a deliberately unfavourable workload, and re-run
 the harness against your own if the number matters to you.</p>
-<p><strong>Earlier releases of this guide quoted 2.2 ms at 100 queries and 10.3 ms at 500</strong> without
-recording the workload behind them. The narrow-<code>SELECT</code> run lands at 2.02 ms and 9.08 ms, so
-those figures were most likely correct for a narrow workload rather than wrong -- but nothing
-in the repository recorded that, which is exactly why they could not be regenerated. The table
-now states its shape and ships with the harness that produces it.</p>
 </div>
 <hr />
 <h2 id="django-async-orm-methods">Django Async ORM Methods<a class="headerlink" href="#django-async-orm-methods" title="Permanent link">&para;</a></h2>
@@ -2395,7 +2392,7 @@ harness that captures nothing.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 30, 2026 08:54:03 UTC">July 30, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 30, 2026 14:09:57 UTC">July 30, 2026</span>
   </span>
 
     
