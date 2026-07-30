@@ -6,6 +6,7 @@ timings on a shared runner are noisy and a flaky required check is worse than an
 unsourced figure.
 
     python -m scripts.bench_analyze
+    python -m scripts.bench_analyze --select-width narrow
 
 Why the workload shape is printed rather than described in prose: every grouping
 analyzer is O(distinct fingerprints), not O(queries), and ``write_nplusone``
@@ -14,6 +15,13 @@ order of magnitude depending on how many fingerprints it spans and how many of
 those queries are writes. A figure quoted without that shape cannot be
 reproduced, which is how the previous generation of these numbers went stale
 unnoticed.
+
+Every claim the guide makes about this workload is a knob here, for the same
+reason. ``--select-width`` varies SELECT width with count and fingerprint spread
+held fixed, which is the wide-versus-narrow ratio; the per-analyzer breakdown
+attributes the pipeline total across the eight analyzers, which is the
+"complexity dominates" claim. A published number whose knob is missing is a
+number nobody can check.
 
 Deliberately self-contained: stdlib timing only, no new dependencies, and no
 imports from ``benchmarks/`` or ``tests/``. This module is covered by the
@@ -48,6 +56,24 @@ SELECTS_PER_GROUP = 25
 # Share of the workload that is non-SELECT. write_nplusone examines only these,
 # so an all-SELECT workload would measure seven analyzers rather than eight.
 WRITE_SHARE = 0.25
+
+# The two SELECT shapes, differing only in projected column count. Everything
+# that governs grouping -- the table, the WHERE, the trailing group marker -- is
+# identical, so switching width holds the fingerprint spread fixed and varies
+# only how much SQL each analyzer has to parse.
+SELECT_TEMPLATES = {
+    "wide": (
+        'SELECT "auth_user"."id", "auth_user"."password", "auth_user"."last_login", '
+        '"auth_user"."is_superuser", "auth_user"."username", "auth_user"."first_name", '
+        '"auth_user"."last_name", "auth_user"."email", "auth_user"."is_staff", '
+        '"auth_user"."is_active", "auth_user"."date_joined" '
+        'FROM "auth_user" WHERE "auth_user"."id" = %s ORDER BY "auth_user"."username" '
+        "-- group {token}"
+    ),
+    "narrow": (
+        'SELECT "auth_user"."id" FROM "auth_user" WHERE "auth_user"."id" = %s -- group {token}'
+    ),
+}
 
 
 class Stats(NamedTuple):
@@ -91,7 +117,7 @@ def _configure_django() -> None:
     django.setup()
 
 
-def _build_workload(total: int) -> tuple[list[CapturedQuery], Shape]:
+def _build_workload(total: int, select_width: str = "wide") -> tuple[list[CapturedQuery], Shape]:
     """Build ``total`` synthetic captures with a documented, fixed composition.
 
     SELECTs are spread over several fingerprints at ``SELECTS_PER_GROUP`` each so
@@ -99,6 +125,13 @@ def _build_workload(total: int) -> tuple[list[CapturedQuery], Shape]:
     which is the shape a ``.save()`` loop actually produces. Callsites are
     pre-attached, so the harness measures analysis only and never exercises stack
     capture.
+
+    Args:
+        total: Number of captures to generate.
+        select_width: Key into :data:`SELECT_TEMPLATES`. Only the projected
+            column list differs between the two, so the shape columns this
+            returns are identical either way and the timing difference is
+            attributable to SQL width alone.
     """
     from query_doctor.fingerprint import fingerprint, normalize_sql
     from query_doctor.types import CallSite, CapturedQuery
@@ -132,15 +165,11 @@ def _build_workload(total: int) -> tuple[list[CapturedQuery], Shape]:
         fingerprints.add(queries[-1].fingerprint)
         callsites.add((callsite.filepath, callsite.line_number))
 
+    template = SELECT_TEMPLATES[select_width]
     for index in range(selects):
         group = index // SELECTS_PER_GROUP
         add(
-            'SELECT "auth_user"."id", "auth_user"."password", "auth_user"."last_login", '
-            '"auth_user"."is_superuser", "auth_user"."username", "auth_user"."first_name", '
-            '"auth_user"."last_name", "auth_user"."email", "auth_user"."is_staff", '
-            '"auth_user"."is_active", "auth_user"."date_joined" '
-            f'FROM "auth_user" WHERE "auth_user"."id" = %s ORDER BY "auth_user"."username" '
-            f"-- group {_group_token(group)}",
+            template.format(token=_group_token(group)),
             is_select=True,
             group=group,
             tables=["auth_user"],
@@ -190,7 +219,9 @@ def _percentile(values: list[float], fraction: float) -> float:
     return ordered[index]
 
 
-def _time_analyze(count: int, repetitions: int, warmup: int) -> tuple[Stats, Shape, int]:
+def _time_analyze(
+    count: int, repetitions: int, warmup: int, select_width: str
+) -> tuple[Stats, Shape, int]:
     """Time ``pipeline.analyze()`` over a workload of ``count`` captures.
 
     Warm-up calls are discarded: the first call populates the
@@ -200,7 +231,7 @@ def _time_analyze(count: int, repetitions: int, warmup: int) -> tuple[Stats, Sha
     """
     from query_doctor.pipeline import analyze
 
-    queries, shape = _build_workload(count)
+    queries, shape = _build_workload(count, select_width)
 
     for _ in range(warmup):
         analyze(queries, source="bench_analyze")
@@ -224,6 +255,66 @@ def _time_analyze(count: int, repetitions: int, warmup: int) -> tuple[Stats, Sha
         ),
         shape,
         findings,
+    )
+
+
+def _time_per_analyzer(
+    count: int, repetitions: int, warmup: int, select_width: str
+) -> tuple[list[tuple[str, float]], float]:
+    """Time each analyzer separately over one workload, alongside the pipeline.
+
+    The parts do not sum to the whole, and both are printed so the gap is
+    visible rather than asserted. ``pipeline.analyze()`` additionally pays
+    ``discover_analyzers()`` dispatch and one ``load_queryignore()`` call per
+    invocation, neither of which is attributable to any analyzer.
+
+    Every analyzer self-gates in its own ``analyze()``, so a disabled one is
+    timed exactly as the pipeline pays for it: near zero, but not skipped.
+
+    Returns:
+        Per-analyzer medians in milliseconds, sorted slowest first, and the
+        median of the whole ``pipeline.analyze()`` call over the same workload.
+    """
+    from query_doctor.pipeline import analyze
+    from query_doctor.plugin_api import discover_analyzers
+
+    queries, _ = _build_workload(count, select_width)
+    analyzers = discover_analyzers()
+
+    for _ in range(warmup):
+        analyze(queries, source="bench_analyze")
+
+    samples: dict[str, list[float]] = {analyzer.name: [] for analyzer in analyzers}
+    pipeline_samples: list[float] = []
+    for _ in range(repetitions):
+        for analyzer in analyzers:
+            started = perf_counter()
+            analyzer.analyze(queries)
+            samples[analyzer.name].append((perf_counter() - started) * 1000.0)
+        started = perf_counter()
+        analyze(queries, source="bench_analyze")
+        pipeline_samples.append((perf_counter() - started) * 1000.0)
+
+    medians = [(name, statistics.median(values)) for name, values in samples.items()]
+    medians.sort(key=lambda item: item[1], reverse=True)
+    return medians, statistics.median(pipeline_samples)
+
+
+def _print_breakdown(count: int, repetitions: int, warmup: int, select_width: str) -> None:
+    """Print the per-analyzer attribution of the pipeline total at ``count``."""
+    medians, pipeline_median = _time_per_analyzer(count, repetitions, warmup, select_width)
+    analyzers_total = sum(value for _, value in medians)
+
+    print()
+    print(f"per-analyzer at {count} captures, {select_width} SELECTs (median ms per call)")
+    for name, value in medians:
+        share = (value / pipeline_median * 100.0) if pipeline_median else 0.0
+        print(f"  {name:<20} {value:>9.3f} ms  {share:>5.1f}% of pipeline")
+    print(f"  {'analyzers total':<20} {analyzers_total:>9.3f} ms")
+    print(f"  {'pipeline total':<20} {pipeline_median:>9.3f} ms")
+    print(
+        f"  {'unattributed':<20} {pipeline_median - analyzers_total:>9.3f} ms  "
+        "(discovery dispatch and load_queryignore, paid once per call)"
     )
 
 
@@ -255,6 +346,25 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         default=5,
         help="Discarded calls before timing, to warm the discovery cache (default: 5).",
     )
+    parser.add_argument(
+        "--select-width",
+        choices=sorted(SELECT_TEMPLATES),
+        default="wide",
+        help=(
+            "SELECT shape: 'wide' projects all 11 auth_user columns with an ORDER BY, "
+            "'narrow' projects one column. Count and fingerprint spread are identical "
+            "either way (default: wide)."
+        ),
+    )
+    parser.add_argument(
+        "--per-analyzer",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Also time each analyzer separately at the largest count, "
+            "against the pipeline total (default: enabled)."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -280,14 +390,26 @@ def main(argv: list[str] | None = None) -> int:
     print(f"django {django.get_version()}")
     print(f"analyzers enabled: {len(analyzers)} ({', '.join(sorted(a.name for a in analyzers))})")
     print(f"repetitions: {args.repetitions} timed, {args.warmup} discarded as warm-up")
+
+    from query_doctor.ignore import load_queryignore
+
+    # Measured, not asserted: pipeline.analyze() calls load_queryignore() on
+    # every invocation, and filter_prescriptions() only when it returns rules.
+    # Printing the count means a run inside a project that has a .queryignore
+    # discloses the cost it is paying instead of denying it.
+    rule_count = len(load_queryignore())
+    filtering = (
+        "prescription filtering runs" if rule_count else "prescription filtering is skipped"
+    )
     print(
-        "no .queryignore present, so prescription filtering is skipped; "
-        "a project with rules pays more"
+        f".queryignore rules loaded: {rule_count} ({filtering}; "
+        "the file is looked up on every analyze() call either way)"
     )
     print()
 
     rows: list[tuple[Stats, Shape, int]] = [
-        _time_analyze(count, args.repetitions, args.warmup) for count in sorted(args.counts)
+        _time_analyze(count, args.repetitions, args.warmup, args.select_width)
+        for count in sorted(args.counts)
     ]
 
     header = (
@@ -326,9 +448,14 @@ def main(argv: list[str] | None = None) -> int:
     print()
     print(
         f"Workload shape: {int(WRITE_SHARE * 100)}% non-SELECT, "
-        f"SELECTs spread over one fingerprint per {SELECTS_PER_GROUP} captures, "
-        "one callsite per fingerprint group, callsites pre-attached."
+        f"{args.select_width} SELECTs spread over one fingerprint per "
+        f"{SELECTS_PER_GROUP} captures, one callsite per fingerprint group, "
+        "callsites pre-attached."
     )
+
+    if args.per_analyzer and args.counts:
+        _print_breakdown(max(args.counts), args.repetitions, args.warmup, args.select_width)
+
     return 0
 
 
