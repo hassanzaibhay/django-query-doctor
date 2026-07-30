@@ -77,6 +77,12 @@ mypy src/query_doctor/
 - Use the PR template (`.github/pull_request_template.md`) — it prompts for
   the summary, type, exact CHANGELOG entry, testing performed, and a
   pre-merge checklist.
+- **When a PR changes, edit the PR body. Do not add a comment.** A reviewer
+  arriving at a pull request should find one current description, not a
+  description plus a thread of revisions that contradict it. Use
+  `gh pr edit --body-file <file>` — never `--body`, which mangles multi-line
+  markdown. Comments are for discussion; the body is the record of what the PR
+  currently does.
 - If your change is user-facing, add it under `## [Unreleased]` in
   `CHANGELOG.md` (see [Changelog](#changelog) below for the test). Do not
   scatter version notes elsewhere.
