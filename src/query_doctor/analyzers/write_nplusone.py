@@ -10,18 +10,21 @@ reads FROM and JOIN clauses only, so an INSERT or UPDATE capture arrives with an
 empty ``tables`` list and the table name has to come from the statement itself.
 
 Algorithm:
-1. Keep non-SELECT captures, dropping transaction control, DDL and multi-row
-   INSERTs -- none of which is a repeated single-row write.
+1. Keep non-SELECT captures, dropping transaction control, DDL, and every bulk
+   write form -- multi-row INSERTs, and UPDATE/DELETE statements whose IN list
+   holds more than one value. None is a repeated single-row write.
 2. Classify each as insert, update or delete, and read its target table.
 3. Group by fingerprint -- normalization collapses literals, so the same
    statement shape repeated in a loop shares one fingerprint.
 4. For each group at or over the threshold, prescribe the bulk equivalent.
 
-Multi-row INSERTs -- what ``bulk_create()`` emits -- are rejected outright, so
-applying the prescription clears the finding. Counting captures would not be
-enough: Django splits ``bulk_create()`` into several equal multi-row INSERTs
-whenever ``batch_size=`` is passed or the backend caps parameters per statement,
-and those batches share a fingerprint.
+Applying any of the three prescriptions clears the finding, which is why all
+three bulk forms are rejected rather than only ``bulk_create()``'s. Counting
+captures would not be enough: Django splits ``bulk_create()``, ``bulk_update()``
+and a chunked queryset ``delete()`` into equal batches whenever ``batch_size=``
+is passed or the backend caps parameters per statement, and those batches share
+a fingerprint. Cardinality is read from the raw statement because normalization
+collapses ``IN`` lists -- see ``_classify``.
 """
 
 from __future__ import annotations
@@ -67,6 +70,9 @@ _DELETE_RE = re.compile(r'^delete\s+from\s+"?(\w+)"?', re.IGNORECASE)
 
 # The VALUES keyword introducing an INSERT's row tuples.
 _VALUES_RE = re.compile(r"\bvalues\b", re.IGNORECASE)
+
+# An IN list opening, as in WHERE "id" IN (%s, %s, %s).
+_IN_LIST_RE = re.compile(r"\bin\s*\(", re.IGNORECASE)
 
 _STATEMENT_PATTERNS = (
     ("insert", _INSERT_RE),
@@ -139,11 +145,74 @@ def _values_tuple_count(statement: str) -> int:
     return tuples
 
 
-def _classify(normalized_sql: str) -> tuple[str, str] | None:
-    """Classify a normalized statement as (kind, table).
+def _max_in_list_size(statement: str) -> int:
+    """Return the largest number of values held by any IN list in a statement.
 
-    Returns None for anything that is not a repeated *single-row* write:
-    transaction control, DDL, and multi-row INSERTs.
+    Used to tell a repeated single-row write from a repeated *bulk* one. One value
+    in the IN list means the statement targets one row; more than one means it
+    already targets many and is not this analyzer's finding.
+
+    Counts comma-separated items at the list's own nesting depth rather than
+    placeholder tokens, so it holds across paramstyles -- ``%s`` on most backends,
+    ``:argN`` on Oracle -- and does not miscount a function call or a tuple
+    nested inside a value.
+
+    A list whose contents begin with SELECT is a subquery, not a value list, and
+    counts 0: its cardinality is not visible in the statement. See the
+    limitations noted on ``_classify``.
+    """
+    largest = 0
+
+    for match in _IN_LIST_RE.finditer(statement):
+        depth = 1
+        items = 1
+        body_start = match.end()
+        end = body_start
+
+        for index in range(body_start, len(statement)):
+            char = statement[index]
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if depth == 0:
+                    end = index
+                    break
+            elif char == "," and depth == 1:
+                items += 1
+
+        if statement[body_start:end].lstrip().lower().startswith("select"):
+            continue
+
+        largest = max(largest, items)
+
+    return largest
+
+
+def _classify(normalized_sql: str, raw_sql: str) -> tuple[str, str] | None:
+    """Classify a statement as (kind, table), or None if it is not a single-row write.
+
+    Rejected: transaction control, DDL, multi-row INSERTs, and UPDATE/DELETE
+    statements whose WHERE clause carries an IN list of more than one value. All
+    three write kinds have a bulk form this analyzer prescribes, and every bulk
+    form must be rejected -- otherwise the prescribed fix is reported as the
+    defect, because Django splits each into equal batches that share a
+    fingerprint.
+
+    Both raw and normalized SQL are needed. Kind and table come from the
+    normalized form; cardinality must come from the **raw** statement, because
+    ``normalize_sql`` collapses ``IN (...)`` to ``IN (?)``
+    (``fingerprint.py`` ``_RE_IN_CLAUSE``). A single-object ``obj.delete()`` and a
+    batched ``filter(pk__in=[...]).delete()`` are normalized-identical, so a rule
+    reading only the normalized form must either miss the false positive or
+    silence the per-object delete loop that is this analyzer's whole point.
+
+    Two residual false positives that statement shape cannot detect, documented
+    in ``docs/analyzers/write-nplusone.md`` rather than guessed at:
+
+    - ``WHERE id IN (SELECT ...)`` holds no value list, so it reads as single-row.
+    - ``filter(status="x").delete()`` emits ``WHERE "status" = %s`` and can affect
+      any number of rows with no IN list at all.
     """
     statement = normalized_sql.lstrip()
 
@@ -153,16 +222,10 @@ def _classify(normalized_sql: str) -> tuple[str, str] | None:
     for kind, pattern in _STATEMENT_PATTERNS:
         match = pattern.match(statement)
         if match:
-            # A multi-row INSERT is the bulk form this analyzer prescribes, so it
-            # must never be reported as the problem. Django splits bulk_create()
-            # into several equal multi-row INSERTs whenever batch_size= is passed
-            # or the backend caps parameters per statement (SQLite's 999-variable
-            # limit, MySQL's packet size), and those batches share a fingerprint.
-            # Without this check, bulk_create(objs, batch_size=3) over 9 objects
-            # emits three INSERTs, clears the default threshold, and is reported
-            # as three "single-row" writes -- the prescribed fix flagged as the
-            # defect.
-            if kind == "insert" and _values_tuple_count(statement) > 1:
+            if kind == "insert":
+                if _values_tuple_count(raw_sql) > 1:
+                    return None
+            elif _max_in_list_size(raw_sql) > 1:
                 return None
             return kind, match.group(1)
 
@@ -213,7 +276,7 @@ class WriteNPlusOneAnalyzer(BaseAnalyzer):
             if query.is_select:
                 continue
 
-            classification = _classify(query.normalized_sql)
+            classification = _classify(query.normalized_sql, query.sql)
             if classification is None:
                 continue
 

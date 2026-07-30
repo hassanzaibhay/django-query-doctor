@@ -22,7 +22,30 @@ repeated single-row write:
   would otherwise be reported.
 - **Schema statements** (`CREATE`, `ALTER`, `DROP`) write no rows; a migration
   creating several tables would otherwise be reported.
-- **Multi-row `INSERT`s**, which are the bulk form this analyzer prescribes.
+- **Bulk write forms**, which are what this analyzer prescribes -- a multi-row
+  `INSERT`, or an `UPDATE`/`DELETE` whose `WHERE` clause carries an `IN` list of
+  more than one value. All three matter, not just the `INSERT`: Django splits
+  `bulk_create()`, `bulk_update()` and a chunked queryset `delete()` into equal
+  batches whenever `batch_size=` is passed or the backend caps parameters per
+  statement, and those batches share a fingerprint.
+
+Cardinality is read from the raw SQL, not the normalized form, because
+normalization collapses `IN (...)` to `IN (?)` -- which makes a single-object
+`obj.delete()` and a batched `filter(pk__in=[...]).delete()` indistinguishable
+there.
+
+!!! warning "Two shapes it cannot tell apart"
+    Neither of these carries its row count in the statement, so both are reported
+    as single-row writes even though each may affect many rows:
+
+    - `WHERE id IN (SELECT ...)` -- a subquery, not a value list.
+    - `Model.objects.filter(status="x").delete()` -- emits `WHERE "status" = %s`
+      with no `IN` list at all.
+
+    A loop issuing either will be flagged. That is a deliberate trade: the
+    alternative rules that would suppress them also suppress
+    `for obj in qs: obj.delete()`, which is the pattern this analyzer exists to
+    find. Suppress these with a [`.queryignore`](../guides/query-ignore.md) rule.
 
 ## Problem Code
 

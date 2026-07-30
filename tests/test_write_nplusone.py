@@ -160,6 +160,68 @@ class TestWriteNPlusOneDetection:
         ):
             assert WriteNPlusOneAnalyzer().analyze(_write(statement, 5)) == [], statement
 
+    def test_a_multi_value_in_list_is_bulk(self) -> None:
+        """An UPDATE or DELETE targeting several ids at once is already the bulk form."""
+        for statement in (
+            'UPDATE "testapp_book" SET "title" = %s WHERE "id" IN (%s, %s, %s)',
+            'DELETE FROM "testapp_book" WHERE "id" IN (%s, %s, %s)',
+        ):
+            assert WriteNPlusOneAnalyzer().analyze(_write(statement, 5)) == [], statement
+
+    def test_a_single_value_in_list_is_single_row(self) -> None:
+        """Positive control for the rule above: one value in the list is one row.
+
+        Django emits exactly this for ``obj.delete()``. Without this test, a rule
+        that rejected every IN list would satisfy the test above while silencing
+        the per-object delete loop the analyzer exists to find.
+        """
+        for statement in (
+            'UPDATE "testapp_book" SET "title" = %s WHERE "id" IN (%s)',
+            'DELETE FROM "testapp_book" WHERE "id" IN (%s)',
+        ):
+            assert len(WriteNPlusOneAnalyzer().analyze(_write(statement, 5))) == 1, statement
+
+    def test_any_in_list_over_one_value_rejects(self) -> None:
+        """With several IN lists, more than one value in any of them is enough."""
+        statement = (
+            'DELETE FROM "testapp_book" WHERE "author_id" IN (%s) AND "publisher_id" IN (%s, %s)'
+        )
+
+        assert WriteNPlusOneAnalyzer().analyze(_write(statement, 5)) == []
+
+    def test_a_nested_tuple_inside_a_value_is_not_counted(self) -> None:
+        """Item counting is depth-aware, so a nested call does not inflate the count."""
+        statement = 'DELETE FROM "testapp_book" WHERE "id" IN (COALESCE(%s, %s))'
+
+        assert len(WriteNPlusOneAnalyzer().analyze(_write(statement, 5))) == 1
+
+    def test_in_subquery_is_treated_as_single_row(self) -> None:
+        """Documented limitation: a subquery's cardinality is not in the statement.
+
+        ``WHERE id IN (SELECT ...)`` holds no value list, so it reads as single-row
+        and a loop issuing it is reported. Pinned so the behaviour is deliberate
+        rather than incidental -- see the limitations section of the analyzer guide.
+        """
+        statement = (
+            'DELETE FROM "testapp_book" '
+            'WHERE "id" IN (SELECT "book_id" FROM "testapp_review" WHERE "rating" < %s)'
+        )
+
+        prescriptions = WriteNPlusOneAnalyzer().analyze(_write(statement, 5))
+
+        assert len(prescriptions) == 1
+        assert prescriptions[0].extra["statement"] == "delete"
+
+    def test_a_bare_where_clause_is_treated_as_single_row(self) -> None:
+        """Documented limitation: ``filter(status="x").delete()`` has no IN list.
+
+        It emits ``WHERE "status" = %s`` and may affect any number of rows, which
+        statement shape cannot reveal. Reported as single-row, by design.
+        """
+        statement = 'DELETE FROM "testapp_book" WHERE "title" = %s'
+
+        assert len(WriteNPlusOneAnalyzer().analyze(_write(statement, 5))) == 1
+
     def test_statements_with_no_row_tuples_are_single_row(self) -> None:
         """``INSERT ... SELECT`` and ``DEFAULT VALUES`` carry no tuples.
 
@@ -253,6 +315,22 @@ class TestWriteNPlusOneAgainstRealDjango:
             func()
         return interceptor.get_queries()
 
+    def _books(self, count: int, tag: str) -> list:
+        """Create ``count`` books outside any capture window."""
+        from tests.testapp.models import Book
+
+        author = AuthorFactory()
+        publisher = PublisherFactory()
+        return [
+            Book.objects.create(
+                title=f"{tag}{i}",
+                isbn=f"{tag}-{i}",
+                author=author,
+                publisher=publisher,
+            )
+            for i in range(count)
+        ]
+
     def test_create_in_a_loop_is_detected(self) -> None:
         """``Model.objects.create()`` in a loop is the canonical write N+1."""
         author = AuthorFactory()
@@ -336,6 +414,102 @@ class TestWriteNPlusOneAgainstRealDjango:
         assert len({q.fingerprint for q in inserts}) == 1
 
         assert WriteNPlusOneAnalyzer().analyze(captured) == []
+
+    def test_batched_bulk_update_produces_no_finding(self) -> None:
+        """Regression: bulk_update(batch_size=N) splits into several UPDATEs.
+
+        Same mechanism as the batched bulk_create case, for the second of the
+        three bulk forms this analyzer prescribes. Nine objects at batch_size=3
+        emit three multi-row UPDATEs sharing one fingerprint, clearing the
+        default threshold -- so the analyzer reported the very call that produced
+        them.
+        """
+        from tests.testapp.models import Book
+
+        books = self._books(9, "bu")
+        for i, book in enumerate(books):
+            book.title = f"new{i}"
+
+        def batched_bulk_update() -> None:
+            Book.objects.bulk_update(books, ["title"], batch_size=3)
+
+        captured = self._capture(batched_bulk_update)
+
+        updates = [q for q in captured if q.normalized_sql.lstrip().startswith("update")]
+        assert len(updates) == 3
+        assert len({q.fingerprint for q in updates}) == 1
+
+        assert WriteNPlusOneAnalyzer().analyze(captured) == []
+
+    def test_batched_queryset_delete_produces_no_finding(self) -> None:
+        """Regression: repeated queryset deletes each target many rows.
+
+        Three ``filter(pk__in=chunk).delete()`` calls over nine books. Every
+        cascade table gets its own fingerprint group, so the assertion covers all
+        of them rather than only Book -- an earlier version of this rule that
+        only looked at the primary table would have left the cascade findings.
+        """
+        from tests.testapp.models import Book
+
+        ids = [b.pk for b in self._books(9, "dl")]
+
+        def batched_queryset_delete() -> None:
+            for chunk in (ids[0:3], ids[3:6], ids[6:9]):
+                Book.objects.filter(pk__in=chunk).delete()
+
+        captured = self._capture(batched_queryset_delete)
+
+        deletes = [q for q in captured if q.normalized_sql.lstrip().startswith("delete")]
+        assert len(deletes) == 9
+        assert len({q.fingerprint for q in deletes}) == 3
+
+        assert WriteNPlusOneAnalyzer().analyze(captured) == []
+
+    def test_save_in_a_loop_still_fires(self) -> None:
+        """Positive control: the rule must not silence the canonical save loop.
+
+        A per-object save emits ``SET ... WHERE "id" = %s`` with no IN list at
+        all, so the IN-cardinality rule leaves it alone. A rule that killed this
+        would be worse than the false positive it was written to fix.
+        """
+        from tests.testapp.models import Book
+
+        self._books(4, "sv")
+
+        def save_in_a_loop() -> None:
+            for book in Book.objects.all():
+                book.title = f"{book.title}!"
+                book.save()
+
+        prescriptions = WriteNPlusOneAnalyzer().analyze(self._capture(save_in_a_loop))
+
+        updates = [p for p in prescriptions if p.extra.get("statement") == "update"]
+        assert len(updates) == 1
+        assert updates[0].query_count == 4
+
+    def test_delete_in_a_loop_still_fires(self) -> None:
+        """Positive control: per-object delete emits IN with one placeholder.
+
+        This is the control a normalized-form rule cannot pass. Normalization
+        collapses ``IN (...)`` to ``IN (?)``, so a single-object delete and a
+        batched queryset delete are normalized-identical -- only the raw
+        statement distinguishes them.
+        """
+        books = self._books(4, "dloop")
+
+        def delete_in_a_loop() -> None:
+            for book in books:
+                book.delete()
+
+        prescriptions = WriteNPlusOneAnalyzer().analyze(self._capture(delete_in_a_loop))
+
+        book_deletes = [
+            p
+            for p in prescriptions
+            if p.extra.get("statement") == "delete" and p.extra.get("table") == "testapp_book"
+        ]
+        assert len(book_deletes) == 1
+        assert book_deletes[0].query_count == 4
 
     def test_bulk_create_produces_no_finding(self) -> None:
         """Positive control for the fix: applying the prescription clears the finding.
