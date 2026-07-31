@@ -10,12 +10,12 @@ print("=" * 60)
 print("""
 # The middleware auto-detects async views. No extra config needed.
 
-# settings.py — same as always:
+# settings.py -- same as always:
 MIDDLEWARE = [
     "query_doctor.QueryDoctorMiddleware",
 ]
 
-# Async view — query doctor captures queries via sync_to_async:
+# Async view -- query doctor captures queries via sync_to_async:
 from django.http import JsonResponse
 from asgiref.sync import sync_to_async
 

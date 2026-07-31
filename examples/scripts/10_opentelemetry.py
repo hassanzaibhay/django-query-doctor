@@ -23,7 +23,7 @@ provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
 trace.set_tracer_provider(provider)
 
 # Step 3: Invoke OTelReporter yourself. It is NOT dispatched by the
-# REPORTERS setting (which recognizes only console/json/log) — call it
+# REPORTERS setting (which recognizes only console/json/log) -- call it
 # with a report you produced, e.g. via diagnose_queries():
 
 from query_doctor.context_managers import diagnose_queries

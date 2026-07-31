@@ -361,7 +361,7 @@ class TestQueryFixerApplyFixes:
             file_path=str(source),
             original_line="    books = Book.objects.filter(status='active')\n",
             fixed_line=(
-                "    # TODO: Consider adding an index via Meta.indexes — add index on status\n"
+                "    # TODO: Consider adding an index via Meta.indexes -- add index on status\n"
                 "    books = Book.objects.filter(status='active')\n"
             ),
             line_number=4,
@@ -416,7 +416,7 @@ class TestMissingIndexCommentBytes:
             "Add db_index=True to the 'status' field",
         )
         assert "Meta.indexes - Add db_index=True" in emitted
-        assert "—" not in emitted
+        assert " -- " not in emitted
         emitted.encode("ascii")
 
     def test_no_tracked_document_quotes_it_with_an_em_dash(self) -> None:
@@ -445,7 +445,7 @@ class TestMissingIndexCommentBytes:
                 text = (repo_root / rel).read_text(encoding="utf-8")
             except (UnicodeDecodeError, OSError):
                 continue
-            if "Meta.indexes —" in text:
+            if "Meta.indexes -- " in text:
                 offenders.append(rel)
 
         assert offenders == [], (

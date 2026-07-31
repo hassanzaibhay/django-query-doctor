@@ -175,7 +175,7 @@ for url, label in urls_to_test:
             client.get(url)
         print(f"  {label} ({url}): {r.total_queries} queries, {r.issues} issues")
     except Exception as e:
-        print(f"  {label} ({url}): Error — {e}")
+        print(f"  {label} ({url}): Error -- {e}")
 
 # --- 5. Decorator examples ---
 print("\n--- Decorator: @diagnose ---")
@@ -191,7 +191,7 @@ def fetch_all_books():
 
 try:
     fetch_all_books()
-    print("  @diagnose ran successfully — check console output above")
+    print("  @diagnose ran successfully -- check console output above")
 except Exception as e:
     print(f"  @diagnose example completed: {e}")
 
@@ -212,7 +212,7 @@ try:
     budget_limited_view()
     budget_output.append("Budget: PASSED (unexpected)")
 except QueryBudgetError as e:
-    budget_output.append(f"Budget: EXCEEDED — {e}")
+    budget_output.append(f"Budget: EXCEEDED -- {e}")
 except Exception as e:
     budget_output.append(f"Budget check ran: {e}")
 
@@ -221,13 +221,13 @@ print(f"  {budget_text}")
 
 with open(os.path.join(output_dir, "query_budget_output.txt"), "w") as f:
     f.write("=" * 60 + "\n")
-    f.write("Query Doctor — Query Budget Example\n")
+    f.write("Query Doctor -- Query Budget Example\n")
     f.write("=" * 60 + "\n\n")
     f.write("@query_budget(max_queries=5)\n")
     f.write("def budget_limited_view():\n")
     f.write("    books = list(Book.objects.all())\n")
     f.write("    for b in books:\n")
-    f.write("        _ = b.author.name  # N+1 — exceeds budget\n\n")
+    f.write("        _ = b.author.name  # N+1 -- exceeds budget\n\n")
     f.write(f"Result: {budget_text}\n")
 
 # --- Summary ---

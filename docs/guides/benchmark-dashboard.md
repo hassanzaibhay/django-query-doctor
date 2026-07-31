@@ -46,9 +46,9 @@ Five cards showing aggregate cache metrics:
 
 The dashboard includes Chart.js visualizations:
 
-- **Cache Hits vs Misses** — Doughnut chart showing the hit/miss ratio
-- **Top Queries by Hit Count** — Horizontal bar chart showing the top 10 most-hit cached queries
-- **Prepared vs Non-Prepared Queries** — Bar chart showing how many of the top queries use prepared statements (only shown when prepared statement data is available)
+- **Cache Hits vs Misses** -- Doughnut chart showing the hit/miss ratio
+- **Top Queries by Hit Count** -- Horizontal bar chart showing the top 10 most-hit cached queries
+- **Prepared vs Non-Prepared Queries** -- Bar chart showing how many of the top queries use prepared statements (only shown when prepared statement data is available)
 
 ### Top Optimized Queries Table
 
@@ -82,5 +82,5 @@ The dashboard is most useful after your application has been running for a while
 
 ## Further Reading
 
-- [QueryTurbo](queryturbo.md) — How the compilation cache works
-- [Performance & Benchmarks](../deep-dive/performance.md) — Overhead model and benchmark numbers
+- [QueryTurbo](queryturbo.md) -- How the compilation cache works
+- [Performance & Benchmarks](../deep-dive/performance.md) -- Overhead model and benchmark numbers

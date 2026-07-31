@@ -20,11 +20,11 @@ stateDiagram-v2
     POISONED --> POISONED: all future hits (permanent)
 ```
 
-**UNTRUSTED** — When a query fingerprint is first cached, the entry starts in the UNTRUSTED state. On each subsequent cache hit, QueryTurbo runs a fresh `as_sql()` call and compares the result against the cached SQL. If the SQL matches, the entry's `validated_count` is incremented. Once `validated_count` reaches `VALIDATION_THRESHOLD` (default: **3**), the entry is promoted to TRUSTED.
+**UNTRUSTED** -- When a query fingerprint is first cached, the entry starts in the UNTRUSTED state. On each subsequent cache hit, QueryTurbo runs a fresh `as_sql()` call and compares the result against the cached SQL. If the SQL matches, the entry's `validated_count` is incremented. Once `validated_count` reaches `VALIDATION_THRESHOLD` (default: **3**), the entry is promoted to TRUSTED.
 
-**TRUSTED** — The `as_sql()` call is skipped entirely. Instead, parameters are extracted directly from the Django `Query` tree's `WhereNode` structure. This is the fast path that provides the compilation-skip speedup.
+**TRUSTED** -- The `as_sql()` call is skipped entirely. Instead, parameters are extracted directly from the Django `Query` tree's `WhereNode` structure. This is the fast path that provides the compilation-skip speedup.
 
-**POISONED** — If at any point the cached SQL does not match a fresh `as_sql()` result (a fingerprint collision), the entry is permanently marked as POISONED. Poisoned fingerprints are stored in a separate set (`_poisoned_fps`) that:
+**POISONED** -- If at any point the cached SQL does not match a fresh `as_sql()` result (a fingerprint collision), the entry is permanently marked as POISONED. Poisoned fingerprints are stored in a separate set (`_poisoned_fps`) that:
 
 - Survives `cache.clear()` (which is triggered by the `post_migrate` signal)
 - Lives for the lifetime of the process
@@ -51,22 +51,22 @@ stateDiagram-v2
 
 Enable QueryTurbo if your application meets these conditions:
 
-- **PostgreSQL with psycopg3** — gives the full benefit: compilation skip +
+- **PostgreSQL with psycopg3** -- gives the full benefit: compilation skip +
   protocol-level prepared statements
-- **High-frequency identical-structure queries** — the same ORM pattern executes
+- **High-frequency identical-structure queries** -- the same ORM pattern executes
   100+ times per process lifetime (pagination, list views, API endpoints
   with consistent filters)
-- **Complex queries** — JOINs, annotations, Q objects benefit most from skipping
+- **Complex queries** -- JOINs, annotations, Q objects benefit most from skipping
   compilation (up to 337 μs saved per query)
-- **Long-lived processes** — gunicorn workers, Celery workers, or Django dev server
+- **Long-lived processes** -- gunicorn workers, Celery workers, or Django dev server
   sessions where the TRUSTED state (reached after 3 validations) is maintained
 
 **Do not enable on:**
 
-- SQLite databases (development or testing) — fingerprinting overhead exceeds
+- SQLite databases (development or testing) -- fingerprinting overhead exceeds
   compilation savings; end-to-end performance is worse
-- Short-lived processes (serverless, AWS Lambda) — cache never warms up to TRUSTED
-- If you use `RawQuerySet` or `Manager.raw()` exclusively — these bypass QueryTurbo
+- Short-lived processes (serverless, AWS Lambda) -- cache never warms up to TRUSTED
+- If you use `RawQuerySet` or `Manager.raw()` exclusively -- these bypass QueryTurbo
   entirely (`SKIP_RAW_SQL = True` by default)
 
 ---
@@ -100,7 +100,7 @@ QueryTurbo is disabled by default. All other settings have sensible defaults.
 | `VALIDATION_THRESHOLD` | `int` | `3` | Number of successful SQL validations before an entry is promoted from UNTRUSTED to TRUSTED. |
 
 ```python
-# settings.py — full example with all defaults shown
+# settings.py -- full example with all defaults shown
 QUERY_DOCTOR = {
     "TURBO": {
         "ENABLED": True,
@@ -135,7 +135,7 @@ After a query has been executed `PREPARE_THRESHOLD` times (default: 5), the prep
 
 ### Fallback Behavior
 
-If the database backend does not support prepared statements (or if `prepare=True` raises a `TypeError`), QueryTurbo permanently disables prepared statements for that vendor and falls back to normal execution. This happens silently — no error is raised.
+If the database backend does not support prepared statements (or if `prepare=True` raises a `TypeError`), QueryTurbo permanently disables prepared statements for that vendor and falls back to normal execution. This happens silently -- no error is raised.
 
 ### Backend-Specific Strategies
 
@@ -143,9 +143,9 @@ If the database backend does not support prepared statements (or if `prepare=Tru
 |---------|----------|----------|
 | PostgreSQL + psycopg3 | `Psycopg3PrepareStrategy` | Protocol-level prepared statements via `prepare=True` |
 | Oracle | `OraclePrepareStrategy` | Implicit cursor caching (cx_Oracle handles this internally) |
-| MySQL | `NoPrepareStrategy` | No-op — compilation cache only |
-| SQLite | `NoPrepareStrategy` | No-op — compilation cache only |
-| PostgreSQL + psycopg2 | `NoPrepareStrategy` | No-op — psycopg2 does not support `prepare=True` |
+| MySQL | `NoPrepareStrategy` | No-op -- compilation cache only |
+| SQLite | `NoPrepareStrategy` | No-op -- compilation cache only |
+| PostgreSQL + psycopg2 | `NoPrepareStrategy` | No-op -- psycopg2 does not support `prepare=True` |
 
 ```python
 # Enable prepared statements (requires psycopg3)
@@ -291,7 +291,7 @@ including on an exception.
 When a query reaches TRUSTED state, the `as_sql()` call is skipped entirely. Measured on SQLite (compilation-only, no DB I/O):
 
 !!! important "What these numbers measure"
-    The speedup figures below measure **SQL compilation overhead only** —
+    The speedup figures below measure **SQL compilation overhead only** -- 
     the time Django spends in `SQLCompiler.as_sql()` constructing the SQL
     template before executing it against the database.
 
@@ -299,7 +299,7 @@ When a query reaches TRUSTED state, the `as_sql()` call is skipped entirely. Mea
 
     **When QueryTurbo helps most:** high-frequency endpoints where the same
     query structure executes repeatedly (pagination, list views, API endpoints
-    with consistent filters). The benefit grows with query complexity — complex
+    with consistent filters). The benefit grows with query complexity -- complex
     queries with JOINs, annotations, and Q objects save the most compilation time.
 
     **When QueryTurbo adds overhead:** low-latency backends (SQLite, in-memory
@@ -365,24 +365,24 @@ On PostgreSQL with psycopg3, prepared statements provide additional savings of 0
 
 ## Limitations
 
-1. **Case/When expressions** — Queries using Django's `Case(When(...))` are cached but the parameter extraction path uses `When.as_sql()` as a fallback. If the fallback fails, the query falls back to source expression traversal. These queries execute correctly but may not achieve the full TRUSTED speedup.
+1. **Case/When expressions** -- Queries using Django's `Case(When(...))` are cached but the parameter extraction path uses `When.as_sql()` as a fallback. If the fallback fails, the query falls back to source expression traversal. These queries execute correctly but may not achieve the full TRUSTED speedup.
 
-2. **Raw SQL** — `RawQuerySet` and `Manager.raw()` are bypassed entirely when `SKIP_RAW_SQL = True` (the default). When set to `False`, raw SQL is fingerprinted and cached, but parameter extraction is not guaranteed to be correct for hand-written SQL.
+2. **Raw SQL** -- `RawQuerySet` and `Manager.raw()` are bypassed entirely when `SKIP_RAW_SQL = True` (the default). When set to `False`, raw SQL is fingerprinted and cached, but parameter extraction is not guaranteed to be correct for hand-written SQL.
 
-3. **Cache cleared on migration** — The `post_migrate` signal calls `cache.clear()`, which removes all LRU entries and resets counters. All entries restart from UNTRUSTED after a migration run. However, poisoned fingerprints survive the clear and persist for the lifetime of the process.
+3. **Cache cleared on migration** -- The `post_migrate` signal calls `cache.clear()`, which removes all LRU entries and resets counters. All entries restart from UNTRUSTED after a migration run. However, poisoned fingerprints survive the clear and persist for the lifetime of the process.
 
-4. **Process-local** — The cache is in-memory per process. In multi-process deployments (gunicorn with multiple workers), each worker maintains its own independent cache. There is no shared state across processes.
+4. **Process-local** -- The cache is in-memory per process. In multi-process deployments (gunicorn with multiple workers), each worker maintains its own independent cache. There is no shared state across processes.
 
-5. **Custom SQL compilers** — Third-party packages that override `SQLCompiler` or `SQLCompiler.execute_sql()` may be incompatible. The QueryTurbo patch wraps the standard Django `SQLCompiler.execute_sql()` method.
+5. **Custom SQL compilers** -- Third-party packages that override `SQLCompiler` or `SQLCompiler.execute_sql()` may be incompatible. The QueryTurbo patch wraps the standard Django `SQLCompiler.execute_sql()` method.
 
-6. **`.extra()` and subqueries** — By default, queries using `.extra()` (`SKIP_EXTRA = True`) and queries containing subqueries (`SKIP_SUBQUERIES = True`) are not cached due to the complexity of parameter extraction.
+6. **`.extra()` and subqueries** -- By default, queries using `.extra()` (`SKIP_EXTRA = True`) and queries containing subqueries (`SKIP_SUBQUERIES = True`) are not cached due to the complexity of parameter extraction.
 
 ---
 
 ## Further Reading
 
-- [Configuration](../getting-started/configuration.md) — Full settings reference
-- [Performance & Benchmarks](../deep-dive/performance.md) — Overhead model and benchmark methodology
-- [Architecture](../deep-dive/architecture.md) — How QueryTurbo fits in the pipeline
-- [Management Commands](management-commands.md) — CLI tools including `query_doctor_report`
-- [Benchmark Dashboard](benchmark-dashboard.md) — Interactive HTML report
+- [Configuration](../getting-started/configuration.md) -- Full settings reference
+- [Performance & Benchmarks](../deep-dive/performance.md) -- Overhead model and benchmark methodology
+- [Architecture](../deep-dive/architecture.md) -- How QueryTurbo fits in the pipeline
+- [Management Commands](management-commands.md) -- CLI tools including `query_doctor_report`
+- [Benchmark Dashboard](benchmark-dashboard.md) -- Interactive HTML report

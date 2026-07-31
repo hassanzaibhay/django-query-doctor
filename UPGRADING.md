@@ -9,7 +9,7 @@ not dispatch produced no reporter and said nothing about it. It now emits a
 `QueryDoctorWarning` naming the entry and the recognized names (`console`,
 `json`, `log`). **Suites that escalate warnings to errors (`-W error`, or
 `filterwarnings = error`) go red on upgrade if `REPORTERS` contains anything
-else** — including `"html"` or `"otel"`, which are real reporter classes but
+else** -- including `"html"` or `"otel"`, which are real reporter classes but
 are invoked directly rather than dispatched by name. Remove the entry, or
 suppress the category:
 
@@ -22,20 +22,20 @@ filterwarnings =
 
 **2. `IGNORE_PATTERNS` has been removed from `DEFAULT_CONFIG`.** Nothing ever
 read it; setting it never had an effect. It is safe to delete from your
-`QUERY_DOCTOR` dict — an unknown key is merged and ignored, so leaving it in
+`QUERY_DOCTOR` dict -- an unknown key is merged and ignored, so leaving it in
 place breaks nothing either. To suppress findings, use `.queryignore`
 (see the [.queryignore guide](https://hassanzaibhay.github.io/django-query-doctor/guides/query-ignore/)).
 
 **3. Three settings that were previously inert now take effect.** If you set
 any of them expecting nothing to happen, behavior changes:
 
-- `STACK_TRACE_EXCLUDE` — now appended to the built-in exclusions when the
+- `STACK_TRACE_EXCLUDE` -- now appended to the built-in exclusions when the
   middleware locates the user-code frame, so prescriptions may be attributed
   to a different `file:line` than before.
-- `QUERYIGNORE_PATH` — now names the `.queryignore` file to load, instead of
+- `QUERYIGNORE_PATH` -- now names the `.queryignore` file to load, instead of
   always discovering one beside `manage.py`. It must point at the file, not
   its directory; a path that does not resolve warns and falls back.
-- `ADMIN_DASHBOARD.max_reports` — now sizes the dashboard ring buffer instead
+- `ADMIN_DASHBOARD.max_reports` -- now sizes the dashboard ring buffer instead
   of leaving it fixed at 50. The buffer is built on first use, so a change
   takes effect at process restart.
 
@@ -47,17 +47,17 @@ size should read the buffer instead.
 **4. `.queryignore` now applies to five more surfaces.** Previously only the
 middleware and `fix_queries` honoured the file. It now also applies to
 `check_queries`, `diagnose_project`, the pytest plugin, the `diagnose_queries()`
-context manager, and the Celery integration — every surface that reports
+context manager, and the Celery integration -- every surface that reports
 findings. **Findings that appear in CI today (via `check_queries` or
 `diagnose_project`) will start being suppressed if a matching rule exists.** If
 you relied on those commands ignoring `.queryignore`, move the rules you did not
 mean to apply in CI, or scope them with `file:`/`callsite:`. Query counts and
-timings are unaffected — suppression removes findings, never measurements.
+timings are unaffected -- suppression removes findings, never measurements.
 
 **5. `sql:` rules now also match raw SQL.** A `sql:` rule previously matched
 only the prescription description; it now matches the description **or** the raw
-SQL of the queries behind the finding. This is strictly more suppression — no
-rule that matched before stops matching — but a broad pattern (e.g. `sql:%id%`)
+SQL of the queries behind the finding. This is strictly more suppression -- no
+rule that matched before stops matching -- but a broad pattern (e.g. `sql:%id%`)
 may now suppress findings it did not touch before, because it reaches column and
 table names that never appear in descriptions. Tighten over-broad `sql:`
 patterns if you see findings disappear unexpectedly.
@@ -67,12 +67,12 @@ the middleware read it; the seven other interceptor construction sites
 (`diagnose_queries()`, the pytest plugin, all three management commands, the
 Celery integration, and the project diagnoser) captured stack traces regardless.
 The default is `True`, so **only users who explicitly set it to `False` are
-affected** — for them, stack traces stop being captured on those seven surfaces,
+affected** -- for them, stack traces stop being captured on those seven surfaces,
 which means prescriptions from them lose their `file:line` callsite.
 
 **7. `diagnose_queries()` now warns when entered from a coroutine.** A `with
 diagnose_queries():` block inside an `async def` function has always reported
-zero queries however many the block issued — it installs its `execute_wrapper`
+zero queries however many the block issued -- it installs its `execute_wrapper`
 on the entering thread's database connection, and Django routes ORM work in
 async code to a separate executor thread holding a different connection. It now
 emits a `QueryDoctorWarning` saying so instead of returning an empty report in
@@ -82,8 +82,8 @@ red on any such block.
 
 The warning fires only on the path that is actually broken. Its predicate is
 whether an event loop is running on the entering thread, so a `def` view served
-under ASGI and a `sync_to_async`-wrapped helper — both of which run in the
-executor thread and capture correctly — do not warn. If your block is one of
+under ASGI and a `sync_to_async`-wrapped helper -- both of which run in the
+executor thread and capture correctly -- do not warn. If your block is one of
 those and you are seeing the warning, that is a bug worth reporting.
 
 To diagnose an async view, use the middleware, which Django adapts into the
@@ -111,8 +111,8 @@ the package ever raised them and they were never exported from `query_doctor`,
 but they **were** published API: the API reference page autodocs the whole
 `query_doctor.exceptions` module, so all three rendered there. If you catch them
 by name, an `ImportError` is what you will see. Catch `QueryDoctorError`
-instead — the base class, which every remaining package exception still inherits
-from — or declare your own:
+instead -- the base class, which every remaining package exception still inherits
+from -- or declare your own:
 
 ```python
 from query_doctor.exceptions import QueryDoctorError
@@ -126,8 +126,8 @@ except QueryDoctorError:      # was: except ConfigError
 `QueryBudgetError`, `QueryDoctorWarning` and `QueryDoctorError` are unaffected.
 
 **9. A new analyzer is enabled by default and can turn a green pipeline red.**
-`write_nplusone` detects repeated single-row writes — a `.save()`, `.create()`
-or `.delete()` in a loop — at a threshold of 3 identical statements. It is the
+`write_nplusone` detects repeated single-row writes -- a `.save()`, `.create()`
+or `.delete()` in a loop -- at a threshold of 3 identical statements. It is the
 first analyzer that fires on code doing no reads at all, so **an unchanged
 codebase can produce findings it did not produce on 2.1.x**, and
 `check_queries --fail-on` / `diagnose_project` in CI will act on them. Nothing
@@ -147,7 +147,7 @@ QUERY_DOCTOR = {
 Or suppress individual sites with an `ignore: write_n_plus_one:<path>` rule in
 `.queryignore`.
 
-**10. On Debian and Ubuntu system Python, prescriptions now point at your code —
+**10. On Debian and Ubuntu system Python, prescriptions now point at your code -- 
 which invalidates an existing query baseline.** Callsite detection previously
 skipped `django/db/models/manager.py` and `django/db/models/base.py` only because
 their path contains `site-packages`. Distributions installing to `dist-packages`
@@ -167,7 +167,7 @@ version:
 python manage.py check_queries --save-baseline=.query-baseline.json
 ```
 
-Only affected distributions need this — a `site-packages` install produced the
+Only affected distributions need this -- a `site-packages` install produced the
 correct callsites already. This is a second cause of the symptom described in
 item 3's `STACK_TRACE_EXCLUDE` bullet: if prescriptions moved and you set that
 setting too, check both. Any `STACK_TRACE_EXCLUDE` entry you added to work
@@ -226,7 +226,7 @@ baseline from a different version prints a non-blocking warning.
 
 **2. `fat_select` threshold key renamed.** 2.0.x read
 `ANALYZERS.fat_select.field_count_threshold`; 2.1.0 reads
-`ANALYZERS.fat_select.threshold`. The old key is silently ignored — rename
+`ANALYZERS.fat_select.threshold`. The old key is silently ignored -- rename
 it in your settings:
 
 ```python
@@ -241,7 +241,7 @@ QUERY_DOCTOR = {
 string was accepted and a typo silently produced zero fixes. Now the flag
 rejects anything outside `n_plus_one`, `duplicate_query`, `fat_select`,
 `queryset_eval`, `missing_index`. Scripts passing analyzer names instead of
-issue-type values (e.g. `duplicate` or `nplusone`) will fail fast — update
+issue-type values (e.g. `duplicate` or `nplusone`) will fail fast -- update
 them to the enum values.
 
 **4. `DRFSerializerAnalyzer` removed.** The runtime DRF analyzer (which
@@ -446,7 +446,7 @@ python manage.py check_serializers --app=myapp
 python manage.py check_serializers --file=myapp/serializers.py
 ```
 
-This is a static analyzer — it reads source code with `ast.parse()` and
+This is a static analyzer -- it reads source code with `ast.parse()` and
 does not execute serializer methods.
 
 #### Benchmark Dashboard
@@ -457,7 +457,7 @@ python manage.py query_doctor_report --output=report.html
 ```
 
 Generates a standalone HTML file with Chart.js graphs showing cache
-performance. The report reflects the current process's cache state — it
+performance. The report reflects the current process's cache state -- it
 resets on server restart.
 
 #### GitHub Actions CI Integration
@@ -498,7 +498,7 @@ python manage.py diagnose_project --group=view
 
 `turbo_enabled()` and `turbo_disabled()` now use `contextvars.ContextVar`
 instead of `threading.local()`. This makes them safe for ASGI deployments
-where multiple coroutines share the same thread. No code changes needed —
+where multiple coroutines share the same thread. No code changes needed -- 
 the API is identical.
 
 ### New Dependencies

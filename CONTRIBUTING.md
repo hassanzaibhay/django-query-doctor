@@ -77,13 +77,13 @@ python -m scripts.dash_gate
 - Commit messages: `feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`
 - Run `pytest`, `ruff check`, `ruff format --check`, and `mypy` before every
   commit and before opening a PR.
-- Use the PR template (`.github/pull_request_template.md`) — it prompts for
+- Use the PR template (`.github/pull_request_template.md`) -- it prompts for
   the summary, type, exact CHANGELOG entry, testing performed, and a
   pre-merge checklist.
 - **When a PR changes, edit the PR body. Do not add a comment.** A reviewer
   arriving at a pull request should find one current description, not a
   description plus a thread of revisions that contradict it. Use
-  `gh pr edit --body-file <file>` — never `--body`, which mangles multi-line
+  `gh pr edit --body-file <file>` -- never `--body`, which mangles multi-line
   markdown. Comments are for discussion; the body is the record of what the PR
   currently does.
 - If your change is user-facing, add it under `## [Unreleased]` in
@@ -108,7 +108,7 @@ pre-commit install --hook-type pre-push
 
 This runs `ruff check`, `ruff format --check`, `mypy`, the docs truth sweep,
 the ASCII dash gate, and `pytest` on `git push`; any failure aborts the push. It needs the dev
-deps (`pip install -e ".[dev]"`) installed in your active environment —
+deps (`pip install -e ".[dev]"`) installed in your active environment -- 
 normally your virtualenv. `scripts/hookenv.py` resolves that interpreter
 explicitly rather than reading `PATH`, and prints which one it used.
 
@@ -143,7 +143,7 @@ The version itself lives in exactly one place, `src/query_doctor/__init__.py`;
 `pyproject.toml` declares `dynamic = ["version"]` and hatchling derives the
 distribution metadata from it. Because that metadata is snapshotted at install
 time, **a version bump requires `pip install -e "."` before the suite will
-pass** — `test_version` compares the runtime `__version__` against the
+pass** -- `test_version` compares the runtime `__version__` against the
 installed distribution, so a stale editable install fails it. The red is
 accurate: the installed artifact really is out of date.
 

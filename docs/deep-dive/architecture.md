@@ -239,7 +239,7 @@ Every issue detected by an analyzer is represented as a `Prescription`:
 
 **N+1 Analyzer** (`nplusone.py`): Groups queries by fingerprint. If a fingerprint appears more than `N_PLUS_ONE_THRESHOLD` times and the SQL pattern matches a ForeignKey or ManyToMany access pattern (single-row lookup by PK/FK), it is flagged as N+1. The stack trace is used to identify the source location, and the fix suggests the appropriate `select_related()` or `prefetch_related()` call.
 
-**Duplicate Analyzer** (`duplicate.py`): Detects exact duplicates only — same SQL text and same bound parameters, executed more than `threshold` times within a request. It does not detect near-duplicates (same fingerprint, different parameters); those are more likely an N+1 pattern, handled by `NPlusOneAnalyzer`.
+**Duplicate Analyzer** (`duplicate.py`): Detects exact duplicates only -- same SQL text and same bound parameters, executed more than `threshold` times within a request. It does not detect near-duplicates (same fingerprint, different parameters); those are more likely an N+1 pattern, handled by `NPlusOneAnalyzer`.
 
 **Missing Index Analyzer** (`missing_index.py`): Examines WHERE and JOIN clauses for column references, then checks Django model meta information to determine if those columns are indexed. Suggests `Meta.indexes` with `models.Index()` for missing indexes.
 
@@ -249,7 +249,7 @@ Every issue detected by an analyzer is represented as a `Prescription`:
 
 **QuerySet Eval Analyzer** (`queryset_eval.py`): Detects unnecessary queryset evaluations such as calling `.count()` on an already-evaluated queryset, or iterating over a queryset multiple times.
 
-**SerializerMethodField Analyzer** (`serializer_method.py`): A separate, static-only analyzer — it does not participate in the runtime pipeline above. It statically parses DRF `SerializerMethodField` `get_<field>` methods with Python's `ast` module and flags N+1-prone access patterns, invoked explicitly via the `check_serializers` management command rather than through `analyze(queries)`.
+**SerializerMethodField Analyzer** (`serializer_method.py`): A separate, static-only analyzer -- it does not participate in the runtime pipeline above. It statically parses DRF `SerializerMethodField` `get_<field>` methods with Python's `ast` module and flags N+1-prone access patterns, invoked explicitly via the `check_serializers` management command rather than through `analyze(queries)`.
 
 ---
 
@@ -384,7 +384,7 @@ src/query_doctor/
 
 ### Per-Instance ContextVar Storage
 
-django-query-doctor stores all per-request state in `contextvars.ContextVar` instances. Each `QueryInterceptor` instance gets its own unique `ContextVar`, which keeps that one interceptor's captures context-local — they propagate across `await` and do not bleed into a sibling context.
+django-query-doctor stores all per-request state in `contextvars.ContextVar` instances. Each `QueryInterceptor` instance gets its own unique `ContextVar`, which keeps that one interceptor's captures context-local -- they propagate across `await` and do not bleed into a sibling context.
 
 ```python
 # interceptor.py
@@ -405,19 +405,19 @@ class QueryInterceptor:
         self._queries_var.set([])
 ```
 
-What keeps *concurrent requests* from interfering with each other, however, is not the `ContextVar` — it is that every request builds its **own interceptor**. `build_interceptor()` is called per request (`middleware.py:162,194`), and the result is a local variable; no two requests ever share one. Under ASGI, Django additionally opens a `ThreadSensitiveContext` per request, so they do not share an executor thread either.
+What keeps *concurrent requests* from interfering with each other, however, is not the `ContextVar` -- it is that every request builds its **own interceptor**. `build_interceptor()` is called per request (`middleware.py:162,194`), and the result is a local variable; no two requests ever share one. Under ASGI, Django additionally opens a `ThreadSensitiveContext` per request, so they do not share an executor thread either.
 
-Cross-request isolation is therefore over-determined: it holds in multi-threaded WSGI servers (e.g. gunicorn with sync workers) and in ASGI servers (e.g. uvicorn, daphne), and it would still hold if the `ContextVar` were replaced by a plain instance attribute. The `ContextVar` earns its place on the narrower guarantee stated above — correctness *within* one interceptor across `await` boundaries and across threads — not on cross-request isolation.
+Cross-request isolation is therefore over-determined: it holds in multi-threaded WSGI servers (e.g. gunicorn with sync workers) and in ASGI servers (e.g. uvicorn, daphne), and it would still hold if the `ContextVar` were replaced by a plain instance attribute. The `ContextVar` earns its place on the narrower guarantee stated above -- correctness *within* one interceptor across `await` boundaries and across threads -- not on cross-request isolation.
 
 ### Async Django Support
 
 The query interceptor and the QueryTurbo context managers hold their state in `contextvars.ContextVar`.
 
-Concurrent ASGI requests do not contaminate each other's reports. This behaviour — and only this behaviour, not any particular mechanism behind it — is covered by `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`, which drives ten interleaved requests through a real `ASGIHandler`, each issuing a different number of queries, and asserts that every report holds exactly its own count.
+Concurrent ASGI requests do not contaminate each other's reports. This behaviour -- and only this behaviour, not any particular mechanism behind it -- is covered by `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`, which drives ten interleaved requests through a real `ASGIHandler`, each issuing a different number of queries, and asserts that every report holds exactly its own count.
 
 !!! note "What that test does and does not establish"
 
-    It pins the observable behaviour, which is what users depend on. It does **not** identify the cause: per-request interceptor instances, per-request executor threads, and contextvars all independently produce the same passing result, so the test would stay green if any one of them were removed. No test in this repository discriminates between them, and while interceptors are built per request none can — there is no shared state left for a mechanism to protect. The contextvars *storage* claim above is backed (`src/query_doctor/interceptor.py:56-63`); a causal claim that contextvars is what isolates requests would be asserted, not demonstrated, so this page does not make one.
+    It pins the observable behaviour, which is what users depend on. It does **not** identify the cause: per-request interceptor instances, per-request executor threads, and contextvars all independently produce the same passing result, so the test would stay green if any one of them were removed. No test in this repository discriminates between them, and while interceptors are built per request none can -- there is no shared state left for a mechanism to protect. The contextvars *storage* claim above is backed (`src/query_doctor/interceptor.py:56-63`); a causal claim that contextvars is what isolates requests would be asserted, not demonstrated, so this page does not make one.
 
 Django's `execute_wrapper()` is per-connection, and Django stores connections in thread-local storage. Under ASGI that makes *which thread the middleware runs on* decisive: it must be the same thread the ORM runs on, or the wrapper is installed on a connection object the queries never touch. `QueryDoctorMiddleware` therefore declares `async_capable = False`, so Django adapts it with `sync_to_async(thread_sensitive=True)` and runs it in the same thread-sensitive executor it runs ORM work in.
 

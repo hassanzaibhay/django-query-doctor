@@ -76,5 +76,5 @@ This ensures the most impactful groups appear at the top of the output.
 
 ## Further Reading
 
-- [Management Commands](management-commands.md) — Full flag reference for `check_queries` and `diagnose_project`
-- [CI/CD Integration](ci-integration.md) — Using grouping in CI pipelines
+- [Management Commands](management-commands.md) -- Full flag reference for `check_queries` and `diagnose_project`
+- [CI/CD Integration](ci-integration.md) -- Using grouping in CI pipelines

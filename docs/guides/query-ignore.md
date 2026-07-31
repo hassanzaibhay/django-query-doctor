@@ -26,7 +26,7 @@ django-query-doctor checks for this file automatically. No settings changes are 
 - the **pytest plugin** fixture, and
 - the **Celery integration**.
 
-Every surface routes through the same analysis pipeline, so a rule behaves identically wherever findings are produced. Suppression happens at the prescription level, *after* analysis: the captured-query counts and timings a report shows are never altered by `.queryignore` — only which findings are reported.
+Every surface routes through the same analysis pipeline, so a rule behaves identically wherever findings are produced. Suppression happens at the prescription level, *after* analysis: the captured-query counts and timings a report shows are never altered by `.queryignore` -- only which findings are reported.
 
 > **Changed in 2.2.0:** before this release only the middleware and `fix_queries` honoured the file. Findings that pass in CI today (via `check_queries` or `diagnose_project`) will start being suppressed if a matching rule exists.
 
@@ -34,7 +34,7 @@ Every surface routes through the same analysis pipeline, so a rule behaves ident
 
 ## Syntax
 
-Each rule is one line in the form `type: pattern`. Four rule types exist: `file`, `callsite`, `ignore`, and `sql`. Lines starting with `#` and blank lines are skipped. Any line that does not contain a `:` is silently ignored — there is no error for a malformed rule, so double-check your spelling.
+Each rule is one line in the form `type: pattern`. Four rule types exist: `file`, `callsite`, `ignore`, and `sql`. Lines starting with `#` and blank lines are skipped. Any line that does not contain a `:` is silently ignored -- there is no error for a malformed rule, so double-check your spelling.
 
 ```text title=".queryignore"
 # Suppress every finding whose callsite is in this file (glob, full path)
@@ -64,7 +64,7 @@ file: *legacy_app/*
 
 ### `callsite:` rules
 
-The pattern must equal the prescription's `filepath:line_number` exactly — no globbing. Use the file path exactly as django-query-doctor prints it in its reports:
+The pattern must equal the prescription's `filepath:line_number` exactly -- no globbing. Use the file path exactly as django-query-doctor prints it in its reports:
 
 ```text title=".queryignore"
 callsite: /app/blog/views.py:87
@@ -95,11 +95,11 @@ The issue type must be one of the values below (these are the `IssueType` enum v
 | `serializer_method_field` | serializer_method analyzer (`check_serializers`) |
 | `write_n_plus_one` | write_nplusone analyzer |
 
-> **Note:** It is `n_plus_one`, not `nplusone`, and `duplicate_query`, not `duplicate`. A rule written with the analyzer name instead of the issue type value never matches — and no warning is printed.
+> **Note:** It is `n_plus_one`, not `nplusone`, and `duplicate_query`, not `duplicate`. A rule written with the analyzer name instead of the issue type value never matches -- and no warning is printed.
 
 ### `sql:` rules
 
-A `sql:` rule matches a prescription when the pattern matches the prescription's **description text** *or* the **raw SQL** of any captured query behind that prescription (resolved through the prescription's fingerprint). SQL `%` wildcards are translated to `*`, and the pattern is then matched as a substring — wrapped in `*…*` — against each target. The `%`→`*` translation and this substring (non-anchored) matching apply identically to the description and the raw SQL, so one rule cannot behave differently against the two:
+A `sql:` rule matches a prescription when the pattern matches the prescription's **description text** *or* the **raw SQL** of any captured query behind that prescription (resolved through the prescription's fingerprint). SQL `%` wildcards are translated to `*`, and the pattern is then matched as a substring -- wrapped in `*…*` -- against each target. The `%`→`*` translation and this substring (non-anchored) matching apply identically to the description and the raw SQL, so one rule cannot behave differently against the two:
 
 ```text title=".queryignore"
 # Suppress findings that touch the author table (matches the table name in the SQL)
@@ -110,7 +110,7 @@ sql: %myapp_author%
 sql: %ssn_hash%
 ```
 
-Matching against raw SQL was added in 2.2.0 and is a **strict superset** of the earlier description-only behaviour: every rule that matched a description before still matches. A prescription with no fingerprint — so the queries behind it cannot be resolved — is matched on its description alone.
+Matching against raw SQL was added in 2.2.0 and is a **strict superset** of the earlier description-only behaviour: every rule that matched a description before still matches. A prescription with no fingerprint -- so the queries behind it cannot be resolved -- is matched on its description alone.
 
 ---
 

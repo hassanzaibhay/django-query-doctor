@@ -101,10 +101,10 @@ For large projects, avoid overwhelming developers with hundreds of prescriptions
 
 | Strategy | When to Use |
 |----------|------------|
-| Middleware off + CI commands | Large existing codebases — analysis in CI only |
-| `--diff origin/main` | Active development — analyze only changed files |
+| Middleware off + CI commands | Large existing codebases -- analysis in CI only |
+| `--diff origin/main` | Active development -- analyze only changed files |
 | `.queryignore` | Suppress accepted trade-offs and false positives |
-| `diagnose_project --apps orders` | Monoliths — scan one Django app at a time |
+| `diagnose_project --apps orders` | Monoliths -- scan one Django app at a time |
 | `@query_budget(max_queries=10)` | Enforce hard limits on critical endpoints |
 
 Recommended rollout timeline:
@@ -132,6 +132,6 @@ Recommended rollout timeline:
 
 ## Next Steps
 
-- [Management Commands](../guides/management-commands.md) — full CLI reference
-- [CI/CD Integration](../guides/ci-integration.md) — automated checks in pipelines
-- [Query Ignore](../guides/query-ignore.md) — suppressing known issues
+- [Management Commands](../guides/management-commands.md) -- full CLI reference
+- [CI/CD Integration](../guides/ci-integration.md) -- automated checks in pipelines
+- [Query Ignore](../guides/query-ignore.md) -- suppressing known issues

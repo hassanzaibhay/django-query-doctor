@@ -5,7 +5,7 @@ hide:
 
 # django-query-doctor
 
-Automated diagnosis and prescriptions for slow Django ORM queries — with exact file:line references and copy-paste code fixes.
+Automated diagnosis and prescriptions for slow Django ORM queries -- with exact file:line references and copy-paste code fixes.
 
 ## Where to Start
 
@@ -20,12 +20,12 @@ Automated diagnosis and prescriptions for slow Django ORM queries — with exact
 
 ## What's New in v2.0
 
-- **QueryTurbo** — SQL compilation cache with 3-phase trust lifecycle (UNTRUSTED → TRUSTED → POISONED). Skips `as_sql()` on trusted hits.
-- **Prepared Statements** — Automatic protocol-level prepared statements on PostgreSQL with psycopg3.
-- **AST SerializerMethodField Analyzer** — Static analysis of `get_<field>` methods catches hidden N+1s without running code.
-- **Baseline Snapshots** — Save known issues, detect only new regressions in CI.
-- **Benchmark Dashboard** — Interactive HTML report with Chart.js showing cache hit rates and top optimized queries.
-- **Smart Grouping** — Group prescriptions by file+analyzer, root cause, or view.
+- **QueryTurbo** -- SQL compilation cache with 3-phase trust lifecycle (UNTRUSTED → TRUSTED → POISONED). Skips `as_sql()` on trusted hits.
+- **Prepared Statements** -- Automatic protocol-level prepared statements on PostgreSQL with psycopg3.
+- **AST SerializerMethodField Analyzer** -- Static analysis of `get_<field>` methods catches hidden N+1s without running code.
+- **Baseline Snapshots** -- Save known issues, detect only new regressions in CI.
+- **Benchmark Dashboard** -- Interactive HTML report with Chart.js showing cache hit rates and top optimized queries.
+- **Smart Grouping** -- Group prescriptions by file+analyzer, root cause, or view.
 
 [Full changelog →](changelog.md)
 

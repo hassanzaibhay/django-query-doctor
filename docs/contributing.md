@@ -160,7 +160,7 @@ configuration.
 - **Module docstrings**: Every module has a module-level docstring explaining
   its purpose.
 - **No mutable module state**: Use `contextvars.ContextVar` for per-request
-  state — it is correct under threads *and* coroutines, unlike
+  state -- it is correct under threads *and* coroutines, unlike
   `threading.local()`. See
   [Per-Instance ContextVar Storage](deep-dive/architecture.md#per-instance-contextvar-storage).
 - **No direct settings access**: Use `query_doctor.conf.get_config()` instead

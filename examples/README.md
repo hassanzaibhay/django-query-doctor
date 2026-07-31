@@ -1,4 +1,4 @@
-# django-query-doctor — Examples
+# django-query-doctor -- Examples
 
 This directory contains runnable examples, pre-generated outputs, and configuration templates for every feature of django-query-doctor.
 
@@ -17,7 +17,7 @@ This creates a sample database, runs every feature, and saves output to `outputs
 | Directory | What's Inside |
 |-----------|--------------|
 | `sample_project/` | Self-contained Django project demonstrating all issues |
-| `scripts/` | One script per feature — read, learn, adapt |
+| `scripts/` | One script per feature -- read, learn, adapt |
 | `outputs/` | Pre-generated output files (HTML, JSON, text) |
 | `screenshots/` | Visual samples for documentation |
 | `configs/` | Settings templates: minimal, production, CI, full reference |

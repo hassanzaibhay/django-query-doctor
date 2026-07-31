@@ -19,7 +19,7 @@ sql:%django_session%
 sql:%django_content_type%
 
 # Ignore findings from migration modules
-# (file rules glob against the FULL path — start with *)
+# (file rules glob against the FULL path -- start with *)
 file:*migrations*
 
 # Ignore a specific known-acceptable callsite
@@ -36,7 +36,7 @@ file:*myapp/management/commands/*
 # Lines starting with # are comments
 # Blank lines are ignored
 
-# The file location is not configurable — query-doctor looks for
+# The file location is not configurable -- query-doctor looks for
 # .queryignore next to manage.py (or the current working directory).
 # Rules apply in the middleware and fix_queries.
 """)

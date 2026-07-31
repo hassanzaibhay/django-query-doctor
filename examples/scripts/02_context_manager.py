@@ -38,11 +38,11 @@ if report.has_critical:
 
 
 # Properties available on DiagnosisReport:
-# report.total_queries      — int
-# report.total_time_ms      — float
-# report.prescriptions      — list[Prescription]
-# report.issues             — int (count of prescriptions)
-# report.has_critical        — bool
-# report.n_plus_one_count   — int
-# report.captured_queries   — list[CapturedQuery]
+# report.total_queries -- int
+# report.total_time_ms -- float
+# report.prescriptions -- list[Prescription]
+# report.issues -- int (count of prescriptions)
+# report.has_critical -- bool
+# report.n_plus_one_count -- int
+# report.captured_queries -- list[CapturedQuery]
 """)

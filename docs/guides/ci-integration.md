@@ -164,9 +164,9 @@ There is no per-endpoint budget file; to budget several code paths, run the comm
 
 ## Using with Pytest
 
-The pytest plugin provides a `query_doctor` fixture. Requesting it enables query capture for that test, but its report is populated in a test finalizer — after the test body — so it is not the tool for in-test assertions; since 2.1.1 the fixture emits a `QueryDoctorWarning` at use saying exactly that. For assertions, use the [`diagnose_queries()` context manager](pytest-plugin.md#context-manager-in-tests) — the [pytest guide](pytest-plugin.md) has the patterns, including query budgets.
+The pytest plugin provides a `query_doctor` fixture. Requesting it enables query capture for that test, but its report is populated in a test finalizer -- after the test body -- so it is not the tool for in-test assertions; since 2.1.1 the fixture emits a `QueryDoctorWarning` at use saying exactly that. For assertions, use the [`diagnose_queries()` context manager](pytest-plugin.md#context-manager-in-tests) -- the [pytest guide](pytest-plugin.md) has the patterns, including query budgets.
 
-`diagnose_queries()` assertions fail the test when violated, which fails the CI job — no extra flags needed:
+`diagnose_queries()` assertions fail the test when violated, which fails the CI job -- no extra flags needed:
 
 ```yaml
       - name: Run tests with query analysis

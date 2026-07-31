@@ -27,14 +27,14 @@ python manage.py check_queries --output report.json --format json
 |------|------|---------|-------------|
 | `--url` | `str` | `/` | URL path to analyze |
 | `--format` | `str` | `console` | Output format: `console` or `json` |
-| `--fail-on` | `str` | — | Exit with code 1 if issues at this severity or higher are found: `critical`, `warning`, or `info` |
-| `--diff` | `str` | — | Only report issues in files changed vs this git ref (e.g., `main`, `origin/develop`, `abc123`) |
-| `--file` | `str` | — | Only report issues in files matching this substring. Can be specified multiple times. |
-| `--module` | `str` | — | Only report issues in modules matching this substring. Can be specified multiple times. |
-| `--output`, `-o` | `str` | — | Write output to a file instead of stdout |
-| `--save-baseline` | `str` | — | Save current issues as a baseline snapshot (JSON file) |
-| `--baseline` | `str` | — | Compare against a baseline snapshot, show only regressions |
-| `--fail-on-regression` | flag | — | Exit with code 1 if new issues found vs baseline |
+| `--fail-on` | `str` | -- | Exit with code 1 if issues at this severity or higher are found: `critical`, `warning`, or `info` |
+| `--diff` | `str` | -- | Only report issues in files changed vs this git ref (e.g., `main`, `origin/develop`, `abc123`) |
+| `--file` | `str` | -- | Only report issues in files matching this substring. Can be specified multiple times. |
+| `--module` | `str` | -- | Only report issues in modules matching this substring. Can be specified multiple times. |
+| `--output`, `-o` | `str` | -- | Write output to a file instead of stdout |
+| `--save-baseline` | `str` | -- | Save current issues as a baseline snapshot (JSON file) |
+| `--baseline` | `str` | -- | Compare against a baseline snapshot, show only regressions |
+| `--fail-on-regression` | flag | -- | Exit with code 1 if new issues found vs baseline |
 | `--group` | `str` | `file_analyzer` | Group related prescriptions. Strategies: `file_analyzer`, `root_cause`, `view` |
 
 ### Examples
@@ -81,12 +81,12 @@ python manage.py check_serializers --app=myapp --app=otherapp
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--app` | `str` | — | Only scan serializers in the given app. Can be repeated. |
-| `--module` | `str` | — | Only scan the given module path. Can be repeated. |
-| `--file` | `str` | — | Only report issues in files matching this substring. Can be repeated. |
+| `--app` | `str` | -- | Only scan serializers in the given app. Can be repeated. |
+| `--module` | `str` | -- | Only scan the given module path. Can be repeated. |
+| `--file` | `str` | -- | Only report issues in files matching this substring. Can be repeated. |
 | `--format` | `str` | `console` | Output format: `console` or `json` |
-| `--fail-on` | `str` | — | Exit with code 1 if issues at this severity or higher: `critical`, `warning`, `info` |
-| `--output`, `-o` | `str` | — | Write output to a file instead of stdout |
+| `--fail-on` | `str` | -- | Exit with code 1 if issues at this severity or higher: `critical`, `warning`, `info` |
+| `--output`, `-o` | `str` | -- | Write output to a file instead of stdout |
 
 ### Examples
 
@@ -115,8 +115,8 @@ Enforce hard limits on the number of queries a code block executes.
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--max-queries` | `int` | **required** | Maximum number of queries allowed |
-| `--max-time-ms` | `float` | — | Maximum total query time in milliseconds |
-| `--execute` | `str` | — | Python code to execute and measure |
+| `--max-time-ms` | `float` | -- | Maximum total query time in milliseconds |
+| `--execute` | `str` | -- | Python code to execute and measure |
 
 ### Examples
 
@@ -142,16 +142,16 @@ Automatically apply suggested fixes to your source code.
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--dry-run` | flag | **default** | Show diff without applying changes |
-| `--apply` | flag | — | Apply fixes to source files |
-| `--issue-type` | `str` | — | Only fix specific issue types. Validated choices: `n_plus_one`, `duplicate_query`, `fat_select`, `queryset_eval`, `missing_index` (any other value is rejected). Can be repeated. |
-| `--file` | `str` | — | Only fix specific files. Can be repeated. |
-| `--no-backup` | flag | — | Do not create `.bak` files when applying |
+| `--apply` | flag | -- | Apply fixes to source files |
+| `--issue-type` | `str` | -- | Only fix specific issue types. Validated choices: `n_plus_one`, `duplicate_query`, `fat_select`, `queryset_eval`, `missing_index` (any other value is rejected). Can be repeated. |
+| `--file` | `str` | -- | Only fix specific files. Can be repeated. |
+| `--no-backup` | flag | -- | Do not create `.bak` files when applying |
 | `--url` | `str` | `/` | URL path to analyze |
 
 ### Examples
 
 ```bash
-# Dry run (default) — see what would change
+# Dry run (default) -- see what would change
 python manage.py fix_queries
 
 # Apply fixes
@@ -179,15 +179,15 @@ Run a comprehensive health scan across your entire project by discovering URL pa
 |------|------|---------|-------------|
 | `--output`, `-o` | `str` | `query_doctor_report.html` | Output file path |
 | `--format` | `str` | `html` | Report format: `html` or `json` |
-| `--apps` | `str` | — | Only diagnose specific apps (space-separated) |
+| `--apps` | `str` | -- | Only diagnose specific apps (space-separated) |
 | `--timeout` | `int` | `30` | Timeout per URL in seconds |
 | `--exclude-urls` | `str` | `/admin/ /static/ /media/ /__debug__/` | URL prefixes to exclude (space-separated) |
 | `--methods` | `str` | `GET` | HTTP methods to test (space-separated) |
-| `--file` | `str` | — | Only report issues in files matching this substring. Can be repeated. |
-| `--module` | `str` | — | Only report issues in modules matching this substring. Can be repeated. |
-| `--save-baseline` | `str` | — | Save current issues as a baseline snapshot (JSON file) |
-| `--baseline` | `str` | — | Compare against a baseline snapshot, show only regressions |
-| `--fail-on-regression` | flag | — | Exit with code 1 if new issues found vs baseline |
+| `--file` | `str` | -- | Only report issues in files matching this substring. Can be repeated. |
+| `--module` | `str` | -- | Only report issues in modules matching this substring. Can be repeated. |
+| `--save-baseline` | `str` | -- | Save current issues as a baseline snapshot (JSON file) |
+| `--baseline` | `str` | -- | Compare against a baseline snapshot, show only regressions |
+| `--fail-on-regression` | flag | -- | Exit with code 1 if new issues found vs baseline |
 | `--group` | `str` | `file_analyzer` | Group related prescriptions. Strategies: `file_analyzer`, `root_cause`, `view` |
 
 ### Examples
@@ -231,7 +231,7 @@ python manage.py query_doctor_report
 python manage.py query_doctor_report --output=reports/turbo-dashboard.html
 ```
 
-The dashboard shows cache hit rates, top optimized queries, and Chart.js graphs. Data reflects the current process cache — the cache resets on server restart. See [Benchmark Dashboard](benchmark-dashboard.md) for details on what the report contains.
+The dashboard shows cache hit rates, top optimized queries, and Chart.js graphs. Data reflects the current process cache -- the cache resets on server restart. See [Benchmark Dashboard](benchmark-dashboard.md) for details on what the report contains.
 
 !!! warning "Schema Information"
     The report contains SQL query templates (without parameter values) that may reveal database schema information. Do not share the report publicly if your schema is confidential.
@@ -240,9 +240,9 @@ The dashboard shows cache hit rates, top optimized queries, and Chart.js graphs.
 
 ## Further Reading
 
-- [CI/CD Integration](ci-integration.md) — Using management commands in CI pipelines
-- [Auto-Fix Mode](auto-fix.md) — Details on the auto-fix system
-- [Baseline Regression](baseline.md) — Baseline regression detection guide
-- [Prescription Grouping](grouping.md) — How grouping works
-- [Benchmark Dashboard](benchmark-dashboard.md) — Interactive HTML report
-- [Middleware](middleware.md) — Alternative: analyze every request automatically
+- [CI/CD Integration](ci-integration.md) -- Using management commands in CI pipelines
+- [Auto-Fix Mode](auto-fix.md) -- Details on the auto-fix system
+- [Baseline Regression](baseline.md) -- Baseline regression detection guide
+- [Prescription Grouping](grouping.md) -- How grouping works
+- [Benchmark Dashboard](benchmark-dashboard.md) -- Interactive HTML report
+- [Middleware](middleware.md) -- Alternative: analyze every request automatically

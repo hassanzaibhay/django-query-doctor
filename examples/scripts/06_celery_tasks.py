@@ -49,6 +49,6 @@ def cleanup_old_data():
         logger.warning(f"Query issues in cleanup: {report.issues}")
 
 
-# Celery is NOT a required dependency — @diagnose_task wraps any
+# Celery is NOT a required dependency -- @diagnose_task wraps any
 # callable and works the same with or without Celery installed.
 """)

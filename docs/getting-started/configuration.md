@@ -4,7 +4,7 @@ django-query-doctor works with zero configuration. Every setting has a sensible 
 
 ## All Settings
 
-Add these to your Django `settings.py`. This example shows every setting that's actually read by the code — verified against `conf.py` and each key's call site, not assumed:
+Add these to your Django `settings.py`. This example shows every setting that's actually read by the code -- verified against `conf.py` and each key's call site, not assumed:
 
 ```python title="settings.py"
 QUERY_DOCTOR = {
@@ -75,7 +75,7 @@ QUERY_DOCTOR = {
 }
 ```
 
-There is no `HTMLReporter` entry for `REPORTERS` — `"console"`, `"json"`, and `"log"` are the only recognized names. HTML output comes from a separate management command (`query_doctor_report`), not the reporter pipeline.
+There is no `HTMLReporter` entry for `REPORTERS` -- `"console"`, `"json"`, and `"log"` are the only recognized names. HTML output comes from a separate management command (`query_doctor_report`), not the reporter pipeline.
 
 ## Environment-Based Toggle
 
@@ -90,15 +90,15 @@ QUERY_DOCTOR = {
 }
 ```
 
-There is no `QUERY_DOCTOR_ENABLED` Django setting read by the code — `ENABLED` inside the `QUERY_DOCTOR` dict is what the middleware checks. Reading an environment variable into it, as above, is a pattern you apply yourself.
+There is no `QUERY_DOCTOR_ENABLED` Django setting read by the code -- `ENABLED` inside the `QUERY_DOCTOR` dict is what the middleware checks. Reading an environment variable into it, as above, is a pattern you apply yourself.
 
 ## Per-Analyzer Configuration
 
-Each analyzer reads its config from `ANALYZERS.<short_name>`. `enabled` is checked by every built-in analyzer (`BaseAnalyzer.is_enabled()`); `threshold` (or a similarly-named key) is analyzer-specific — see the [Analyzers](../analyzers/overview.md) section for what each one supports. Disabling an analyzer here also affects `fix_queries` and `check_queries`, since both discover analyzers the same way.
+Each analyzer reads its config from `ANALYZERS.<short_name>`. `enabled` is checked by every built-in analyzer (`BaseAnalyzer.is_enabled()`); `threshold` (or a similarly-named key) is analyzer-specific -- see the [Analyzers](../analyzers/overview.md) section for what each one supports. Disabling an analyzer here also affects `fix_queries` and `check_queries`, since both discover analyzers the same way.
 
 ## Reporter Configuration
 
-Multiple reporters can be active simultaneously — `REPORTERS` is a list, and each recognized name adds its reporter:
+Multiple reporters can be active simultaneously -- `REPORTERS` is a list, and each recognized name adds its reporter:
 
 ```python title="settings.py"
 QUERY_DOCTOR = {
@@ -117,7 +117,7 @@ A name `REPORTERS` doesn't recognize produces no reporter. Since a typo and an u
 QUERY_DOCTOR = {"REPORTERS": ["console", "consoel"]}  # QueryDoctorWarning: 'consoel'
 ```
 
-Suppress the category with `-W ignore::query_doctor.QueryDoctorWarning` if you have a reason to keep an unrecognized entry. Note that suites running `-W error` will fail on it, which is the point — the alternative is a reporter you believe is active and is not.
+Suppress the category with `-W ignore::query_doctor.QueryDoctorWarning` if you have a reason to keep an unrecognized entry. Note that suites running `-W error` will fail on it, which is the point -- the alternative is a reporter you believe is active and is not.
 
 ## Locating `.queryignore`
 
@@ -127,4 +127,4 @@ By default the ignore file is `.queryignore` beside your project root (the direc
 QUERY_DOCTOR = {"QUERYIGNORE_PATH": "/etc/myapp/queryignore.conf"}
 ```
 
-It must name the **file**, not the directory containing it. A path that doesn't resolve emits a `QueryDoctorWarning` and falls back to project-root discovery — analysis never fails the request, but the ignored setting is reported rather than silently dropped. See the [.queryignore guide](../guides/query-ignore.md) for the rule syntax.
+It must name the **file**, not the directory containing it. A path that doesn't resolve emits a `QueryDoctorWarning` and falls back to project-root discovery -- analysis never fails the request, but the ignored setting is reported rather than silently dropped. See the [.queryignore guide](../guides/query-ignore.md) for the rule syntax.

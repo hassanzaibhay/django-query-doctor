@@ -12,7 +12,7 @@ This document provides a detailed feature comparison between django-query-doctor
 > | [nplusone](https://pypi.org/project/nplusone/) | 1.0.0 | 2018-05-21 |
 > | [django-auto-prefetch](https://pypi.org/project/django-auto-prefetch/) | 1.14.0 | 2025-09-18 |
 >
-> Cells marked "—" are capabilities the project's own documentation does not
+> Cells marked " -- " are capabilities the project's own documentation does not
 > address. If a project has since gained a feature listed as missing here,
 > please open an issue.
 
@@ -43,8 +43,8 @@ This document provides a detailed feature comparison between django-query-doctor
 | **Integration** | | | | | |
 | Management commands | Yes | No | No | No | No |
 | Pytest plugin | Fixture only² | No | No | No¹ | No |
-| Celery task support | Yes | No | Partial (profiling decorators usable in tasks) | Partial (generic `Profiler` context manager) | — |
-| Async Django support | Yes³ | Partial (experimental, no concurrent requests) | — | No (predates async Django) | — |
+| Celery task support | Yes | No | Partial (profiling decorators usable in tasks) | Partial (generic `Profiler` context manager) | -- |
+| Async Django support | Yes³ | Partial (experimental, no concurrent requests) | -- | No (predates async Django) | -- |
 | CI/CD integration | Yes | No | No | No | No |
 | Git diff-aware filtering | Yes | No | No | No | No |
 | Query budgets (per-view) | Yes | No | No | No | No |
@@ -79,7 +79,7 @@ in-test assertions, use `diagnose_queries()` (see the
 under a real ASGI handler; see `tests/test_asgi_middleware_chain.py`, which drives
 `django.core.handlers.asgi.ASGIHandler` across Django's `startproject` middleware
 defaults and asserts the captured query count, not just the response status.
-2.1.1 and earlier either crashed or captured nothing under ASGI — see
+2.1.1 and earlier either crashed or captured nothing under ASGI -- see
 [Async Support](../guides/async-support.md).
 
 ---
@@ -142,7 +142,7 @@ defaults and asserts the captured query count, not just the response status.
 - Git diff-aware filtering for incremental adoption
 - Designed to run in production; nplusone's own documentation says it should only be used in development
 
-> **Note:** nplusone's most recent release is 1.0.0, published in May 2018 (per its PyPI page) — the project has been unmaintained for years, though it remains installable and functional on the ORMs of its era.
+> **Note:** nplusone's most recent release is 1.0.0, published in May 2018 (per its PyPI page) -- the project has been unmaintained for years, though it remains installable and functional on the ORMs of its era.
 
 ### vs. django-auto-prefetch
 
@@ -152,7 +152,7 @@ defaults and asserts the captured query count, not just the response status.
 - Zero developer effort after initial setup
 - Immediate performance improvement for ForeignKey/OneToOne N+1
 - No reports to read or fixes to apply
-- Written by Gordon Wrigley (GitHub: `tolomea`) and maintained by Adam Johnson (`adamchainz`), per [its PyPI page](https://pypi.org/project/django-auto-prefetch/) — as of 1.14.0 it supports Django 4.2-6.0 and Python 3.9-3.14
+- Written by Gordon Wrigley (GitHub: `tolomea`) and maintained by Adam Johnson (`adamchainz`), per [its PyPI page](https://pypi.org/project/django-auto-prefetch/) -- as of 1.14.0 it supports Django 4.2-6.0 and Python 3.9-3.14
 
 **Where django-query-doctor adds value:**
 - Visibility into what queries ran and why (auto-prefetch's mitigation happens silently)
@@ -161,7 +161,7 @@ defaults and asserts the captured query count, not just the response status.
 - Per-view control instead of a global model-level behavior change
 - Helps developers learn to write better querysets, since it reports rather than silently mitigates
 
-> **Note:** django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off — automatic mitigation instead of manual `select_related()` calls — and the same on-demand-prefetch idea is coming to Django core as [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/) (`FETCH_PEERS`), new in [Django 6.1](https://docs.djangoproject.com/en/dev/releases/6.1/) — see the linked release notes for its current status. django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.
+> **Note:** django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off -- automatic mitigation instead of manual `select_related()` calls -- and the same on-demand-prefetch idea is coming to Django core as [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/) (`FETCH_PEERS`), new in [Django 6.1](https://docs.djangoproject.com/en/dev/releases/6.1/) -- see the linked release notes for its current status. django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.
 
 ---
 
