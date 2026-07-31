@@ -1,9 +1,9 @@
 {
-  "version": "2.1.0",
-  "timestamp": "2026-07-15T05:02:36.263557+00:00",
+  "version": "2.2.0",
+  "timestamp": "2026-07-31T10:33:33.012434+00:00",
   "summary": {
     "total_queries": 43,
-    "total_time_ms": 0.7993998005986214,
+    "total_time_ms": 0.7209000759758055,
     "issues_found": 5,
     "critical": 2,
     "warnings": 1,
@@ -13,28 +13,28 @@
     {
       "issue_type": "n_plus_one",
       "severity": "critical",
-      "description": "N+1 detected: 20 queries for table \"testapp_author\" (field: author)",
-      "fix_suggestion": "Add .select_related('author') to your queryset",
+      "description": "N+1 detected: 20 queries for table \"testapp_author\" (via Book.author)",
+      "fix_suggestion": "Add .select_related('author') to your Book queryset",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
-        "line": 64,
+        "file": "scripts/regen_examples.py",
+        "line": 139,
         "function": "test_regenerate_outputs"
       },
       "query_count": 20,
-      "estimated_savings_ms": 0.32432981533929706
+      "estimated_savings_ms": 0.31131504802033305
     },
     {
       "issue_type": "n_plus_one",
       "severity": "critical",
-      "description": "N+1 detected: 20 queries for table \"testapp_publisher\" (field: publisher)",
-      "fix_suggestion": "Add .select_related('publisher') to your queryset",
+      "description": "N+1 detected: 20 queries for table \"testapp_publisher\" (via Author.publisher)",
+      "fix_suggestion": "Add .select_related('publisher') to your Author queryset",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
-        "line": 65,
+        "file": "scripts/regen_examples.py",
+        "line": 140,
         "function": "test_regenerate_outputs"
       },
       "query_count": 20,
-      "estimated_savings_ms": 0.3148299641907215
+      "estimated_savings_ms": 0.2889899886213243
     },
     {
       "issue_type": "duplicate_query",
@@ -42,12 +42,12 @@
       "description": "Duplicate query: 2 identical queries for table \"testapp_book\"",
       "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
-        "line": 67,
+        "file": "scripts/regen_examples.py",
+        "line": 142,
         "function": "test_regenerate_outputs"
       },
       "query_count": 2,
-      "estimated_savings_ms": 0.04444998921826482
+      "estimated_savings_ms": 0.02635002601891756
     },
     {
       "issue_type": "missing_index",
@@ -55,8 +55,8 @@
       "description": "Missing index: column \"title\" on Book (table \"testapp_book\") is used in WHERE/ORDER BY but has no index",
       "fix_suggestion": "Add to Book's Meta.indexes: indexes = [models.Index(fields=[\"title\"], name=\"idx_testapp_book_title\")]",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
-        "line": 67,
+        "file": "scripts/regen_examples.py",
+        "line": 142,
         "function": "test_regenerate_outputs"
       },
       "query_count": 1,
@@ -68,8 +68,8 @@
       "description": "Fat SELECT: 8 columns from \"testapp_book\" including large fields: description",
       "fix_suggestion": "Use .defer('description') to skip loading large fields, or .values()/.values_list() if you don't need model instances",
       "location": {
-        "file": "C:\\Users\\hassa\\Desktop\\django-query-doctor\\scripts\\regen_examples.py",
-        "line": 62,
+        "file": "scripts/regen_examples.py",
+        "line": 137,
         "function": "test_regenerate_outputs"
       },
       "query_count": 1,

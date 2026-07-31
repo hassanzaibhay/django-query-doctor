@@ -113,6 +113,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `diagnose_project`'s baseline path -- documented in the baseline guide and
   previously the largest uncovered block in the package -- now has tests for
   save, no-regression, regression and resolved-issue reporting.
+- **The example artifacts no longer ship the author's local absolute paths.**
+  `examples/outputs/report.{html,json}` and
+  `examples/screenshots/*.capture.txt` carried `C:\Users\<user>\...` and a
+  pytest fixture directory including a Windows account display name, across 20
+  lines in 4 files. These are generated artifacts committed exactly as
+  produced, and they ship inside the sdist, so the paths were published.
+  `scripts/regen_examples.py` now normalizes them -- the repository root
+  becomes a repo-relative path with forward slashes, the fixture directory
+  becomes `<tmpdir>` -- and asserts before writing that nothing leaked. All
+  four artifacts are regenerated. The published 2.2.0 sdist is immutable and
+  keeps its copies permanently; this fix applies from the next release
+  onwards. The artifacts were **not** hand-edited: hand-editing a generated
+  capture is what produced the fabricated files `51c72cd` had to delete.
+- `tests/test_svg_capture_sync.py` covers the two artifacts it never touched
+  (`report.html` and `report.json`), asserts that no generated artifact
+  carries an absolute local path in any of its spellings, and adds the
+  staleness check that was missing: both captures are regenerated into a
+  temporary directory and diffed against the committed copies, with durations
+  masked because they legitimately differ between runs. The staleness check
+  was only possible once the paths were normalized, since the fixture
+  directory's counter changed on every run. It immediately earned its place:
+  the console capture had drifted from the N+1 prescription wording changed
+  above, and the transcription in `examples/generate_svgs.py` was corrected
+  rather than the test relaxed.
 
 ## [2.2.0] - 2026-07-30
 

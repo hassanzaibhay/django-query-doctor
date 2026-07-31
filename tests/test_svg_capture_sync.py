@@ -6,14 +6,21 @@ regenerates from real runs. Nothing enforced that the transcription matched,
 so the shipped SVGs could drift silently from real output on any format change
 (FOLLOWUPS entry 8).
 
-Why containment and not equality: the captures cannot be compared verbatim.
-They embed absolute machine paths, and ``auto_fix.capture.txt`` embeds a pytest
-tmpdir whose counter changes on every run
-(``...\\pytest-of-<user>\\pytest-46\\...``). The SVGs deliberately relabel those
-to ``myapp/views.py`` and drop some lines for width. So the direction that
-matters is checked instead: **every line the SVG shows must be traceable to a
-capture line**. A capture line the SVG omits is fine; an SVG line the tool never
-produced is not.
+Why containment and not equality: the captures still cannot be compared
+verbatim. They carry the callsite of the regeneration script rather than of a
+user's view, and the SVGs deliberately relabel that to ``myapp/views.py`` and
+drop some lines for width. So the direction that matters is checked instead:
+**every line the SVG shows must be traceable to a capture line**. A capture
+line the SVG omits is fine; an SVG line the tool never produced is not.
+
+Until entry 44 the captures also embedded absolute machine paths and a pytest
+tmpdir whose counter changed on every run, which was a second, independent
+reason equality was impossible -- and, because these artifacts ship inside the
+sdist, a published leak. ``scripts/regen_examples.py`` now normalizes both:
+the repository root becomes a repo-relative path and the fixture directory
+becomes ``<tmpdir>``. ``TestGeneratedArtifactsCarryNoLocalPaths`` below keeps
+it that way, and the staleness check that entry 59 asked for is possible only
+because of it.
 
 The generator is read with ``ast``, never imported: importing it would execute
 its module-level ``create_terminal_svg`` calls and rewrite the shipped SVGs as a
@@ -141,4 +148,128 @@ class TestSVGLineDataMatchesCaptures:
         assert unpinned == UNPINNED_SVGS, (
             "SVGs without a capture changed. Add a capture in "
             "scripts/regen_examples.py, or update UNPINNED_SVGS with a reason."
+        )
+
+
+# Durations differ on every run, so an exact diff of a regenerated capture
+# would be permanently red. Masking them leaves everything that actually
+# indicates drift: the wording, the counts, the callsites, the ordering.
+_VOLATILE_RE = re.compile(r"\d+\.\d+ *ms")
+
+OUTPUTS = REPO_ROOT / "examples" / "outputs"
+
+# Every spelling of a local absolute path these artifacts have carried, raw
+# and JSON-escaped. A single-backslash pattern missed an entire file when this
+# defect was first measured, so both are checked.
+LOCAL_PATH_MARKERS = (
+    r"C:\Users",
+    r"C:\\Users",
+    "C:/Users",
+    "pytest-of-",
+    str(REPO_ROOT),
+)
+
+
+def _stable(text: str) -> str:
+    """Mask the fields that legitimately differ between two runs."""
+    return _VOLATILE_RE.sub("<ms>", text)
+
+
+class TestGeneratedArtifactsCarryNoLocalPaths:
+    """Entry 44: these files ship in the sdist, so an absolute path is published.
+
+    ``examples/outputs/report.{html,json}`` were never covered by any sync
+    test at all, and both carried the author's home directory. The published
+    2.2.0 sdist keeps them permanently -- PyPI artifacts are immutable -- so
+    this guard is about every release after it.
+    """
+
+    @pytest.mark.parametrize(
+        "relpath",
+        [
+            "examples/outputs/report.html",
+            "examples/outputs/report.json",
+            "examples/outputs/query_budget_output.txt",
+            "examples/screenshots/console_output.capture.txt",
+            "examples/screenshots/auto_fix.capture.txt",
+        ],
+    )
+    def test_artifact_has_no_absolute_local_path(self, relpath: str) -> None:
+        """No generated artifact may name a directory on the author's machine."""
+        text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
+        assert text.strip(), f"{relpath} is empty; the check would prove nothing"
+        found = [marker for marker in LOCAL_PATH_MARKERS if marker in text]
+        assert found == [], f"{relpath} carries {found}"
+
+    def test_report_json_locations_are_repo_relative(self) -> None:
+        """Positive control: the callsites are present, and they are relative."""
+        import json
+
+        data = json.loads((OUTPUTS / "report.json").read_text(encoding="utf-8"))
+        files = [rx["location"]["file"] for rx in data["prescriptions"] if rx.get("location")]
+        assert files, "positive control: the report must carry callsites at all"
+        for path in files:
+            assert not path.startswith("/"), path
+            assert ":" not in path, f"{path} looks like a Windows absolute path"
+
+    def test_report_html_and_json_describe_the_same_run(self) -> None:
+        """The two artifacts are rendered from one report and must agree.
+
+        Neither had any sync test, so they could drift apart -- or one could be
+        regenerated without the other -- with nothing to notice.
+        """
+        import json
+
+        data = json.loads((OUTPUTS / "report.json").read_text(encoding="utf-8"))
+        html = (OUTPUTS / "report.html").read_text(encoding="utf-8")
+        assert data["prescriptions"], "positive control: the run must have findings"
+        for rx in data["prescriptions"]:
+            marker = rx["description"].split(":")[0]
+            assert marker in html, f"{marker!r} is in report.json but not report.html"
+
+
+class TestCapturesAreNotStale:
+    """Entry 59: nothing compared a committed capture against a fresh run.
+
+    A capture could drift from current output indefinitely -- which is exactly
+    what happened to the console capture when the N+1 prescription wording
+    changed. Regenerating into a temporary directory and diffing catches it at
+    the source rather than one step downstream at the SVG.
+    """
+
+    @pytest.mark.django_db
+    def test_console_capture_matches_a_fresh_run(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Regenerate the console capture into a temp dir and diff it."""
+        from scripts import regen_examples
+
+        monkeypatch.setattr(regen_examples, "SCREENSHOTS", tmp_path)
+        regen_examples.test_capture_console_output()
+
+        fresh = (tmp_path / "console_output.capture.txt").read_text(encoding="utf-8")
+        committed = (SCREENSHOTS / "console_output.capture.txt").read_text(encoding="utf-8")
+        assert _stable(fresh) == _stable(committed), (
+            "examples/screenshots/console_output.capture.txt is stale. "
+            "Re-run: pytest scripts/regen_examples.py -c pyproject.toml -q -s"
+        )
+
+    def test_auto_fix_capture_matches_a_fresh_run(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Same for the fixer dry-run capture, whose tmpdir is now normalized."""
+        from scripts import regen_examples
+
+        out_dir = tmp_path / "out"
+        out_dir.mkdir()
+        work = tmp_path / "work"
+        work.mkdir()
+        monkeypatch.setattr(regen_examples, "SCREENSHOTS", out_dir)
+        regen_examples.test_capture_fix_queries_dry_run(work)
+
+        fresh = (out_dir / "auto_fix.capture.txt").read_text(encoding="utf-8")
+        committed = (SCREENSHOTS / "auto_fix.capture.txt").read_text(encoding="utf-8")
+        assert _stable(fresh) == _stable(committed), (
+            "examples/screenshots/auto_fix.capture.txt is stale. "
+            "Re-run: pytest scripts/regen_examples.py -c pyproject.toml -q -s"
         )
