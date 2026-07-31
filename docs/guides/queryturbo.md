@@ -257,6 +257,33 @@ with turbo_disabled():
     books = list(Book.objects.filter(published=True))
 ```
 
+### Setting the override manually
+
+Both context managers are built on `set_turbo_override()`, which the 2.2.0
+release notes name as the replacement for the removed
+`turbo.patch.set_thread_override`. Use it directly when the scope you want to
+override does not line up with a `with` block. It returns a
+`contextvars.Token`, and you are responsible for handing that token back to
+`reset_turbo_override()`:
+
+```python
+from query_doctor.turbo.context import get_turbo_override, reset_turbo_override
+from query_doctor.turbo.context import set_turbo_override
+
+token = set_turbo_override(False)
+try:
+    assert get_turbo_override() is False  # turbo is off for this thread/coroutine
+    books = list(Book.objects.filter(published=True))
+finally:
+    reset_turbo_override(token)
+```
+
+`get_turbo_override()` returns `True` when force-enabled, `False` when
+force-disabled, and `None` when no override is in force and the global
+`TURBO.ENABLED` setting decides. Prefer `turbo_enabled()` / `turbo_disabled()`
+unless you need the manual form: they pair the set and the reset for you,
+including on an exception.
+
 ---
 
 ## Compilation-Skip Benchmarks

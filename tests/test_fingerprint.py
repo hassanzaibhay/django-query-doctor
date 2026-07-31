@@ -158,3 +158,35 @@ class TestExtractTables:
         tables = extract_tables(sql)
         assert "testapp_book" in tables
         assert "testapp_author" in tables
+
+
+class TestExtractTablesWriteForms:
+    """Write statements must report their target table, not an empty list.
+
+    Surfaced while fixing entry 51: an UPDATE reported no tables at all, so
+    any analyzer reasoning about read/write table overlap saw writes as
+    touching nothing.
+    """
+
+    def test_update_reports_its_target(self) -> None:
+        """UPDATE names its table after the UPDATE keyword, not after FROM."""
+        sql = 'UPDATE "testapp_book" SET "title" = ? WHERE "testapp_book"."id" = ?'
+        assert extract_tables(sql) == ["testapp_book"]
+
+    def test_insert_reports_its_target(self) -> None:
+        """INSERT INTO names its table after two keywords."""
+        sql = 'INSERT INTO "testapp_book" ("title") VALUES (?)'
+        assert extract_tables(sql) == ["testapp_book"]
+
+    def test_delete_reports_its_target(self) -> None:
+        """DELETE FROM already matched FROM, and must keep matching."""
+        sql = 'DELETE FROM "testapp_book" WHERE "testapp_book"."id" = ?'
+        assert extract_tables(sql) == ["testapp_book"]
+
+    def test_select_is_unchanged(self) -> None:
+        """Negative control: the read path must not have shifted."""
+        sql = (
+            'SELECT "testapp_book"."id" FROM "testapp_book" '
+            'INNER JOIN "testapp_author" ON ("testapp_book"."author_id" = "testapp_author"."id")'
+        )
+        assert extract_tables(sql) == ["testapp_book", "testapp_author"]

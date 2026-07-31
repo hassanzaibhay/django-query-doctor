@@ -89,6 +89,32 @@ Every issue detected by an analyzer is returned as a **Prescription** dataclass.
 
 Prescriptions are not just warnings. They are actionable: the `fix_suggestion` field contains the exact code change you need to make, and the `callsite` field tells you exactly where to make it.
 
+### Apply them in the order they are reported
+
+Prescriptions are **not independent**, so the report is ordered rather than
+alphabetical or severity-sorted alone. `pipeline.analyze()` returns them in the
+order you should apply them: N+1 findings first, then duplicates and serializer
+findings, then indexes and queryset-evaluation findings, then complexity, and
+fat SELECT last.
+
+The reason fat SELECT is last is that fixing an N+1 makes it worse. Applying the
+prescribed `.select_related('author')` collapses N round trips into one join, and
+that one query now selects the joined table's columns as well:
+
+```text
+before: [n_plus_one] N+1 detected: 6 queries for table "testapp_author"
+        [fat_select] Fat SELECT: 8 columns from "testapp_book"
+
+after applying the prescribed .select_related('author'):
+        (n_plus_one gone)
+        [fat_select] Fat SELECT: 8 columns from "testapp_book"   # base table only
+```
+
+The column count is attributed to the base table only, so it no longer grows
+with the join -- but the query really is wider, and `.defer()` decisions are
+only worth making once the N+1 findings above them are resolved. When both
+findings are present, the console reporter prints a one-line note saying so.
+
 ---
 
 ## Connection-Level, Not ORM-Level

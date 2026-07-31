@@ -115,6 +115,44 @@ def _model_name_for_table(table_name: str) -> str | None:
     return None
 
 
+def _string_mask(statement: str) -> list[bool]:
+    """Mark every character that sits inside a single-quoted SQL literal.
+
+    Both counters below walk characters looking for structural punctuation.
+    Without this mask a comma or parenthesis inside a literal reads as a list
+    separator or a row tuple, and the statement is misclassified as bulk --
+    which suppresses the finding.
+
+    A quote is escaped by doubling it (``''``), which is SQL's own rule, so
+    the pair is consumed without ending the literal.
+
+    Args:
+        statement: The SQL to scan.
+
+    Returns:
+        One bool per character: True if that character is inside a literal
+        (the surrounding quotes themselves count as inside).
+    """
+    mask = [False] * len(statement)
+    inside = False
+    index = 0
+    length = len(statement)
+    while index < length:
+        char = statement[index]
+        if char == "'":
+            if inside and index + 1 < length and statement[index + 1] == "'":
+                mask[index] = mask[index + 1] = True
+                index += 2
+                continue
+            mask[index] = True
+            inside = not inside
+            index += 1
+            continue
+        mask[index] = inside
+        index += 1
+    return mask
+
+
 def _values_tuple_count(statement: str) -> int:
     """Count top-level tuples in an INSERT's VALUES clause.
 
@@ -127,13 +165,20 @@ def _values_tuple_count(statement: str) -> int:
     (the keyword is present but introduces nothing). Both are treated as
     single-row rather than bulk, so a loop issuing either is still reported.
     """
-    match = _VALUES_RE.search(statement)
+    mask = _string_mask(statement)
+    match = next(
+        (m for m in _VALUES_RE.finditer(statement) if not mask[m.start()]),
+        None,
+    )
     if match is None:
         return 0
 
     depth = 0
     tuples = 0
-    for char in statement[match.end() :]:
+    for index in range(match.end(), len(statement)):
+        if mask[index]:
+            continue
+        char = statement[index]
         if char == "(":
             if depth == 0:
                 tuples += 1
@@ -162,14 +207,20 @@ def _max_in_list_size(statement: str) -> int:
     limitations noted on ``_classify``.
     """
     largest = 0
+    mask = _string_mask(statement)
 
     for match in _IN_LIST_RE.finditer(statement):
+        if mask[match.start()]:
+            # The keyword itself is inside a literal, so there is no IN list.
+            continue
         depth = 1
         items = 1
         body_start = match.end()
         end = body_start
 
         for index in range(body_start, len(statement)):
+            if mask[index]:
+                continue
             char = statement[index]
             if char == "(":
                 depth += 1

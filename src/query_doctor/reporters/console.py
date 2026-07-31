@@ -9,7 +9,7 @@ from __future__ import annotations
 import sys
 from typing import Any
 
-from query_doctor.types import DiagnosisReport, Prescription, Severity
+from query_doctor.types import DiagnosisReport, IssueType, Prescription, Severity
 
 _SEVERITY_ICONS = {
     Severity.CRITICAL: "CRITICAL",
@@ -147,8 +147,38 @@ class ConsoleReporter:
             if report.issues == 0:
                 console.print(Text("No issues detected.", style="green"))
 
+            note = self._ordering_note(report)
+            if note:
+                console.print()
+                console.print(Text(note, style="dim"))
+
         parts.append(capture.get())
         return "".join(parts)
+
+    @staticmethod
+    def _ordering_note(report: DiagnosisReport) -> str:
+        """Return the interaction warning, or an empty string if it does not apply.
+
+        Findings are listed in apply order, but the list still reads as a set
+        of independent items. It is not: resolving an N+1 with select_related
+        widens the base query, so the fat_select column count grows as a
+        direct result of applying the fix above it. Saying so is cheaper than
+        letting a reader discover it by watching a number get worse.
+
+        Args:
+            report: The report about to be rendered.
+
+        Returns:
+            The note to print, or "" when no interacting pair is present.
+        """
+        kinds = {p.issue_type for p in report.prescriptions}
+        if IssueType.N_PLUS_ONE in kinds and IssueType.FAT_SELECT in kinds:
+            return (
+                "Note: findings are listed in the order to apply them. "
+                "Resolving the N+1 above with select_related() widens the base "
+                "query, so re-read the fat SELECT findings only after that."
+            )
+        return ""
 
     def _render_rich_prescription(self, console: object, prescription: Prescription) -> None:
         """Render a single prescription with Rich."""
@@ -212,6 +242,11 @@ class ConsoleReporter:
         if report.issues == 0:
             lines.append("")
             lines.append("No issues detected.")
+
+        note = self._ordering_note(report)
+        if note:
+            lines.append("")
+            lines.append(note)
 
         lines.append("")
         return "\n".join(lines)

@@ -6,6 +6,8 @@ import asyncio
 
 from query_doctor.turbo.context import (
     get_turbo_override,
+    reset_turbo_override,
+    set_turbo_override,
     turbo_disabled,
     turbo_enabled,
 )
@@ -114,3 +116,57 @@ class TestAsyncContextIsolation:
 
         asyncio.run(coro())
         assert result == [None]
+
+
+class TestManualOverride:
+    """Entry 55: the override helper the 2.2.0 notes recommend must work.
+
+    2.2.0 removed `turbo.patch.set_thread_override` because it "had no caller
+    in the package, no test, and no mention in the docs", and pointed users at
+    `set_turbo_override`. Every clause of that reason applied to the
+    replacement, whose single body line was uncovered by the whole suite.
+    """
+
+    def test_set_and_reset_round_trip(self) -> None:
+        """The token restores the previous value, including `None`."""
+        assert get_turbo_override() is None
+        token = set_turbo_override(False)
+        try:
+            assert get_turbo_override() is False
+        finally:
+            reset_turbo_override(token)
+        assert get_turbo_override() is None
+
+    def test_nests_under_a_context_manager(self) -> None:
+        """A manual override inside `turbo_enabled()` restores to True."""
+        with turbo_enabled():
+            token = set_turbo_override(False)
+            assert get_turbo_override() is False
+            reset_turbo_override(token)
+            assert get_turbo_override() is True
+        assert get_turbo_override() is None
+
+    def test_context_managers_are_built_on_it(self) -> None:
+        """`turbo_enabled()` routes through the documented helper.
+
+        Pins the caller that 2.2.0's stated reason for removal turned on, so
+        the helper cannot drift back to having none.
+        """
+        import inspect
+
+        from query_doctor.turbo import context
+
+        source = inspect.getsource(context.turbo_enabled)
+        assert "set_turbo_override(True)" in source
+        assert "_turbo_override.set(" not in source
+
+    def test_setting_none_clears_the_override(self) -> None:
+        """`None` hands the decision back to the global TURBO.ENABLED setting."""
+        with turbo_disabled():
+            assert get_turbo_override() is False
+            token = set_turbo_override(None)
+            try:
+                assert get_turbo_override() is None
+            finally:
+                reset_turbo_override(token)
+            assert get_turbo_override() is False

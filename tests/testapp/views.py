@@ -45,6 +45,16 @@ def book_list_missing_index(request):
     return JsonResponse({"books": books})
 
 
+def book_list_raises(request):
+    """View that issues a query and then raises, for check_queries error handling.
+
+    The query runs first on purpose: it proves the command distinguishes "the
+    view blew up" from "nothing ran", which is the whole point of entry 60.
+    """
+    list(Book.objects.all())
+    raise RuntimeError("view exploded on purpose")
+
+
 async def async_ok(request):
     """Async view with no database access, for exercising the ASGI middleware chain."""
     return HttpResponse("async ok")

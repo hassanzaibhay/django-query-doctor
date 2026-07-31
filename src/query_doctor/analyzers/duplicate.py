@@ -64,6 +64,36 @@ class DuplicateAnalyzer(BaseAnalyzer):
             logger.warning("query_doctor: duplicate analysis failed", exc_info=True)
             return []
 
+    @staticmethod
+    def _write_falls_between(
+        queries: list[CapturedQuery],
+        group: list[CapturedQuery],
+    ) -> bool:
+        """Report whether a write to the group's tables separates its members.
+
+        Read, write, read back is ordinary Django. Caching the first result
+        and reusing it -- which is what this analyzer prescribes -- would
+        return the pre-write row, so the group is not a duplicate at all and
+        the prescription would be a correctness regression rather than a
+        missed optimisation.
+
+        Args:
+            queries: Every captured query, in execution order.
+            group: The identical SELECTs under consideration.
+
+        Returns:
+            True if a non-SELECT touching one of the group's tables ran
+            between the group's first and last member.
+        """
+        positions = [i for i, q in enumerate(queries) if any(q is m for m in group)]
+        if len(positions) < 2:
+            return False
+        tables = {t for member in group for t in member.tables}
+        for q in queries[positions[0] + 1 : positions[-1]]:
+            if not q.is_select and tables.intersection(q.tables):
+                return True
+        return False
+
     def _detect_duplicates(self, queries: list[CapturedQuery]) -> list[Prescription]:
         """Core duplicate detection logic."""
         config = get_config()
@@ -80,6 +110,9 @@ class DuplicateAnalyzer(BaseAnalyzer):
 
         for _key, group in exact_groups.items():
             if len(group) < threshold:
+                continue
+
+            if self._write_falls_between(queries, group):
                 continue
 
             sample = group[0]

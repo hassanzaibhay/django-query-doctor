@@ -430,11 +430,18 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
                         "code_context": "",
                     }
 
-        # Check for obj.related_set (without .all() -- implicit iteration)
+        # Check for obj.related_set (without .all() -- implicit iteration).
+        # Unlike the branch above there is no queryset method to key off, so
+        # the attribute has to be established as a relation before it is
+        # named: `for ch in obj.title` iterates a string, and
+        # prefetch_related('title') raises ValueError.
         if isinstance(iter_node, ast.Attribute):
             chain = self._get_attribute_chain(iter_node)
             if chain and chain[0] == obj_param and len(chain) >= 2:
-                related = chain[1]
+                resolved = self._resolve_relation_name(serializer_cls, chain[1])
+                if resolved is None:
+                    return None
+                related = resolved
                 return {
                     "description": (
                         f"N+1 risk in {serializer_cls.__name__}.get_{field_name}(): "
@@ -450,6 +457,39 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
                 }
 
         return None
+
+    @staticmethod
+    def _resolve_relation_name(serializer_cls: Any, attr: str) -> str | None:
+        """Return ``attr`` if it is demonstrably a relation, else None.
+
+        Two sources of truth, in order of strength:
+
+        1. ``Meta.model``, when the serializer is a ``ModelSerializer``. The
+           field is looked up through ``_meta`` and kept only if
+           ``is_relation`` -- so a ``CharField`` is dropped, and so is an
+           attribute the model does not declare at all.
+        2. The ``_set`` suffix, when there is no model to consult. That is
+           Django's own default reverse accessor, so it is a structural
+           signal rather than a guess about the caller's naming.
+
+        Anything else yields None and the finding is suppressed, because
+        prescribing ``prefetch_related`` for a non-relation raises.
+
+        Args:
+            serializer_cls: The serializer class being analyzed.
+            attr: The attribute name the loop iterates.
+
+        Returns:
+            The name to prefetch, or None if it cannot be established.
+        """
+        model = getattr(getattr(serializer_cls, "Meta", None), "model", None)
+        if model is not None:
+            try:
+                field = model._meta.get_field(attr)
+            except Exception:
+                return None
+            return attr if getattr(field, "is_relation", False) else None
+        return attr if attr.endswith("_set") else None
 
     def _check_comprehension(
         self,

@@ -7,6 +7,113 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `reset_turbo_override()` is exported from `query_doctor.turbo`, alongside
+  `set_turbo_override()` and `get_turbo_override()`. 2.2.0's release notes
+  pointed users at `set_turbo_override()` as the replacement for the removed
+  `turbo.patch.set_thread_override`, but the token it returns could not be
+  reset from outside the module: resetting a `ContextVar` needs the variable
+  itself, and `_turbo_override` is private. The manual override is now
+  actually usable, is documented in the QueryTurbo guide, and is covered by
+  tests. `turbo_enabled()` and `turbo_disabled()` now route through
+  `set_turbo_override()` rather than setting the ContextVar directly, so the
+  helper the changelog recommends has a caller in the package.
+- The console reporter prints a one-line note when a report contains both an
+  N+1 finding and a fat SELECT finding, saying that fixing the N+1 widens the
+  base query and that the fat SELECT findings should be re-read afterwards.
+  Prescriptions are now returned in the order they should be applied rather
+  than in analyzer-discovery order: N+1 first, fat SELECT last.
+- `check_serializers`' loop check and the N+1 analyzer's relation resolution
+  are covered by tests that *run* the prescribed queryset call against real
+  Django, so a prescription naming a field that does not resolve fails with
+  the error Django raises rather than passing a string comparison.
+
+### Fixed
+- **`check_queries --url` no longer exits 0 for a URL that does not resolve.**
+  Both a `Resolver404` and any exception raised inside the view were swallowed
+  identically, and the command went on to report zero captured queries and
+  exit 0. For a tool whose CI story is "fail the build on new issues",
+  analysing nothing was indistinguishable from finding nothing, so a typo in a
+  `--url` argument turned the gate green permanently. Each case now raises a
+  `CommandError` with its own wording, naming the URL. **This can turn a
+  previously-green CI gate red.** If your pipeline runs `check_queries --url`
+  against a path that does not resolve, or against a view that raises, the
+  build will now fail where it previously passed -- which is the point of the
+  fix. Check the URL before upgrading.
+- **The N+1 analyzer no longer prescribes a field that raises `FieldError`.**
+  On a repeated primary-key lookup the field name was derived by string-slicing
+  the table name (`testapp_author` -> `author`) whenever no foreign key was
+  found, and the foreign-key path was no safer: it searched every model in the
+  project for a field pointing at the target table, with no knowledge of which
+  model the caller was iterating. `Author.objects.get(pk=pk)` in a loop
+  prescribed `.select_related('author')`, which raises. A relation is now named
+  only after it resolves through `Model._meta.get_field()`, and only when an
+  earlier query in the same capture read the table that declares it -- so a
+  genuine forward-FK N+1 still gets `select_related`, and a bare `get(pk=...)`
+  loop gets the advice that actually applies: fetch the rows in one query with
+  `in_bulk()` or `filter(pk__in=...)`. The prescription text changes for both
+  cases, and it now names the model the call belongs to.
+- The reverse-foreign-key branch of the same analyzer had the same defect,
+  found while fixing the above: for `WHERE "book"."author_id" = ?` it read the
+  field name off the column (`author`) and prescribed
+  `prefetch_related('author')` on what is necessarily an `Author` queryset. It
+  now resolves the reverse accessor on the far side of the relation
+  (`books`) and validates it against that model.
+- The `serializer_method` analyzer no longer prescribes `prefetch_related()`
+  for a loop over a scalar attribute. `for ch in obj.title` over a `CharField`
+  produced `prefetch_related('title')`, which raises `ValueError`. The
+  bare-attribute loop branch now confirms the attribute is a relation --
+  through `Meta.model` when the serializer has one, otherwise through Django's
+  own `_set` reverse-accessor suffix -- and emits nothing when it cannot.
+- The `duplicate` analyzer no longer reports a re-read that follows a write to
+  the same table. Read, write, read back is ordinary Django, and following the
+  prescription ("assign the result to a variable and reuse it") returns the
+  pre-write row. This was the one finding in the set whose fix was a
+  correctness regression rather than a missed optimisation, so the group is
+  suppressed rather than reworded.
+- `fat_select` no longer counts a joined table's columns against the base
+  table. The column count came from the whole select list while the table name
+  came from the `FROM` clause, so `Book.objects.select_related("author")`
+  reported 13 columns "from testapp_book" when Book has 8, and the prescribed
+  `.defer()` addressed only a fraction of them.
+- `fat_select` no longer fires on a single-row lookup. `Book.objects.get(pk=1)`
+  returns one row and hit the default threshold of 8 with the model's own
+  columns, so every read of an ordinary Django model produced a finding. A
+  primary-key equality test or an explicit `LIMIT 1` is now exempt.
+- `extract_tables()` reports the target table of `UPDATE`, `INSERT INTO` and
+  `DELETE FROM` statements. It matched only `FROM` and `JOIN`, so every write
+  reported no tables at all and was invisible to any analyzer reasoning about
+  which tables a statement touches.
+- `write_nplusone`'s IN-list and VALUES counters are aware of quoted string
+  literals. `WHERE "name" IN ('a,b')` counted two items, so the statement was
+  classified as a bulk write and the finding was suppressed. Reaching this
+  needs a literal inlined into the SQL through `.extra()`, `RawSQL` or a
+  hand-written `cursor.execute()`, because Django's ORM parameterises.
+- Embedding the middleware by hand around an async handler now emits a
+  `QueryDoctorWarning` instead of silently reporting zero. On that route the
+  `execute_wrapper` is installed on the event loop thread's connection while
+  Django runs async ORM work on a separate executor thread, so `aget`,
+  `acreate`, `acount`, `aexists` and async iteration were never captured and
+  nothing said so. The condition is probed by asking the executor whether it
+  can see the interceptor, not predicted, so an async handler doing sync ORM
+  inline stays quiet. The warning describes the wiring rather than one
+  request, so it is emitted at most once per middleware instance. Suites that
+  escalate warnings to errors will fail on a hand-embedded async middleware.
+- Removed the dead `_severity_color()` helper from the project report
+  generator, and two parameters that were declared and never read:
+  `_suggest_simplification`'s `score` (whose docstring documented it) and
+  `_render_executive_summary`'s `total_warnings`. 2.2.0 removed five dead
+  symbols, so a reader could reasonably assume the sweep was complete.
+- `tests/test_management_commands.py` drove `check_queries` at `/test/`, which
+  is absent from the test URLconf, so nine tests analysed zero queries and
+  asserted against an empty report. `test_baseline_no_regression_exits_zero`
+  compared an empty baseline against an empty run and would have passed with
+  `--fail-on-regression` deleted; it is rebuilt around a non-empty baseline and
+  paired with a negative control that fails when a regression is introduced.
+  `diagnose_project`'s baseline path -- documented in the baseline guide and
+  previously the largest uncovered block in the package -- now has tests for
+  save, no-regression, regression and resolved-issue reporting.
+
 ## [2.2.0] - 2026-07-30
 
 ### Added

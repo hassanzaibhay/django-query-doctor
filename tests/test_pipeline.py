@@ -15,7 +15,16 @@ import pytest
 from django.test import override_settings
 
 from query_doctor.conf import get_config
-from query_doctor.types import CallSite, CapturedQuery, Severity
+from query_doctor.pipeline import sort_by_apply_order
+from query_doctor.reporters.console import ConsoleReporter
+from query_doctor.types import (
+    CallSite,
+    CapturedQuery,
+    DiagnosisReport,
+    IssueType,
+    Prescription,
+    Severity,
+)
 
 _SQL = (
     'SELECT "blog_author"."id", "blog_author"."name" FROM "blog_author" '
@@ -180,3 +189,96 @@ class TestSurfacesHonorQueryignore:
 
         types = [p.issue_type.value for p in report.prescriptions]
         assert "n_plus_one" in types
+
+
+class TestApplyOrder:
+    """Entry 54: prescriptions interact, so the report states an order.
+
+    Applying the prescribed `.select_related('author')` removes the N+1 and
+    raises fat_select's column count for the base table. A user working the
+    report top to bottom fixes the critical finding and watches the
+    informational one grow, with nothing in the output saying that is
+    expected.
+    """
+
+    @staticmethod
+    def _rx(issue_type: IssueType) -> Prescription:
+        """Build a minimal prescription of the given type."""
+        return Prescription(
+            issue_type=issue_type,
+            severity=Severity.INFO,
+            description=issue_type.value,
+            fix_suggestion="",
+            callsite=None,
+        )
+
+    def test_fat_select_sorts_after_nplusone(self) -> None:
+        """The finding whose number the other one moves is read last."""
+        ordered = sort_by_apply_order(
+            [
+                self._rx(IssueType.FAT_SELECT),
+                self._rx(IssueType.N_PLUS_ONE),
+            ]
+        )
+        assert [p.issue_type for p in ordered] == [
+            IssueType.N_PLUS_ONE,
+            IssueType.FAT_SELECT,
+        ]
+
+    def test_sort_is_stable_within_a_rank(self) -> None:
+        """Two findings of the same type keep the order the analyzer produced."""
+        first = self._rx(IssueType.N_PLUS_ONE)
+        first.description = "first"
+        second = self._rx(IssueType.N_PLUS_ONE)
+        second.description = "second"
+        ordered = sort_by_apply_order([first, second])
+        assert [p.description for p in ordered] == ["first", "second"]
+
+    def test_unknown_types_land_between_the_ends(self) -> None:
+        """An unranked plugin issue type must not sort before the N+1 fixes."""
+        ordered = sort_by_apply_order(
+            [
+                self._rx(IssueType.FAT_SELECT),
+                self._rx(IssueType.MISSING_INDEX),
+                self._rx(IssueType.N_PLUS_ONE),
+            ]
+        )
+        assert ordered[0].issue_type == IssueType.N_PLUS_ONE
+        assert ordered[-1].issue_type == IssueType.FAT_SELECT
+
+
+class TestOrderingNote:
+    """The console output must say that the two findings interact."""
+
+    @staticmethod
+    def _report(*types: IssueType) -> DiagnosisReport:
+        """Build a report carrying one prescription per given type."""
+        report = DiagnosisReport()
+        report.prescriptions = [
+            Prescription(
+                issue_type=t,
+                severity=Severity.INFO,
+                description=t.value,
+                fix_suggestion="",
+                callsite=None,
+            )
+            for t in types
+        ]
+        return report
+
+    @staticmethod
+    def _flat(text: str) -> str:
+        """Collapse whitespace: Rich hard-wraps the note to the panel width."""
+        return " ".join(text.split())
+
+    def test_note_is_present_when_both_findings_are(self) -> None:
+        """N+1 plus fat SELECT is the interacting pair."""
+        out = self._flat(
+            ConsoleReporter().render(self._report(IssueType.N_PLUS_ONE, IssueType.FAT_SELECT))
+        )
+        assert "re-read the fat SELECT findings only after that" in out
+
+    def test_note_is_absent_without_the_pair(self) -> None:
+        """Negative control: a lone N+1 gets no ordering note."""
+        out = self._flat(ConsoleReporter().render(self._report(IssueType.N_PLUS_ONE)))
+        assert "re-read the fat SELECT findings" not in out

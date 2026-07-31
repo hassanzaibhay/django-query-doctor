@@ -144,3 +144,68 @@ class TestDuplicateAnalyzer:
         dup_prescriptions = [p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY]
         assert len(dup_prescriptions) >= 1
         assert dup_prescriptions[0].fix_suggestion != ""
+
+
+@pytest.mark.django_db
+class TestInterveningWrites:
+    """Entry 51: a re-read after a write to the same table is not a duplicate.
+
+    Following the prescription -- "assign the result to a variable and reuse
+    it" -- would hand the caller the pre-write row. That makes this the one
+    finding in the set whose fix is a correctness regression rather than a
+    no-op, so the group is suppressed instead of reworded.
+    """
+
+    def _capture_queries(self, func):
+        """Helper to capture queries from a callable."""
+        interceptor = QueryInterceptor()
+        with connection.execute_wrapper(interceptor):
+            func()
+        return interceptor.get_queries()
+
+    def _duplicates(self, func):
+        """Return only the duplicate prescriptions for a captured callable."""
+        prescriptions = DuplicateAnalyzer().analyze(self._capture_queries(func))
+        return [p for p in prescriptions if p.issue_type == IssueType.DUPLICATE_QUERY]
+
+    def test_read_write_read_is_not_a_duplicate(self) -> None:
+        """The second read observes the write, so it is not redundant."""
+        book = BookFactory()
+
+        def read_write_read() -> None:
+            from tests.testapp.models import Book
+
+            Book.objects.get(pk=book.pk)
+            Book.objects.filter(pk=book.pk).update(title="changed")
+            Book.objects.get(pk=book.pk)
+
+        assert self._duplicates(read_write_read) == []
+
+    def test_read_read_without_a_write_is_still_a_duplicate(self) -> None:
+        """Negative control: without the write, the finding must still fire.
+
+        Without this the test above would pass against an analyzer that had
+        simply stopped detecting anything.
+        """
+        book = BookFactory()
+
+        def read_read() -> None:
+            from tests.testapp.models import Book
+
+            Book.objects.get(pk=book.pk)
+            Book.objects.get(pk=book.pk)
+
+        assert len(self._duplicates(read_read)) == 1
+
+    def test_write_to_an_unrelated_table_does_not_suppress(self) -> None:
+        """Only a write to a table the group reads can invalidate the group."""
+        book = BookFactory()
+
+        def read_unrelated_write_read() -> None:
+            from tests.testapp.models import Book, Publisher
+
+            Book.objects.get(pk=book.pk)
+            Publisher.objects.filter(pk=book.publisher_id).update(country="NL")
+            Book.objects.get(pk=book.pk)
+
+        assert len(self._duplicates(read_unrelated_write_read)) == 1

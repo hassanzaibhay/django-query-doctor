@@ -42,6 +42,20 @@ def set_turbo_override(value: bool | None) -> contextvars.Token[bool | None]:
     return _turbo_override.set(value)
 
 
+def reset_turbo_override(token: contextvars.Token[bool | None]) -> None:
+    """Restore the override that was in force before ``set_turbo_override``.
+
+    Without this the manual form is unusable outside this module: resetting a
+    ContextVar requires the variable itself, and ``_turbo_override`` is
+    private. Prefer ``turbo_enabled()`` / ``turbo_disabled()``, which pair the
+    set and the reset for you, including on an exception.
+
+    Args:
+        token: The token returned by a previous ``set_turbo_override`` call.
+    """
+    _turbo_override.reset(token)
+
+
 @contextmanager
 def turbo_enabled() -> Generator[None, None, None]:
     """Temporarily enable QueryTurbo for the current scope.
@@ -55,7 +69,7 @@ def turbo_enabled() -> Generator[None, None, None]:
         with turbo_enabled():
             books = Book.objects.filter(author=author)
     """
-    token = _turbo_override.set(True)
+    token = set_turbo_override(True)
     try:
         yield
     finally:
@@ -75,7 +89,7 @@ def turbo_disabled() -> Generator[None, None, None]:
         with turbo_disabled():
             books = Book.objects.filter(author=author)
     """
-    token = _turbo_override.set(False)
+    token = set_turbo_override(False)
     try:
         yield
     finally:

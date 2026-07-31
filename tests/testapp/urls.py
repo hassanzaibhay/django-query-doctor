@@ -11,6 +11,7 @@ urlpatterns = [
     path("books/duplicate/", views.book_list_duplicate, name="books-duplicate"),
     path("books/optimized/", views.book_list_optimized, name="books-optimized"),
     path("books/missing-index/", views.book_list_missing_index, name="books-missing-index"),
+    path("books/raises/", views.book_list_raises, name="books-raises"),
     path("async/ok/", views.async_ok, name="async-ok"),
     path("sync/probe/", views.sync_probe, name="sync-probe"),
     path("async/probe/", views.async_probe, name="async-probe"),

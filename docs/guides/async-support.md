@@ -151,6 +151,10 @@ integration, the pytest plugin, `check_queries`, `fix_queries` and `diagnose_pro
 
     `__acall__` installs the `execute_wrapper` on the event loop thread's connection, while every `a*` method is internally `sync_to_async(thread_sensitive=True)`, so the ORM runs on an executor thread holding a different `connections["default"]`. This is the thread-placement caveat on that route applied to async ORM calls, and the same cause as the `diagnose_queries()` limitation below. The behaviour is pinned by `tests/test_asgi_middleware_chain.py::TestDirectEmbedAsyncORMNotCaptured`, against a sync view doing identical ORM work through the same driver that captures 2 queries.
 
+    **Since 2.3.0 it says so.** The behaviour is unchanged -- the route still captures nothing -- but it no longer does so silently. `__acall__` asks the thread-sensitive executor whether it can see the installed interceptor; when it cannot, a `QueryDoctorWarning` names the limitation and steers you to the `MIDDLEWARE` chain. An async handler doing sync ORM inline resolves the loop thread's own connection, finds the interceptor there, and does not warn.
+
+    The warning reports a property of the **wiring**, not of one request, so a handler that touches no database at all also matches it, and it is emitted at most **once per middleware instance** rather than once per request. Suites that escalate warnings to errors will fail on a hand-embedded async middleware; see [`UPGRADING.md`](https://github.com/hassanzaibhay/django-query-doctor/blob/main/UPGRADING.md).
+
     Use the `MIDDLEWARE` chain to diagnose async ORM calls.
 
 ---

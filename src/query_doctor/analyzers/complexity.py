@@ -73,7 +73,7 @@ class QueryComplexityAnalyzer(BaseAnalyzer):
                         description=(
                             f"Query complexity score {score} exceeds threshold {threshold}"
                         ),
-                        fix_suggestion=self._suggest_simplification(q.normalized_sql, score),
+                        fix_suggestion=self._suggest_simplification(q.normalized_sql),
                         callsite=q.callsite,
                         fingerprint=q.fingerprint,
                     )
@@ -138,12 +138,11 @@ class QueryComplexityAnalyzer(BaseAnalyzer):
 
         return score
 
-    def _suggest_simplification(self, sql: str, score: int) -> str:
+    def _suggest_simplification(self, sql: str) -> str:
         """Generate contextual simplification suggestions.
 
         Args:
             sql: The normalized SQL string.
-            score: The computed complexity score.
 
         Returns:
             Human-readable suggestion string.
