@@ -39,10 +39,10 @@ MkDocs and related packages for building documentation locally.
 pytest
 
 # Check linting
-ruff check src/ tests/
+ruff check src/ tests/ scripts/ benchmarks/
 
 # Check types
-mypy src/query_doctor/
+mypy src/query_doctor/ scripts/ benchmarks/
 ```
 
 All three commands should pass before you start making changes.
@@ -116,22 +116,22 @@ For each analyzer, include these test cases:
 
 ```bash
 # Check for issues
-ruff check src/ tests/
+ruff check src/ tests/ scripts/ benchmarks/
 
 # Auto-fix issues
-ruff check src/ tests/ --fix
+ruff check src/ tests/ scripts/ benchmarks/ --fix
 
 # Format code
-ruff format src/ tests/
+ruff format src/ tests/ scripts/ benchmarks/
 
 # Check formatting without changes
-ruff format src/ tests/ --check
+ruff format src/ tests/ scripts/ benchmarks/ --check
 ```
 
 ### Type Checking with mypy
 
 ```bash
-mypy src/query_doctor/
+mypy src/query_doctor/ scripts/ benchmarks/
 ```
 
 All function signatures must have type hints. The project uses strict mypy
@@ -183,9 +183,9 @@ configuration.
 5. **Verify** everything passes:
    ```bash
    pytest
-   ruff check src/ tests/
-   ruff format src/ tests/ --check
-   mypy src/query_doctor/
+   ruff check src/ tests/ scripts/ benchmarks/
+   ruff format src/ tests/ scripts/ benchmarks/ --check
+   mypy src/query_doctor/ scripts/ benchmarks/
    ```
 6. **Commit** with a conventional commit message:
    ```bash

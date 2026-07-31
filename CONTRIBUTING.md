@@ -31,13 +31,16 @@ Run all checks before submitting a PR:
 
 ```bash
 # Lint
-ruff check src/ tests/
+ruff check src/ tests/ scripts/ benchmarks/
 
 # Format
-ruff format src/ tests/ --check
+ruff format src/ tests/ scripts/ benchmarks/ --check
 
 # Type check
-mypy src/query_doctor/
+mypy src/query_doctor/ scripts/ benchmarks/
+
+# ASCII dash gate: no em/en dash in a comment, a docstring or a config file
+python -m scripts.dash_gate
 ```
 
 ## Coding Standards
@@ -104,7 +107,7 @@ pre-commit install --hook-type pre-push
 ```
 
 This runs `ruff check`, `ruff format --check`, `mypy`, the docs truth sweep,
-and `pytest` on `git push`; any failure aborts the push. It needs the dev
+the ASCII dash gate, and `pytest` on `git push`; any failure aborts the push. It needs the dev
 deps (`pip install -e ".[dev]"`) installed in your active environment —
 normally your virtualenv. `scripts/hookenv.py` resolves that interpreter
 explicitly rather than reading `PATH`, and prints which one it used.

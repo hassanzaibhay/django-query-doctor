@@ -212,6 +212,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   against eight git tags, and the two without a tag are the two with no PyPI
   artifact. The sections are left in place; released sections are not edited
   retroactively, so the note is the additive remedy.
+- **`benchmarks/` is inside the gates.** The v2.0 QueryTurbo suite sat outside
+  the commands, which named `src/ tests/ scripts/`, and failed them: 12 ruff
+  errors and 14 mypy errors. Both are fixed and all three gate declarations --
+  CI, the pre-push hook, and the contributor docs -- are widened in the same
+  change, so the errors cannot be reintroduced. Two waivers are recorded with
+  reasons rather than left implicit: `E501` for `benchmarks/report.py`, whose
+  long lines are CSS and Chart.js inside an HTML template rather than Python,
+  and `attr-defined` for `benchmarks.*`, because the django-stubs plugin
+  resolves models against `tests.settings` where the benchmark app is
+  deliberately not installed. Nothing shipped is affected: the wheel packages
+  `src/query_doctor` only.
+- **A new gate keeps `src/` and config free of em and en dashes.** It ships
+  green -- the baseline is zero -- which is the cheapest moment to install one;
+  the exposure it closes is that the clean state was previously unenforced.
+  `scripts/dash_gate.py` classifies by token kind, as CLAUDE.md prescribes,
+  flagging only COMMENT tokens and docstring STRING tokens. That makes the
+  program-output exemption fall out automatically rather than needing a
+  maintained list: `print()` heredocs and `title=` arguments are not
+  docstrings. It runs in CI and on pre-push, and is stdlib-only so it needs no
+  install. Its own tests feed it dash-carrying input in every flagged position
+  *and* in every exempt one, because a gate verified only against a clean tree
+  is verified against nothing.
+- **The CI matrix exercises the two claimed cells it was skipping.** Python
+  3.10 x Django 5.1 and 3.10 x Django 5.2 were excluded despite Django
+  declaring `requires_python >= 3.10` for both, so the README badge and the
+  trove classifiers claimed combinations nothing tested. Only the two
+  genuinely impossible cells remain excluded (Django 6.0 needs 3.12), taking
+  the matrix from 16 to 18 jobs.
 - Two marketing-register sentences are replaced with checkable statements:
   `comparison.md`'s "provides the most comprehensive CI analysis" now says what
   it does that `nplusone` does not, and `custom-plugins.md`'s "integrate

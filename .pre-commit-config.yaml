@@ -27,25 +27,31 @@ repos:
     hooks:
       - id: ruff-check
         name: ruff check
-        entry: python scripts/hookenv.py ruff check src/ tests/ scripts/
+        entry: python scripts/hookenv.py ruff check src/ tests/ scripts/ benchmarks/
         language: python
         pass_filenames: false
         always_run: true
       - id: ruff-format
         name: ruff format --check
-        entry: python scripts/hookenv.py ruff format src/ tests/ scripts/ --check
+        entry: python scripts/hookenv.py ruff format src/ tests/ scripts/ benchmarks/ --check
         language: python
         pass_filenames: false
         always_run: true
       - id: mypy
         name: mypy
-        entry: python scripts/hookenv.py mypy src/query_doctor/ scripts/
+        entry: python scripts/hookenv.py mypy src/query_doctor/ scripts/ benchmarks/
         language: python
         pass_filenames: false
         always_run: true
       - id: docs-truth-sweep
         name: docs truth sweep
         entry: python scripts/hookenv.py scripts.docs_truth_sweep
+        language: python
+        pass_filenames: false
+        always_run: true
+      - id: dash-gate
+        name: ASCII dash gate
+        entry: python scripts/hookenv.py scripts.dash_gate
         language: python
         pass_filenames: false
         always_run: true

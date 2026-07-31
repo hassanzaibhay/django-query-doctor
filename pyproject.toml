@@ -99,6 +99,14 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "A", "SIM", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+# benchmarks/report.py is one long HTML template string: the over-length lines
+# are CSS rules and Chart.js config, not Python. Reflowing them would change
+# the bytes of the generated report for no readability gain in the source, so
+# E501 is waived for this file only. Every other rule still applies to it, and
+# the rest of benchmarks/ is checked at the normal line length.
+"benchmarks/report.py" = ["E501"]
+
 [tool.ruff.lint.isort]
 # `scripts` holds repo tooling, not a distribution, so it is not discoverable
 # under `src`. Declared explicitly so it sorts as first-party per the import
@@ -126,6 +134,18 @@ ignore_missing_imports = true
 # are load-bearing for the gates and typecheck clean.
 module = ["scripts.regen_examples", "tests.factories"]
 disable_error_code = ["attr-defined", "no-untyped-call", "type-arg", "untyped-decorator"]
+
+[[tool.mypy.overrides]]
+# The django-stubs plugin resolves models against `django_settings_module`
+# below, which is `tests.settings` -- and the `benchmarks` app is deliberately
+# not installed there, because adding it would create benchmark tables for
+# every test run. Without the app registered the plugin does not recognise
+# benchmarks/models.py as declaring real models, so every `Model.objects`
+# access reports attr-defined. The models are ordinary and correct; only the
+# plugin's view of them is incomplete. Scoped to this package and to that one
+# error code, so the rest of strict mode still applies to benchmarks/.
+module = ["benchmarks.*"]
+disable_error_code = ["attr-defined"]
 
 [tool.coverage.run]
 source = ["src/query_doctor"]
