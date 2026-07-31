@@ -198,8 +198,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   green throughout, because the defect was never in `src/`.
 - `docs/guides/async-support.md` backs or withdraws the claims its own
   inventory flagged as asserted-unbacked. `async with diagnose_queries()`
-  raising `TypeError` and `@query_budget` on a coroutine not enforcing are now
-  measured, each with a control. The concurrency and "not a change relative to
+  raising, and `@query_budget` on a coroutine not enforcing, are now measured,
+  each with a control. Backing the first corrected it: the guide said it raises
+  `TypeError`, which holds only on Python 3.11 and later -- on 3.10 the same
+  code raises `AttributeError: __aenter__`, so a reader on the oldest supported
+  interpreter writing `except TypeError` would not have caught it. Both types
+  are now named, in both places the guide states the limitation. The concurrency and "not a change relative to
   2.1.1" claims cite the tests that establish them. The connection-pooler and
   `asyncpg` limitations now say plainly that neither is exercised here. The
   claim that the interceptor's `ContextVar` storage "does propagate across

@@ -187,7 +187,7 @@ def process_books(request):
     # Prescriptions are generated normally
 ```
 
-> **Not supported:** `async with diagnose_queries()` raises a `TypeError` -- the context manager does not implement the async context manager protocol.
+> **Not supported:** `async with diagnose_queries()` raises -- the context manager does not implement the async context manager protocol. The exception type differs by interpreter, so do not catch it by type without checking [Limitations](#limitations).
 
 ---
 
