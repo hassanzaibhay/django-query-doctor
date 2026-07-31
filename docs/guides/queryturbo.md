@@ -308,22 +308,56 @@ When a query reaches TRUSTED state, the `as_sql()` call is skipped entirely. Mea
     overhead. On PostgreSQL with real network latency (1–5ms per query), the
     compilation saving is meaningful.
 
-    Run `python benchmarks/run.py` to reproduce these numbers on your hardware.
+### Reproducing these numbers
+
+`python benchmarks/run.py` writes `benchmarks/results.json` with **two**
+sections, and the table below is the `compilation_only` one. Read that
+distinction before running the command, because the last thing it prints is
+the *other* section:
+
+```text
+Total baseline: 9,872.8ms
+Total turbo: 15,707.6ms
+Total saved: -5,834.8ms
+Overall speedup: 0.63x
+Cache hit rate: 100.0%
+```
+
+That `0.63x` is real and is not a defect. It is the **end-to-end** suite on
+SQLite in-memory, where a query executes faster than QueryTurbo's
+fingerprinting costs, so the cache is a net loss. It is the same fact the
+"When QueryTurbo adds overhead" note above states, measured. The
+compilation-only table is what QueryTurbo actually claims to improve; on a
+backend with real network latency the compilation saving is not cancelled out
+this way.
 
 | Query Pattern | Speedup | Saved per Query |
 |---|---|---|
-| Simple filter | 123x | 38.8 μs |
-| Multi filter | 153x | 49.2 μs |
-| select_related | 294x | 92.5 μs |
-| Deep select_related | 374x | 121.1 μs |
-| Annotate | 214x | 68.6 μs |
-| Complex (JOINs + Q + annotate) | 1,050x | 337.9 μs |
+| Simple filter | 85.5x | 32.9 μs |
+| Multi filter | 109.5x | 42.0 μs |
+| select_related | 202.4x | 78.1 μs |
+| Deep select_related | 260.5x | 101.5 μs |
+| Annotate | 152.5x | 59.2 μs |
+| Complex (JOINs + Q + annotate) | 523.4x | 204.3 μs |
 
-!!! note "Hardware variance"
-    Compilation speedup numbers are hardware-dependent. The "complex" scenario
-    shows the most variance (727x–1,050x across different machines) because
-    complex query compilation is more sensitive to CPU cache state and Python
-    interpreter warmup.
+Measured on one machine: Windows 11, Intel64 Family 6 Model 141, Python
+3.12.0, Django 6.0.7, SQLite 3.42.0, `compilation_only` section of
+`benchmarks/results.json`.
+
+!!! warning "These figures replace a set that did not reproduce"
+    Through 2.2.0 this table published 123x / 153x / 294x / 374x / 214x /
+    1,050x, and a "hardware variance" note giving the complex scenario a range
+    of 727x–1,050x. Re-measured with the documented command, every value came
+    back 30–50% lower, and the complex scenario measured **523.4x** -- below
+    the stated floor, so the disclosure was wrong as well as the numbers.
+
+    The values above are one run on one named machine, not a range. Ordering
+    and order of magnitude are stable across runs and machines; the absolute
+    values are not, so treat a run of yours that disagrees by tens of percent
+    as information about your host. The honest summary is that compilation
+    caching is worth 1.5 to 2.5 orders of magnitude on the compilation step
+    alone, and that the end-to-end effect depends entirely on how slow your
+    database is relative to Python.
 
 On PostgreSQL with psycopg3, prepared statements provide additional savings of 0.5–5ms of query planner time per repeat query.
 

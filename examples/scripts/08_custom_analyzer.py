@@ -17,7 +17,7 @@ class SlowQueryAnalyzer(BaseAnalyzer):
     \"\"\"Flag queries that take longer than a threshold.\"\"\"
     name = "slow_query"
 
-    def analyze(self, queries: list[CapturedQuery], models_meta=None):
+    def analyze(self, queries: list[CapturedQuery], models_meta=None):  # reserved; always None
         prescriptions = []
         threshold_ms = 500  # Flag queries over 500ms
 

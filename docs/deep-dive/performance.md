@@ -301,16 +301,20 @@ When [QueryTurbo](../guides/queryturbo.md) is enabled and a query reaches TRUSTE
 
 ### Compilation-Skip Speedups
 
-Measured on SQLite (compilation-only, no DB I/O). Run `python benchmarks/run.py` to reproduce.
+The measured table lives on one page only, in
+[Reproducing these numbers](../guides/queryturbo.md#reproducing-these-numbers).
+It used to be duplicated here, which is how two copies of a figure get
+corrected in one place and not the other.
 
-| Query Pattern | Speedup | Saved per Query |
-|---|---|---|
-| Simple filter | 123x | 38.8 μs |
-| Multi filter | 153x | 49.2 μs |
-| select_related | 294x | 92.5 μs |
-| Deep select_related | 374x | 121.1 μs |
-| Annotate | 214x | 68.6 μs |
-| Complex (JOINs + Q + annotate) | 1,050x | 337.9 μs |
+Two things to know before you run `python benchmarks/run.py`:
+
+- The published table is the **`compilation_only`** section of
+  `benchmarks/results.json`, not the summary the command prints last.
+- The command's final line is the **end-to-end** result, and on SQLite
+  in-memory it reads `Overall speedup: 0.63x`. That is expected: SQLite
+  executes a query faster than QueryTurbo fingerprints it, so the cache is a
+  net loss there. It is not the number the compilation table reports and it is
+  not a defect.
 
 ### Prepared Statement Savings (PostgreSQL + psycopg3)
 

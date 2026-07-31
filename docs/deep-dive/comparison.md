@@ -237,7 +237,7 @@ steps:
     run: python manage.py check_queries --url /api/books/ --format json --fail-on warning
 ```
 
-In CI, only django-query-doctor and nplusone can run (debug-toolbar and silk require a browser/server). django-query-doctor provides the most comprehensive CI analysis.
+In CI, only django-query-doctor and nplusone can run (debug-toolbar and silk require a browser/server). Between the two, django-query-doctor detects more issue categories and can fail a build on a severity threshold or on a regression against a recorded baseline; nplusone raises or logs on the N+1 patterns it detects. Which of those you want depends on whether you are gating a build or annotating a test run.
 
 ### Production Stack
 

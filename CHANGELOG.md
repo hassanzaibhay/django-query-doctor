@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+> **Two sections below describe releases that were never published: `[1.0.3]`
+> and `[2.0.1]`.** There are ten version sections here and eight git tags, and
+> the two without a tag are the same two with no artifact on PyPI. If you are
+> choosing a version to install, those two are not installable; use `1.0.2` or
+> `2.0.0` respectively. The sections are left in place rather than deleted,
+> because released sections are never edited retroactively -- this note is the
+> additive remedy.
+>
+> Section dates are the PyPI upload date. That holds exactly for 2.1.0 through
+> 2.2.0. Three earlier headings are within a day of their upload, which is a
+> timezone artifact (PyPI reports UTC, uploads were from UTC+5) and not an
+> error; `2.0.0` is dated two days before its upload and is simply wrong.
+
 ## [Unreleased]
 
 ### Added
@@ -137,6 +150,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   the console capture had drifted from the N+1 prescription wording changed
   above, and the transcription in `examples/generate_svgs.py` was corrected
   rather than the test relaxed.
+
+### Changed
+- **`docs/deep-dive/architecture.md` no longer shows a fabricated console
+  block.** The section illustrated the console reporter with hand-written
+  output the tool has never produced: three of its four distinctive strings
+  (`QUERY DOCTOR REPORT`, `N+1 Query Detected`, `match fingerprint`) appear
+  zero times in `src/`, and the fourth (`Total queries:`) appears on 3 lines
+  but only as part of a differently shaped summary line. It is replaced with
+  an excerpt of the real committed capture, and the surrounding prose now
+  describes the Rich and plain paths as the different renderings they are
+  rather than claiming they print the same block.
+- **The QueryTurbo speedup table is re-measured and correctly labelled.** The
+  published figures (123x / 153x / 294x / 374x / 214x / 1,050x) did not
+  reproduce with the documented command: every value came back 30-50% lower,
+  and the complex scenario measured 523.4x -- below the 727x floor that the
+  "hardware variance" note disclosed, so the caveat failed too. The table is
+  replaced with a single run on a named machine, is explicitly labelled as the
+  `compilation_only` section of `benchmarks/results.json`, and the docs now
+  state up front that the last line the command prints is the *end-to-end*
+  result and reads `Overall speedup: 0.63x` on SQLite in-memory, explaining why
+  that is expected rather than a defect. The table was duplicated on two pages;
+  it now lives on one, with the other linking to it.
+- `docs/guides/auto-fix.md` lists all nine `IssueType` members instead of
+  seven, and marks which are selectable via `--issue-type`. The guide said
+  "five of the seven issue types", omitted `serializer_method_field` (shipped
+  in v2.0) and `write_n_plus_one` (shipped in 2.2.0), and described
+  `--issue-type complexity` as accepted-but-fruitless when argparse rejects it
+  outright -- contradicting the guide's own statement two paragraphs below that
+  an unknown value "is rejected with an error before anything runs".
+- `docs/api/reference.md` autodocs all eight analyzers. `WriteNPlusOneAnalyzer`
+  and `SerializerMethodAnalyzer` were absent, so the API reference disagreed
+  with the two other pages that count the analyzer set correctly.
+- **`models_meta` is documented as reserved and always `None`.** The parameter
+  is part of the `BaseAnalyzer` contract and appears in all eight analyzers,
+  but nothing in the package passes it: the only call site,
+  `pipeline.analyze()`, calls `analyzer.analyze(queries)`. `base.py` described
+  it as "for enhanced analysis" and the plugin guide said it "may be `None`" --
+  both of which invite a plugin author to write code against a value that never
+  arrives. All six documentation sites and the base-class docstring now say it
+  is always `None`. Removing the parameter would break third-party analyzer
+  signatures and is deferred to 3.0.
+- Three documents quoted the `missing_index` TODO comment with an em dash the
+  fixer does not emit (it writes an ASCII hyphen). Corrected, and pinned by a
+  test that asserts the emitted separator *and* sweeps every tracked markdown
+  file for a recurrence -- a test on the emitted string alone would have stayed
+  green throughout, because the defect was never in `src/`.
+- `docs/guides/async-support.md` backs or withdraws the claims its own
+  inventory flagged as asserted-unbacked. `async with diagnose_queries()`
+  raising `TypeError` and `@query_budget` on a coroutine not enforcing are now
+  measured, each with a control. The concurrency and "not a change relative to
+  2.1.1" claims cite the tests that establish them. The connection-pooler and
+  `asyncpg` limitations now say plainly that neither is exercised here. The
+  claim that the interceptor's `ContextVar` storage "does propagate across
+  `await`" is withdrawn rather than reworded: no code path shares an
+  interceptor between contexts, so no test could distinguish it from thread
+  separation, and the thread-locality of Django's connection registry is what
+  decides the outcome anyway.
+- `CHANGELOG.md` gains a note at the top recording that `[1.0.3]` and
+  `[2.0.1]` describe releases that were never published -- ten version sections
+  against eight git tags, and the two without a tag are the two with no PyPI
+  artifact. The sections are left in place; released sections are not edited
+  retroactively, so the note is the additive remedy.
+- Two marketing-register sentences are replaced with checkable statements:
+  `comparison.md`'s "provides the most comprehensive CI analysis" now says what
+  it does that `nplusone` does not, and `custom-plugins.md`'s "integrate
+  seamlessly" now says what integration actually means.
 
 ## [2.2.0] - 2026-07-30
 

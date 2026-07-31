@@ -187,7 +187,7 @@ class SlowJoinAnalyzer(BaseAnalyzer):
 
     name = "slow_join"
 
-    def analyze(self, queries, models_meta=None):
+    def analyze(self, queries, models_meta=None):  # reserved; always None
         prescriptions = []
         for query in queries:
             if self._has_slow_join(query):

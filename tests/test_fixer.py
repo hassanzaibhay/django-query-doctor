@@ -398,3 +398,57 @@ class TestQueryFixerApplyFixes:
         assert not (tmp_path / "views.py.bak").exists()
         assert len(fixer.last_failed_validation) == 1
         assert fixer.last_failed_validation[0].file_path == str(source)
+
+
+class TestMissingIndexCommentBytes:
+    """Entry 45: three documents quoted this comment with a dash it never emits.
+
+    `tests/test_ascii_output.py:72` already asserts the emitted comment is
+    pure ASCII, and `TestQueryFixerApplyFixes` asserts only the substring
+    *before* the dash, so nothing pinned the separator itself. Three shipped
+    documents drifted to U+2014 and the suite could not notice.
+    """
+
+    def test_emitted_separator_is_an_ascii_hyphen(self) -> None:
+        """The fixer writes ' - ', so every quotation of it must too."""
+        emitted = QueryFixer()._fix_missing_index(
+            "    books = Book.objects.filter(status='active')\n",
+            "Add db_index=True to the 'status' field",
+        )
+        assert "Meta.indexes - Add db_index=True" in emitted
+        assert "—" not in emitted
+        emitted.encode("ascii")
+
+    def test_no_tracked_document_quotes_it_with_an_em_dash(self) -> None:
+        """Negative control against the recurrence, not just the emitted bytes.
+
+        The defect was never in `src/`; it was in the documents quoting it.
+        A test on the emitted string alone would have stayed green throughout.
+        """
+        import subprocess
+
+        repo_root = Path(__file__).resolve().parent.parent
+        tracked = (
+            subprocess.run(
+                ["git", "ls-files", "-z", "*.md"],
+                cwd=repo_root,
+                capture_output=True,
+                check=True,
+            )
+            .stdout.decode()
+            .split("\0")
+        )
+
+        offenders = []
+        for rel in filter(None, tracked):
+            try:
+                text = (repo_root / rel).read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+            if "Meta.indexes —" in text:
+                offenders.append(rel)
+
+        assert offenders == [], (
+            f"{offenders} quote the missing-index TODO with an em dash; "
+            "the fixer emits an ASCII hyphen"
+        )

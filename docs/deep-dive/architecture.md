@@ -267,20 +267,53 @@ The reporter stage takes the aggregated prescriptions and formats them for outpu
 | Log | via Python `logging` | Standard log output at configurable level |
 | OpenTelemetry | via spans/events | Query metrics as OTel attributes |
 
-The console reporter uses Rich for colored, formatted output when available:
+The console reporter has two rendering paths. This is the **plain-text** one,
+taken when Rich is not installed. The block below is an excerpt of
+[`examples/screenshots/console_output.capture.txt`](https://github.com/hassanzaibhay/django-query-doctor/blob/main/examples/screenshots/console_output.capture.txt),
+which `scripts/regen_examples.py` writes from a real run of the tool -- it is
+not transcribed by hand:
 
 ```
 ============================================================
-  QUERY DOCTOR REPORT - GET /api/books/
-  Total queries: 151 | Time: 340ms
+Query Doctor Report
+Total queries: 15 | Time: 0.2ms | Issues: 4
 ============================================================
 
-CRITICAL  N+1 Query Detected
-          47 queries match fingerprint: SELECT * FROM books_author WHERE id = ?
-          ...
+CRITICAL: N+1 detected: 12 queries for table "testapp_author" (via Book.author)
+   Location: scripts/regen_examples.py:195 in test_capture_console_output
+   Code: _ = book.author.name  # N+1
+   Fix: Add .select_related('author') to your Book queryset
+   Queries: 12 | Est. savings: ~0.2ms
+
+WARNING: Duplicate query: 2 identical queries for table "testapp_book"
+   Location: scripts/regen_examples.py:196 in test_capture_console_output
+   Code: Book.objects.filter(title=books[0].title).count()  # duplicate x2
+   Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times
+   Queries: 2 | Est. savings: ~0.0ms
 ```
 
-If Rich is not installed, it falls back to plain text with the same information.
+The header line is always `Query Doctor Report`, and the summary line always
+carries all three fields (`Total queries:`, `Time:` with one decimal, and
+`Issues:`). Each finding is one `SEVERITY: description` line followed by
+indented `Location:`, `Code:`, `Fix:` and `Queries:` continuations. Findings
+are printed in the order they should be applied.
+
+When Rich **is** installed, the same content is rendered differently rather
+than identically: the header becomes a `Panel` titled `Query Doctor` with the
+summary fields joined onto one line inside it, and the severity label and
+description are colour-styled. The continuation lines are the same.
+
+!!! note "This block was previously fabricated"
+
+    Until this release the section showed a hand-written block
+    (`QUERY DOCTOR REPORT - GET /api/books/`, `47 queries match fingerprint:
+    ...`) that the tool has never produced. Three of its four distinctive
+    strings -- `QUERY DOCTOR REPORT`, `N+1 Query Detected` and
+    `match fingerprint` -- appear **zero** times in `src/`; the fourth,
+    `Total queries:`, appears on **3 lines** in `src/` but only as part of a
+    differently shaped summary line. It is replaced with a real capture rather
+    than a corrected hand-written one, because hand-writing plausible output is
+    the defect.
 
 ---
 
@@ -428,7 +461,7 @@ class DeprecatedTableAnalyzer(BaseAnalyzer):
 
     DEPRECATED_TABLES = {"legacy_users", "old_orders", "temp_cache"}
 
-    def analyze(self, queries, models_meta=None):
+    def analyze(self, queries, models_meta=None):  # reserved; always None
         prescriptions = []
         for query in queries:
             for table in self.DEPRECATED_TABLES:

@@ -197,3 +197,76 @@ class TestInterceptorInstanceSeparation:
         assert len(interceptor2.get_queries()) == 1
         assert interceptor1.get_queries()[0].sql == "SELECT 1"
         assert interceptor2.get_queries()[0].sql == "SELECT 2"
+
+
+class TestDocumentedAsyncLimitationsAreBacked:
+    """Entry 31: claims in async-support.md that nothing exercised.
+
+    The inventory left these asserted-unbacked. Each is cheap to measure, and
+    an asserted limitation that nobody runs is exactly the kind of claim that
+    goes stale without anyone noticing.
+    """
+
+    def test_async_with_diagnose_queries_raises_type_error(self) -> None:
+        """`async with diagnose_queries()` is documented to raise TypeError."""
+        import asyncio
+
+        from query_doctor.context_managers import diagnose_queries
+
+        async def use_it() -> None:
+            async with diagnose_queries():
+                pass
+
+        with pytest.raises(TypeError, match="asynchronous context manager"):
+            asyncio.run(use_it())
+
+    def test_diagnose_queries_works_synchronously(self) -> None:
+        """Positive control: the same manager is fine outside a coroutine."""
+        from query_doctor.context_managers import diagnose_queries
+
+        with diagnose_queries() as report:
+            pass
+        assert report.total_queries == 0
+
+    @pytest.mark.django_db
+    def test_query_budget_on_a_coroutine_does_not_enforce(self) -> None:
+        """`@query_budget` on an `async def` is documented as unsupported.
+
+        The decorator's wrapper is synchronous, so calling the coroutine
+        function returns the coroutine object and the budget check runs
+        against zero captured queries -- it cannot raise however many queries
+        the body goes on to issue.
+        """
+        import asyncio
+
+        from query_doctor.decorators import query_budget
+        from tests.factories import BookFactory
+        from tests.testapp.models import Book
+
+        BookFactory.create_batch(4)
+
+        @query_budget(max_queries=0)
+        async def over_budget() -> int:
+            return len([b.author.name for b in Book.objects.all()])
+
+        # No QueryBudgetError, because the body has not run yet.
+        coro = over_budget()
+        assert asyncio.iscoroutine(coro)
+        coro.close()
+
+    @pytest.mark.django_db
+    def test_query_budget_on_a_sync_function_does_enforce(self) -> None:
+        """Negative control: the decorator is not simply broken."""
+        from query_doctor.decorators import query_budget
+        from query_doctor.exceptions import QueryBudgetError
+        from tests.factories import BookFactory
+        from tests.testapp.models import Book
+
+        BookFactory.create_batch(4)
+
+        @query_budget(max_queries=0)
+        def over_budget() -> int:
+            return len([b.author.name for b in Book.objects.all()])
+
+        with pytest.raises(QueryBudgetError):
+            over_budget()

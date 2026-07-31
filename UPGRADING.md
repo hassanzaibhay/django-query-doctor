@@ -326,7 +326,7 @@ these fix types are shown as `[MANUAL FIX ONLY]` and never written.
 non-ASCII em dash (U+2014):
 
 ```python
-# TODO: Consider adding an index via Meta.indexes — Add db_index=True to the 'published_date' field
+# TODO: Consider adding an index via Meta.indexes - Add db_index=True to the 'published_date' field
 ```
 
 Harmless to Python, but breaks ASCII-only linters/CI and pre-commit hooks

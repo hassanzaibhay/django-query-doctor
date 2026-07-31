@@ -68,17 +68,21 @@ Only fixes for `queryset_eval`, `duplicate_query`, and `missing_index` are actua
 
 ## Supported Fix Types
 
-The fixer dispatches on `Prescription.issue_type` (`fixer.py:_parse_fix`). Five of the seven issue types have a fix handler, but **`--apply` only writes three of those five to disk** — the rest are shown in the diff (`--dry-run` or the pre-write diff under `--apply`), tagged `[MANUAL FIX ONLY]`, and refused at write time:
+The fixer dispatches on `Prescription.issue_type` (`fixer.py:_parse_fix`). `IssueType` has **nine** members; five of them have a fix handler, but **`--apply` only writes three of those five to disk** — the rest are shown in the diff (`--dry-run` or the pre-write diff under `--apply`), tagged `[MANUAL FIX ONLY]`, and refused at write time.
 
-| Issue Type (`IssueType.value`) | What the handler does | Handler | Auto-applied by `--apply`? |
-|---|---|---|---|
-| `n_plus_one` | Extracts a `.select_related(...)` or `.prefetch_related(...)` call from the fix suggestion text and appends it to the end of the callsite line | `_fix_nplusone` | **No** — callsite is often mid-loop, not the queryset definition (see the limitation above) |
-| `drf_serializer` | Same handler as `n_plus_one` — but see the note below, this issue type is never produced by the runtime pipeline that `fix_queries` uses | `_fix_nplusone` | **No** (also never emitted here in the first place) |
-| `fat_select` | Extracts a `.only(...)` or `.defer(...)` call and appends it to the end of the callsite line | `_fix_fat_select` | **No** — same callsite-line risk as `n_plus_one` |
-| `queryset_eval` | Rewrites `len(x)` → `x.count()` and/or `if x:` → `if x.exists():` on the callsite line via regex | `_fix_queryset_eval` | **Yes** — the analyzer only fires when the anti-pattern is on the callsite line itself, so this handler is safe by construction |
-| `duplicate_query` | Prepends a `# TODO: Cache this query result to avoid duplicate execution` comment above the callsite line — it does **not** extract a shared variable | `_fix_duplicate` | **Yes** — comment-only, can't corrupt code |
-| `missing_index` | Prepends a `# TODO: Consider adding an index via Meta.indexes — <suggestion>` comment above the callsite line — it does **not** add a `models.Index()` entry | `_fix_missing_index` | **Yes** — comment-only, can't corrupt code |
-| `complexity` | No handler. `--issue-type complexity` will never produce a fix. | — | — |
+The last column is the one to read before copying a command: `--issue-type` validates its argument against an argparse `choices` list of exactly the five handler-backed types. Passing any of the other four is **rejected with an error**, not accepted-and-fruitless.
+
+| Issue Type (`IssueType.value`) | What the handler does | Handler | Auto-applied by `--apply`? | Selectable via `--issue-type`? |
+|---|---|---|---|---|
+| `n_plus_one` | Extracts a `.select_related(...)` or `.prefetch_related(...)` call from the fix suggestion text and appends it to the end of the callsite line | `_fix_nplusone` | **No** — callsite is often mid-loop, not the queryset definition (see the limitation above) | Yes |
+| `fat_select` | Extracts a `.only(...)` or `.defer(...)` call and appends it to the end of the callsite line | `_fix_fat_select` | **No** — same callsite-line risk as `n_plus_one` | Yes |
+| `queryset_eval` | Rewrites `len(x)` → `x.count()` and/or `if x:` → `if x.exists():` on the callsite line via regex | `_fix_queryset_eval` | **Yes** — the analyzer only fires when the anti-pattern is on the callsite line itself, so this handler is safe by construction | Yes |
+| `duplicate_query` | Prepends a `# TODO: Cache this query result to avoid duplicate execution` comment above the callsite line — it does **not** extract a shared variable | `_fix_duplicate` | **Yes** — comment-only, can't corrupt code | Yes |
+| `missing_index` | Prepends a `# TODO: Consider adding an index via Meta.indexes - <suggestion>` comment above the callsite line — it does **not** add a `models.Index()` entry | `_fix_missing_index` | **Yes** — comment-only, can't corrupt code | Yes |
+| `drf_serializer` | Same handler as `n_plus_one` — but see the note below, this issue type is never produced by the runtime pipeline that `fix_queries` uses | `_fix_nplusone` | **No** (also never emitted here in the first place) | **No** — argparse rejects it |
+| `complexity` | No handler. The fix is a multi-line restructure, not a single-line edit. | — | — | **No** — argparse rejects it |
+| `write_n_plus_one` | No handler, for the same reason as `complexity`: the fix is "build a list, then one bulk call". | — | — | **No** — argparse rejects it |
+| `serializer_method_field` | No handler. Produced by `check_serializers`' static analysis, not by the runtime pipeline `fix_queries` uses. | — | — | **No** — argparse rejects it |
 
 The auto-applied set is a fixed allowlist (`fixer.AUTO_APPLIABLE_ISSUE_TYPES`) — a future issue type only joins it after its handler is independently verified safe, not by default.
 
@@ -169,7 +173,7 @@ Targets model fields used in `WHERE`/`ORDER BY` clauses without a database index
 published_date = models.DateField()
 
 # After
-# TODO: Consider adding an index via Meta.indexes — Add an index on published_date
+# TODO: Consider adding an index via Meta.indexes - Add an index on published_date
 published_date = models.DateField()
 ```
 

@@ -335,7 +335,9 @@ class MyAnalyzer(BaseAnalyzer):
 
         Args:
             queries: List of captured and fingerprinted queries.
-            models_meta: Optional Django model metadata.
+            models_meta: Reserved; currently always None. Accept it for
+                signature compatibility, but never read it -- nothing
+                passes it. Get model metadata from django.apps.apps.
 
         Returns:
             List of prescriptions for any detected issues.

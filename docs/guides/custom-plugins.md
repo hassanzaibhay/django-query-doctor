@@ -1,6 +1,6 @@
 # Custom Plugins
 
-django-query-doctor provides a plugin API for writing your own analyzers. Custom analyzers integrate seamlessly with the pipeline -- they receive the same captured query data and produce the same `Prescription` objects as the built-in analyzers.
+django-query-doctor provides a plugin API for writing your own analyzers. A custom analyzer runs through the same pipeline as a built-in one: it receives the same captured query list and returns the same `Prescription` objects, so it reaches every reporter and every `.queryignore` rule without any additional wiring.
 
 ---
 
@@ -63,7 +63,22 @@ This is the only method you must implement. It receives:
 | Parameter | Type | Description |
 |---|---|---|
 | `queries` | `list[CapturedQuery]` | All queries captured during the request/scope |
-| `models_meta` | `dict[str, Any] \| None` | Optional Django model metadata; may be `None` |
+| `models_meta` | `dict[str, Any] \| None` | **Reserved, and always `None` today.** See the warning below. |
+
+!!! warning "`models_meta` is never populated"
+
+    This parameter is part of the analyzer contract, so your `analyze()` must
+    accept it -- but nothing in the package ever passes it. The single call
+    site, `pipeline.analyze()`, calls `analyzer.analyze(queries)` for every
+    analyzer on every run, so the value is `None` unconditionally. All eight
+    built-in analyzers ignore it.
+
+    Do not write a plugin that reads it. If you need model metadata, get it
+    from `django.apps.apps` yourself, which is what `missing_index` and
+    `fat_select` do.
+
+    Removing the parameter would break every third-party analyzer's
+    signature, so it is kept for now and its removal is deferred to 3.0.
 
 Each `CapturedQuery` object has:
 

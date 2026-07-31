@@ -145,6 +145,27 @@ Scores queries by complexity and flags those above threshold.
       show_source: true
       heading_level: 4
 
+### WriteNPlusOneAnalyzer
+
+Detects repeated single-row writes and prescribes the bulk equivalent.
+
+::: query_doctor.analyzers.write_nplusone.WriteNPlusOneAnalyzer
+    options:
+      show_source: true
+      heading_level: 4
+
+### SerializerMethodAnalyzer
+
+Static AST analysis of DRF `SerializerMethodField` bodies. Unlike the seven
+analyzers above it does not read captured queries: `analyze()` conforms to the
+`BaseAnalyzer` interface and always returns `[]`. Drive it through
+`analyze_serializer()`, or through the `check_serializers` management command.
+
+::: query_doctor.analyzers.serializer_method.SerializerMethodAnalyzer
+    options:
+      show_source: true
+      heading_level: 4
+
 ---
 
 ## Reporters

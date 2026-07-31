@@ -27,7 +27,13 @@ class BaseAnalyzer(ABC):
 
         Args:
             queries: List of captured SQL queries to analyze.
-            models_meta: Optional Django model metadata for enhanced analysis.
+            models_meta: Reserved, and **currently always None**. Nothing in
+                the package passes it: the single call site,
+                ``pipeline.analyze()``, calls ``analyzer.analyze(queries)``
+                for every analyzer on every run. Do not write a plugin that
+                depends on receiving a value here. Accept the parameter so
+                your signature stays compatible; removing it from the
+                contract would be a breaking change and is deferred to 3.0.
 
         Returns:
             List of Prescription objects describing detected issues and fixes.

@@ -31,9 +31,9 @@ Code that reaches the middleware chain *without* going through `ASGIHandler` —
 
     Django assigns middleware modes from the inside out, so every middleware listed **before** `QueryDoctorMiddleware` in `MIDDLEWARE` runs in sync mode too. With the recommended last position, that is the whole chain.
 
-    This is ordinary Django behaviour for any sync-only middleware, and much third-party middleware is sync-only, so most stacks are already in this situation. It does not affect request concurrency. But if you maintain async-capable middleware of your own, it will run synchronously while query-doctor is installed.
+    This is ordinary Django behaviour for any sync-only middleware, and much third-party middleware is sync-only, so most stacks are already in this situation. It does not affect request concurrency, because `ASGIHandler` opens a `ThreadSensitiveContext` per request rather than one per process, so two concurrent requests do not serialise on the executor — measured by `tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation`. But if you maintain async-capable middleware of your own, it will run synchronously while query-doctor is installed.
 
-    This is not a change relative to 2.1.1. The missing coroutine marker in 2.0.0–2.1.1 (see the warning below) already forced those middleware into sync mode, while additionally breaking them.
+    This is not a change relative to 2.1.1. The missing coroutine marker in 2.0.0–2.1.1 (see the warning below) already forced those middleware into sync mode, while additionally breaking them — the breakage is pinned by `TestASGIChainServesRequests`, whose `RESPONSE_TOUCHING_STACKS` cases raised on 2.1.1 and whose `PASS_THROUGH_STACKS` cases returned 200 while capturing nothing.
 
 Under ASGI, the middleware:
 
@@ -169,7 +169,7 @@ integration, the pytest plugin, `check_queries`, `fix_queries` and `diagnose_pro
 
     The cause is the same thread-locality described above, applied to the context manager instead of the middleware. The `with` block runs on the event loop thread and installs its `execute_wrapper` on *that* thread's connection object. The ORM work inside it is routed to the thread-sensitive executor on a different thread, which resolves to a different connection. The wrapper never sees the queries.
 
-    `contextvars` do not help here. The interceptor's per-instance `ContextVar` storage is correct and does propagate across `await` -- but Django's connection registry is thread-local, not context-local, so the wrapper is on the wrong object before contextvars are ever consulted.
+    `contextvars` do not help here, and the reason is not about `contextvars` at all. Django's connection registry is **thread-local**, so which connection object you get is decided by which thread you are on. The `execute_wrapper` is attached to a connection object, and by the time any context-local storage could matter the wrapper is already on the wrong object. Whether the interceptor's own `ContextVar` storage propagates across `await` is not what decides the outcome here, so this guide does not claim anything about it: no code path in the package shares an interceptor between contexts, which means no test could distinguish the two explanations.
 
     Use the **middleware** to diagnose async views. It is adapted into the executor thread by Django and captures correctly.
 
@@ -250,9 +250,10 @@ def get_related_books(book):
 
 ## Limitations
 
-- **`@diagnose` / `@query_budget` on coroutines**: not supported (see above).
-- **Connection pooling**: If you use a third-party connection pooler (like `django-db-connection-pool`), ensure it is compatible with Django's `execute_wrapper` mechanism.
-- **Raw async drivers**: Queries issued directly through non-Django drivers (e.g. `asyncpg`) bypass Django's connection and are not captured.
+- **`@diagnose` / `@query_budget` on coroutines**: not supported (see above). Both decorators wrap the function synchronously, so applying either to an `async def` returns the coroutine object and runs the check before the body has executed — a budget of zero cannot raise however many queries the body goes on to issue. Measured by `tests/test_async_support.py::TestDocumentedAsyncLimitationsAreBacked`, with the sync case beside it as a control.
+- **`async with diagnose_queries()`**: raises `TypeError` — it is a synchronous `@contextmanager` and does not implement the async protocol. Same test class.
+- **Connection pooling**: **untested by this project.** Whether a third-party pooler (such as `django-db-connection-pool`) preserves `execute_wrapper` depends on how it substitutes the connection object, and none is exercised in our suite or CI. Treat capture under a pooler as unverified and check it against your own stack rather than assuming it works.
+- **Raw async drivers**: Queries issued directly through non-Django drivers (e.g. `asyncpg`) are not captured. This follows from the capture mechanism rather than from a measurement: `connection.execute_wrapper()` is a Django API that wraps Django's own cursor, so a driver used outside `django.db` never passes through it. No `asyncpg` test exists here.
 
 ---
 
