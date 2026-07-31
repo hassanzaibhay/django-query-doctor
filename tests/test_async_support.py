@@ -207,9 +207,18 @@ class TestDocumentedAsyncLimitationsAreBacked:
     goes stale without anyone noticing.
     """
 
-    def test_async_with_diagnose_queries_raises_type_error(self) -> None:
-        """`async with diagnose_queries()` is documented to raise TypeError."""
+    def test_async_with_diagnose_queries_raises(self) -> None:
+        """`async with diagnose_queries()` raises, and the type is version-dependent.
+
+        CPython 3.11 gave the async-protocol failure a dedicated `TypeError`
+        ("does not support the asynchronous context manager protocol"). On
+        3.10 the same code raises `AttributeError: __aenter__` from the
+        missing attribute lookup. Both are asserted, because the guide
+        documents this for every supported interpreter and a reader on 3.10
+        writing `except TypeError` would not catch it.
+        """
         import asyncio
+        import sys
 
         from query_doctor.context_managers import diagnose_queries
 
@@ -217,8 +226,15 @@ class TestDocumentedAsyncLimitationsAreBacked:
             async with diagnose_queries():
                 pass
 
-        with pytest.raises(TypeError, match="asynchronous context manager"):
+        with pytest.raises((TypeError, AttributeError)) as excinfo:
             asyncio.run(use_it())
+
+        if sys.version_info >= (3, 11):
+            assert isinstance(excinfo.value, TypeError)
+            assert "asynchronous context manager" in str(excinfo.value)
+        else:
+            assert isinstance(excinfo.value, AttributeError)
+            assert "__aenter__" in str(excinfo.value)
 
     def test_diagnose_queries_works_synchronously(self) -> None:
         """Positive control: the same manager is fine outside a coroutine."""
