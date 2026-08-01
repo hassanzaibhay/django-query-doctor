@@ -189,5 +189,142 @@ class TestNPlusOneAnalyzer:
         assert analyzer.name == "nplusone"
 
 
+@pytest.mark.django_db
+class TestPrescriptionsResolveOnRealModels:
+    """Every field a prescription names must exist on the model it names.
+
+    These tests assert on behaviour: the prescribed queryset call is *run*
+    against real Django, so a field that does not resolve fails with the
+    FieldError/ValueError Django itself raises rather than with a string
+    comparison that a reworded message would silently satisfy.
+    """
+
+    def _capture_queries(self, func):
+        """Helper to capture queries from a callable."""
+        interceptor = QueryInterceptor()
+        with connection.execute_wrapper(interceptor):
+            func()
+        return interceptor.get_queries()
+
+    def _apply(self, rx) -> None:
+        """Run whatever relation the prescription names, or its bulk fetch.
+
+        Raises whatever Django raises. A prescription that names no relation
+        is exercised through its bulk-fetch advice instead, so every code
+        path this test covers ends in a real query.
+        """
+        from django.apps import apps
+
+        model = apps.get_model(rx.extra["model"])
+        field = rx.extra.get("field")
+        strategy = rx.extra["strategy"]
+        if strategy == "select_related":
+            list(model.objects.select_related(field)[:1])
+        elif strategy == "prefetch_related":
+            list(model.objects.prefetch_related(field)[:1])
+        else:
+            assert strategy == "bulk_fetch", strategy
+            assert field is None
+            list(model.objects.filter(pk__in=[1, 2, 3]))
+
+    def test_pk_loop_prescription_is_applicable(self) -> None:
+        """`Model.objects.get(pk=...)` in a loop must not prescribe a bad field.
+
+        Entry 49: no relation is traversed here, so `select_related` cannot
+        help and the field name was previously sliced off the table name.
+        """
+        for _ in range(5):
+            BookFactory()
+        ids = list(Author.objects.values_list("id", flat=True))
+
+        def loop() -> None:
+            for pk in ids:
+                Author.objects.get(pk=pk)
+
+        queries = self._capture_queries(loop)
+        analyzer = NPlusOneAnalyzer()
+        rxs = [p for p in analyzer.analyze(queries) if p.issue_type == IssueType.N_PLUS_ONE]
+
+        assert rxs, "positive control: the N+1 itself must still be detected"
+        for rx in rxs:
+            self._apply(rx)
+
+    def test_pk_loop_prescribes_a_bulk_fetch(self) -> None:
+        """With no relation traversed, the advice is a bulk fetch, not a join."""
+        for _ in range(5):
+            BookFactory()
+        ids = list(Author.objects.values_list("id", flat=True))
+
+        def loop() -> None:
+            for pk in ids:
+                Author.objects.get(pk=pk)
+
+        queries = self._capture_queries(loop)
+        analyzer = NPlusOneAnalyzer()
+        rxs = [p for p in analyzer.analyze(queries) if p.issue_type == IssueType.N_PLUS_ONE]
+
+        assert len(rxs) == 1
+        assert rxs[0].extra["strategy"] == "bulk_fetch"
+        # The fixer keys off these tokens; neither may appear, or fix_queries
+        # would write an unapplicable call onto the callsite line.
+        assert "select_related(" not in rxs[0].fix_suggestion
+        assert "prefetch_related(" not in rxs[0].fix_suggestion
+        assert "in_bulk" in rxs[0].fix_suggestion
+
+    def test_forward_fk_traversal_still_prescribes_select_related(self) -> None:
+        """Positive control: a real forward-FK N+1 keeps the join advice."""
+        for _ in range(5):
+            BookFactory()
+
+        queries = self._capture_queries(lambda: [book.author.name for book in Book.objects.all()])
+        analyzer = NPlusOneAnalyzer()
+        rxs = [p for p in analyzer.analyze(queries) if p.issue_type == IssueType.N_PLUS_ONE]
+
+        joins = [p for p in rxs if p.extra["strategy"] == "select_related"]
+        assert len(joins) == 1
+        assert joins[0].extra["field"] == "author"
+        assert joins[0].extra["model"] == "testapp.Book"
+        self._apply(joins[0])
+
+    def test_reverse_fk_prescription_is_applicable(self) -> None:
+        """Iterating authors and reading `.books` prescribes the reverse accessor.
+
+        The FK column is `testapp_book.author_id`, so the field name read off
+        the column is `author` -- which is a field on Book, not on Author, and
+        `Author.objects.prefetch_related('author')` raises.
+        """
+        for _ in range(5):
+            BookFactory()
+
+        def loop() -> None:
+            for author in Author.objects.all():
+                list(author.books.all())
+
+        queries = self._capture_queries(loop)
+        analyzer = NPlusOneAnalyzer()
+        rxs = [p for p in analyzer.analyze(queries) if p.issue_type == IssueType.N_PLUS_ONE]
+
+        assert rxs, "positive control: the reverse-FK N+1 must still be detected"
+        for rx in rxs:
+            self._apply(rx)
+
+    def test_m2m_prescription_is_applicable(self) -> None:
+        """The M2M through-table branch must also resolve on the model it names."""
+        categories = [CategoryFactory() for _ in range(3)]
+        for _ in range(5):
+            book = BookFactory()
+            book.categories.set(categories)
+
+        queries = self._capture_queries(
+            lambda: [list(book.categories.all()) for book in Book.objects.all()]
+        )
+        analyzer = NPlusOneAnalyzer()
+        rxs = [p for p in analyzer.analyze(queries) if p.issue_type == IssueType.N_PLUS_ONE]
+
+        assert rxs, "positive control: the M2M N+1 must still be detected"
+        for rx in rxs:
+            self._apply(rx)
+
+
 # Import here to make model references work in lambdas above
-from tests.testapp.models import Book  # noqa: E402
+from tests.testapp.models import Author, Book  # noqa: E402

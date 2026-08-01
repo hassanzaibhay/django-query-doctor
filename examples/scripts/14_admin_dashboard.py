@@ -27,7 +27,7 @@ urlpatterns = [
 ]
 
 # Step 3: Visit /admin/query-doctor/dashboard/
-# (Requires staff login — is_staff=True)
+# (Requires staff login -- is_staff=True)
 
 # The dashboard shows:
 #   - Summary cards: total requests, total issues, critical count
@@ -35,6 +35,6 @@ urlpatterns = [
 #   - Expandable detail for each request showing prescriptions
 #   - Auto-refresh toggle (10s)
 #
-# Data is stored in an in-memory ring buffer — no database tables needed.
+# Data is stored in an in-memory ring buffer -- no database tables needed.
 # When the server restarts, the history is cleared.
 """)

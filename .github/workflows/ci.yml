@@ -14,11 +14,13 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         django-version: ["4.2", "5.0", "5.1", "5.2", "6.0"]
+        # Only combinations Django itself cannot install are excluded.
+        # Django 6.0 declares requires_python >= 3.12, so 3.10 and 3.11 are
+        # impossible. Django 5.1 and 5.2 both declare >= 3.10, so 3.10 x 5.1
+        # and 3.10 x 5.2 are supported and are now exercised: the README and
+        # the trove classifiers claim them, and a classifier is a claim made
+        # to the installer, not just to a reader. 20 - 2 = 18 jobs.
         exclude:
-          - python-version: "3.10"
-            django-version: "5.1"
-          - python-version: "3.10"
-            django-version: "5.2"
           - python-version: "3.10"
             django-version: "6.0"
           - python-version: "3.11"
@@ -55,9 +57,9 @@ jobs:
       - name: Install dependencies
         run: pip install ruff
       - name: Check linting
-        run: ruff check src/ tests/ scripts/
+        run: ruff check src/ tests/ scripts/ benchmarks/
       - name: Check formatting
-        run: ruff format src/ tests/ scripts/ --check
+        run: ruff format src/ tests/ scripts/ benchmarks/ --check
 
   typecheck:
     runs-on: ubuntu-latest
@@ -69,7 +71,7 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
       - name: Run mypy
-        run: mypy src/query_doctor/ scripts/
+        run: mypy src/query_doctor/ scripts/ benchmarks/
 
   docs-gate:
     runs-on: ubuntu-latest
@@ -83,6 +85,10 @@ jobs:
       # with no project dependencies.
       - name: Docs truth sweep
         run: python -m scripts.docs_truth_sweep
+      # Same property: a tokenize/ast pass over the tracked tree with no
+      # project import, so it runs in this install-free job too.
+      - name: ASCII dash gate
+        run: python -m scripts.dash_gate
 
   # Deliberately a separate job from `docs-gate`, not another step in it.
   # `docs-gate` documents itself as needing no install because the sweep

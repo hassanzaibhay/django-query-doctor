@@ -16,6 +16,7 @@ Outputs:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import sys
@@ -23,6 +24,7 @@ import time
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 # Setup Django before any model imports
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "benchmarks.settings")
@@ -57,10 +59,11 @@ def create_tables() -> None:
 
     with connection.schema_editor() as schema_editor:
         for model in [Author, Publisher, Book, Review]:
-            try:
+            # The table may already exist from a previous run in the same
+            # database file; creating it again is not an error worth stopping
+            # the suite for.
+            with contextlib.suppress(Exception):
                 schema_editor.create_model(model)
-            except Exception:
-                pass  # Table may already exist
 
 
 def seed_data() -> None:
@@ -94,7 +97,7 @@ def seed_data() -> None:
         )
 
 
-def run_compilation_scenario(name: str, config: dict) -> dict:
+def run_compilation_scenario(name: str, config: dict[str, Any]) -> dict[str, Any]:
     """Run a compilation-only benchmark scenario (no DB execution).
 
     Measures the cost of SQL compilation (as_sql()) with and without the
@@ -157,7 +160,7 @@ def run_compilation_scenario(name: str, config: dict) -> dict:
     }
 
 
-def run_scenario(name: str, config: dict) -> dict:
+def run_scenario(name: str, config: dict[str, Any]) -> dict[str, Any]:
     """Run a single benchmark scenario with and without QueryTurbo.
 
     Args:
@@ -221,14 +224,17 @@ def run_scenario(name: str, config: dict) -> dict:
     }
 
 
-def print_results(results: list[dict]) -> None:
+def print_results(results: list[dict[str, Any]]) -> None:
     """Print results as a formatted table to stdout."""
     print()
     print("django-query-doctor v2.0 Benchmark Results")
     print("=" * 95)
     print()
 
-    header = f"{'Scenario':<25} {'Iterations':>10} {'Baseline (ms)':>14} {'Turbo (ms)':>12} {'Speedup':>9} {'Saved/Query (us)':>18}"
+    header = (
+        f"{'Scenario':<25} {'Iterations':>10} {'Baseline (ms)':>14} "
+        f"{'Turbo (ms)':>12} {'Speedup':>9} {'Saved/Query (us)':>18}"
+    )
     print(header)
     print("-" * 95)
 

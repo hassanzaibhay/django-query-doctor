@@ -429,3 +429,97 @@ class TestComprehensionDetection:
         results = self.analyzer.analyze_serializer(SevCompSerializer)
         comp_results = [r for r in results if r.extra.get("pattern") == "comprehension_queryset"]
         assert all(r.severity == Severity.WARNING for r in comp_results)
+
+
+class TestLoopOverScalarAttribute:
+    """Entry 50: a loop over a scalar attribute must not prescribe prefetching.
+
+    ``for ch in obj.title`` iterates a string. ``prefetch_related('title')``
+    raises ``ValueError: 'title' does not resolve to an item that supports
+    prefetching``, so the bare-attribute loop branch has to establish that the
+    attribute really is a relation before it names it.
+    """
+
+    def setup_method(self):
+        """Create analyzer instance."""
+        self.analyzer = SerializerMethodAnalyzer()
+
+    def test_loop_over_charfield_on_model_serializer_is_not_flagged(self):
+        """The model says `title` is a CharField, so there is nothing to prefetch."""
+        from tests.testapp.models import Book
+
+        class BookTitleSerializer(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            def get_n(self, obj):
+                total = 0
+                for _ch in obj.title:
+                    total += 1
+                return total
+
+        results = self.analyzer.analyze_serializer(BookTitleSerializer)
+        loop_results = [r for r in results if r.extra.get("pattern") == "loop_queryset"]
+        assert loop_results == []
+
+    def test_loop_over_relation_on_model_serializer_is_flagged(self):
+        """Positive control: the same shape over a real relation still fires."""
+        from tests.testapp.models import Book
+
+        class BookCategoriesSerializer(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            def get_n(self, obj):
+                total = 0
+                for _cat in obj.categories:
+                    total += 1
+                return total
+
+        results = self.analyzer.analyze_serializer(BookCategoriesSerializer)
+        loop_results = [r for r in results if r.extra.get("pattern") == "loop_queryset"]
+        assert len(loop_results) == 1
+        assert "prefetch_related('categories')" in loop_results[0].fix_suggestion
+
+    def test_loop_over_unknown_attribute_without_a_model_is_not_flagged(self):
+        """With no `Meta.model` there is nothing to validate against.
+
+        A plain `Serializer` gives the analyzer no way to tell a relation from
+        a string, and naming a guess is what entry 50 is about.
+        """
+
+        class PlainSerializer(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                total = 0
+                for _ch in obj.title:
+                    total += 1
+                return total
+
+        results = self.analyzer.analyze_serializer(PlainSerializer)
+        loop_results = [r for r in results if r.extra.get("pattern") == "loop_queryset"]
+        assert loop_results == []
+
+    def test_loop_over_default_reverse_accessor_is_flagged(self):
+        """Positive control without a model: `_set` is Django's own accessor name."""
+
+        class PlainSetSerializer(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                total = 0
+                for _item in obj.review_set:
+                    total += 1
+                return total
+
+        results = self.analyzer.analyze_serializer(PlainSetSerializer)
+        loop_results = [r for r in results if r.extra.get("pattern") == "loop_queryset"]
+        assert len(loop_results) == 1
+        assert "prefetch_related('review_set')" in loop_results[0].fix_suggestion

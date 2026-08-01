@@ -58,5 +58,5 @@ INSTALLED_APPS = [
 
 ## Next Steps
 
-- [Quick Start](quickstart.md) — Get running in 2 minutes
-- [Configuration](configuration.md) — Customize behavior
+- [Quick Start](quickstart.md) -- Get running in 2 minutes
+- [Configuration](configuration.md) -- Customize behavior

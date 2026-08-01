@@ -17,7 +17,6 @@ from query_doctor.project_diagnoser import (
     ProjectDiagnosisResult,
     URLDiagnosisResult,
 )
-from query_doctor.types import Severity
 
 logger = logging.getLogger("query_doctor")
 
@@ -36,22 +35,6 @@ def _health_color(score: float) -> str:
     if score >= 60:
         return "#f57f17"
     return "#c62828"
-
-
-def _severity_color(severity: Severity) -> str:
-    """Return CSS color for a severity level.
-
-    Args:
-        severity: Issue severity.
-
-    Returns:
-        CSS color string.
-    """
-    if severity == Severity.CRITICAL:
-        return "#dc3545"
-    if severity == Severity.WARNING:
-        return "#ff9800"
-    return "#2196f3"
 
 
 class ProjectReportGenerator:
@@ -200,7 +183,7 @@ Overall Health: {result.overall_health_score:.0f}/100</div>
   <span class="toggle" id="toggle-summary">&#9660;</span>
 </div>
 <div class="section-body collapsible open" id="section-summary">
-{self._render_executive_summary(result, total_critical, total_warnings)}
+{self._render_executive_summary(result, total_critical)}
 </div>
 </div>
 
@@ -239,7 +222,6 @@ function sortTable(tableId, col) {{
         self,
         result: ProjectDiagnosisResult,
         total_critical: int,
-        total_warnings: int,
     ) -> str:
         """Render the executive summary section."""
         if not result.app_results:

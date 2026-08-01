@@ -6,7 +6,7 @@ Why django-query-doctor exists, the problems it solves, and the key architectura
 
 ## The Problem
 
-The N+1 query problem is the most common performance issue in Django applications. Code fetches a list of objects, then individually queries related objects one at a time — turning 2 queries into hundreds:
+The N+1 query problem is the most common performance issue in Django applications. Code fetches a list of objects, then individually queries related objects one at a time -- turning 2 queries into hundreds:
 
 ```python
 class BookListView(generics.ListAPIView):
@@ -23,9 +23,9 @@ In a typical Django project with 100+ models, these inefficiencies accumulate si
 | django-debug-toolbar | Requires `DEBUG=True`, manual inspection, no CI integration, no fix suggestions |
 | django-silk | Heavyweight (own DB tables), detection only, not CI-friendly |
 | nplusone | N+1 only (no duplicates, indexes, etc.), no file:line, no fixes, low recent development activity, not intended for production |
-| django-auto-prefetch | Automatically prefetches ForeignKey/OneToOne relations instead of reporting them — no visibility into what changed, and it doesn't cover M2M or other issue categories |
+| django-auto-prefetch | Automatically prefetches ForeignKey/OneToOne relations instead of reporting them -- no visibility into what changed, and it doesn't cover M2M or other issue categories |
 
-django-query-doctor addresses all of these gaps: 8 analyzer categories, exact file:line references, copy-paste code fixes, CI integration, and no `DEBUG=True` requirement. (Note: Django itself is gaining a similar on-demand-prefetch mechanism — [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/), new in Django 6.1 — covering the same ground as django-auto-prefetch's long-standing approach.)
+django-query-doctor addresses all of these gaps: 8 analyzer categories, exact file:line references, copy-paste code fixes, CI integration, and no `DEBUG=True` requirement. (Note: Django itself is gaining a similar on-demand-prefetch mechanism -- [fetch modes](https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/), new in Django 6.1 -- covering the same ground as django-auto-prefetch's long-standing approach.)
 
 ---
 
@@ -41,7 +41,7 @@ Queries are normalized (parameters replaced with `?`, whitespace collapsed, IN-l
 
 ### 3. Stack Traces for Source Location
 
-Stack traces capture *where the query was triggered* (the evaluation site), not where the queryset was defined. A queryset defined in a manager but evaluated in a template — the stack trace points to the template, where the fix belongs.
+Stack traces capture *where the query was triggered* (the evaluation site), not where the queryset was defined. A queryset defined in a manager but evaluated in a template -- the stack trace points to the template, where the fix belongs.
 
 Trade-off: ~20-40 μs per query. Disable with `CAPTURE_STACK_TRACES: False` if needed.
 
@@ -57,11 +57,11 @@ N+1 DETECTED: 47 queries on books_author via FK author_id
           + Book.objects.select_related('author')
 ```
 
-The fixer generates the fix suggestion text from stack trace analysis and SQL pattern matching. Applying the fix (`fix_queries --apply`) is a separate, simpler step: a regex substitution on the single source line at the callsite — it does not parse or restructure code. See [Auto-Fix](../guides/auto-fix.md) for the real mechanics and its limitations.
+The fixer generates the fix suggestion text from stack trace analysis and SQL pattern matching. Applying the fix (`fix_queries --apply`) is a separate, simpler step: a regex substitution on the single source line at the callsite -- it does not parse or restructure code. See [Auto-Fix](../guides/auto-fix.md) for the real mechanics and its limitations.
 
 ### 5. Per-Request Synchronous Analysis
 
-Analysis runs at the end of each request (or scope), not in a background worker. For a typical 50-200 query request, analysis takes 1-5ms — negligible compared to DB time. No external dependencies (Celery, Redis) needed.
+Analysis runs at the end of each request (or scope), not in a background worker. For a typical 50-200 query request, analysis takes 1-5ms -- negligible compared to DB time. No external dependencies (Celery, Redis) needed.
 
 ### 6. Optional Dependencies Only
 
@@ -77,7 +77,7 @@ except ImportError:
 
 ### 7. Never Crash the Host App
 
-All analysis and reporting code is wrapped in try/except. If django-query-doctor encounters an internal error, it logs a warning and lets the request proceed. The worst case is a missing report — never a 500 error.
+All analysis and reporting code is wrapped in try/except. If django-query-doctor encounters an internal error, it logs a warning and lets the request proceed. The worst case is a missing report -- never a 500 error.
 
 ---
 
@@ -97,6 +97,6 @@ All analysis and reporting code is wrapped in try/except. If django-query-doctor
 
 ## Next Steps
 
-- [Architecture](./architecture.md) — the four-stage pipeline in detail
-- [Performance & Benchmarks](./performance.md) — overhead measurements
-- [Comparison with Alternatives](./comparison.md) — feature-by-feature comparison
+- [Architecture](./architecture.md) -- the four-stage pipeline in detail
+- [Performance & Benchmarks](./performance.md) -- overhead measurements
+- [Comparison with Alternatives](./comparison.md) -- feature-by-feature comparison

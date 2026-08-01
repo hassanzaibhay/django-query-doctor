@@ -5,7 +5,287 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+> **Two sections below describe releases that were never published: `[1.0.3]`
+> and `[2.0.1]`.** There are ten version sections here and eight git tags, and
+> the two without a tag are the same two with no artifact on PyPI. If you are
+> choosing a version to install, those two are not installable; use `1.0.2` or
+> `2.0.0` respectively. The sections are left in place rather than deleted,
+> because released sections are never edited retroactively -- this note is the
+> additive remedy.
+>
+> Section dates are the PyPI upload date. That holds exactly for 2.1.0 through
+> 2.2.0. Three earlier headings are within a day of their upload, which is a
+> timezone artifact (PyPI reports UTC, uploads were from UTC+5) and not an
+> error; `2.0.0` is dated two days before its upload and is simply wrong.
+
 ## [Unreleased]
+
+## [2.3.0] - 2026-08-01
+
+### Added
+- `reset_turbo_override()` is exported from `query_doctor.turbo`, alongside
+  `set_turbo_override()` and `get_turbo_override()`. 2.2.0's release notes
+  pointed users at `set_turbo_override()` as the replacement for the removed
+  `turbo.patch.set_thread_override`, but the token it returns could not be
+  reset from outside the module: resetting a `ContextVar` needs the variable
+  itself, and `_turbo_override` is private. The manual override is now
+  actually usable, is documented in the QueryTurbo guide, and is covered by
+  tests. `turbo_enabled()` and `turbo_disabled()` now route through
+  `set_turbo_override()` rather than setting the ContextVar directly, so the
+  helper the changelog recommends has a caller in the package.
+- The console reporter prints a one-line note when a report contains both an
+  N+1 finding and a fat SELECT finding, saying that fixing the N+1 widens the
+  base query and that the fat SELECT findings should be re-read afterwards.
+  Prescriptions are now returned in the order they should be applied rather
+  than in analyzer-discovery order: N+1 first, fat SELECT last.
+- `check_serializers`' loop check and the N+1 analyzer's relation resolution
+  are covered by tests that *run* the prescribed queryset call against real
+  Django, so a prescription naming a field that does not resolve fails with
+  the error Django raises rather than passing a string comparison.
+
+### Changed
+- **`docs/deep-dive/architecture.md` no longer shows a fabricated console
+  block.** The section illustrated the console reporter with hand-written
+  output the tool has never produced: three of its four distinctive strings
+  (`QUERY DOCTOR REPORT`, `N+1 Query Detected`, `match fingerprint`) appear
+  zero times in `src/`, and the fourth (`Total queries:`) appears on 3 lines
+  but only as part of a differently shaped summary line. It is replaced with
+  an excerpt of the real committed capture, and the surrounding prose now
+  describes the Rich and plain paths as the different renderings they are
+  rather than claiming they print the same block.
+- **The QueryTurbo speedup table is re-measured and correctly labelled.** The
+  published figures (123x / 153x / 294x / 374x / 214x / 1,050x) did not
+  reproduce with the documented command: every value came back 30-50% lower,
+  and the complex scenario measured 523.4x -- below the 727x floor that the
+  "hardware variance" note disclosed, so the caveat failed too. The table is
+  replaced with a single run on a named machine, is explicitly labelled as the
+  `compilation_only` section of `benchmarks/results.json`, and the docs now
+  state up front that the last line the command prints is the *end-to-end*
+  result and comes out below 1x on SQLite in-memory, explaining why that is
+  expected rather than a defect. That end-to-end figure is given as a run with
+  its observed run-to-run spread rather than as a single value, since publishing
+  one point estimate as a constant is the fault this entry was about. The table
+  was duplicated on two pages; it now lives on one, with the other linking to
+  it.
+- `docs/guides/auto-fix.md` lists all nine `IssueType` members instead of
+  seven, and marks which are selectable via `--issue-type`. The guide said
+  "five of the seven issue types", omitted `serializer_method_field` (shipped
+  in v2.0) and `write_n_plus_one` (shipped in 2.2.0), and described
+  `--issue-type complexity` as accepted-but-fruitless when argparse rejects it
+  outright -- contradicting the guide's own statement two paragraphs below that
+  an unknown value "is rejected with an error before anything runs".
+- `docs/api/reference.md` autodocs all eight analyzers. `WriteNPlusOneAnalyzer`
+  and `SerializerMethodAnalyzer` were absent, so the API reference disagreed
+  with the two other pages that count the analyzer set correctly.
+- **`models_meta` is documented as reserved and always `None`.** The parameter
+  is part of the `BaseAnalyzer` contract and appears in all eight analyzers,
+  but nothing in the package passes it: the only call site,
+  `pipeline.analyze()`, calls `analyzer.analyze(queries)`. `base.py` described
+  it as "for enhanced analysis" and the plugin guide said it "may be `None`" --
+  both of which invite a plugin author to write code against a value that never
+  arrives. All six documentation sites and the base-class docstring now say it
+  is always `None`. Removing the parameter would break third-party analyzer
+  signatures, so it happens in a major version; see **Deprecated** below, where
+  that removal is announced for 3.0.0.
+- Three documents quoted the `missing_index` TODO comment with an em dash the
+  fixer does not emit (it writes an ASCII hyphen). Corrected, and pinned by a
+  test that asserts the emitted separator *and* sweeps every tracked markdown
+  file for a recurrence -- a test on the emitted string alone would have stayed
+  green throughout, because the defect was never in `src/`.
+- `docs/guides/async-support.md` backs or withdraws the claims its own
+  inventory flagged as asserted-unbacked. `async with diagnose_queries()`
+  raising, and `@query_budget` on a coroutine not enforcing, are now measured,
+  each with a control. Backing the first corrected it: the guide said it raises
+  `TypeError`, which holds only on Python 3.11 and later -- on 3.10 the same
+  code raises `AttributeError: __aenter__`, so a reader on the oldest supported
+  interpreter writing `except TypeError` would not have caught it. Both types
+  are now named, in both places the guide states the limitation. The
+  concurrency and "not a change relative to 2.1.1" claims cite the tests that
+  establish them. The connection-pooler and
+  `asyncpg` limitations now say plainly that neither is exercised here. The
+  claim that the interceptor's `ContextVar` storage "does propagate across
+  `await`" is withdrawn rather than reworded: no code path shares an
+  interceptor between contexts, so no test could distinguish it from thread
+  separation, and the thread-locality of Django's connection registry is what
+  decides the outcome anyway.
+- `CHANGELOG.md` gains a note at the top recording that `[1.0.3]` and
+  `[2.0.1]` describe releases that were never published -- ten version sections
+  against eight git tags, and the two without a tag are the two with no PyPI
+  artifact. The sections are left in place; released sections are not edited
+  retroactively, so the note is the additive remedy.
+- **`benchmarks/` is inside the gates.** The v2.0 QueryTurbo suite sat outside
+  the commands, which named `src/ tests/ scripts/`, and failed them: 12 ruff
+  errors and 14 mypy errors. Both are fixed and all three gate declarations --
+  CI, the pre-push hook, and the contributor docs -- are widened in the same
+  change, so the errors cannot be reintroduced. Two waivers are recorded with
+  reasons rather than left implicit: `E501` for `benchmarks/report.py`, whose
+  long lines are CSS and Chart.js inside an HTML template rather than Python,
+  and `attr-defined` for `benchmarks.*`, because the django-stubs plugin
+  resolves models against `tests.settings` where the benchmark app is
+  deliberately not installed. Nothing shipped is affected: the wheel packages
+  `src/query_doctor` only.
+- **A new gate keeps `src/` and config free of em and en dashes.** It ships
+  green -- the baseline is zero -- which is the cheapest moment to install one;
+  the exposure it closes is that the clean state was previously unenforced.
+  `scripts/dash_gate.py` classifies by token kind, as CLAUDE.md prescribes,
+  flagging only COMMENT tokens and docstring STRING tokens. That makes the
+  program-output exemption fall out automatically rather than needing a
+  maintained list: `print()` heredocs and `title=` arguments are not
+  docstrings. It runs in CI and on pre-push, and is stdlib-only so it needs no
+  install. Its own tests feed it dash-carrying input in every flagged position
+  *and* in every exempt one, because a gate verified only against a clean tree
+  is verified against nothing.
+- **The CI matrix exercises the two claimed cells it was skipping.** Python
+  3.10 x Django 5.1 and 3.10 x Django 5.2 were excluded despite Django
+  declaring `requires_python >= 3.10` for both, so the README badge and the
+  trove classifiers claimed combinations nothing tested. Only the two
+  genuinely impossible cells remain excluded (Django 6.0 needs 3.12), taking
+  the matrix from 16 to 18 jobs.
+- Two marketing-register sentences are replaced with checkable statements:
+  `comparison.md`'s "provides the most comprehensive CI analysis" now says what
+  it does that `nplusone` does not, and `custom-plugins.md`'s "integrate
+  seamlessly" now says what integration actually means.
+
+### Deprecated
+- **`models_meta` is deprecated. 3.0.0 removes it from the
+  `BaseAnalyzer.analyze()` signature.** Nothing has ever populated it. The sole
+  call site, `pipeline.py:92`, calls `analyzer.analyze(queries)` for every
+  analyzer on every run, so the argument is `None` unconditionally, and all
+  eight built-in analyzers ignore it. It is part of the plugin contract rather
+  than an internal detail, which is the only reason its removal waits for a
+  major version instead of happening in this release.
+
+  **What a third-party analyzer author has to do.** Nothing for 2.3.0: an
+  `analyze(self, queries, models_meta=None)` signature keeps working
+  unchanged. But since the argument is never passed, you can drop the
+  parameter today and be correct on both 2.3.0 and 3.0.0:
+
+  ```python
+  # accepted by 2.3.0, required by 3.0.0
+  def analyze(self, queries: list[CapturedQuery]) -> list[Prescription]:
+      ...
+  ```
+
+  If you keep the parameter, remove it when you adopt 3.0.0. If you read the
+  value and branch on it, that branch is unreachable today and should go now.
+  Do not add a `None` check waiting for a value to arrive, because none will.
+
+  The documentation that described the parameter was corrected in this release
+  rather than left to the deprecation: six doc sites and the `base.py`
+  docstring said "optional model metadata" or "may be `None`", which invited
+  exactly that `None` check. They now state that it is reserved and always
+  `None`, and `docs/guides/custom-plugins.md` and `docs/contributing.md` carry
+  this removal notice.
+
+### Fixed
+- **`check_queries --url` no longer exits 0 for a URL that does not resolve.**
+  Both a `Resolver404` and any exception raised inside the view were swallowed
+  identically, and the command went on to report zero captured queries and
+  exit 0. For a tool whose CI story is "fail the build on new issues",
+  analysing nothing was indistinguishable from finding nothing, so a typo in a
+  `--url` argument turned the gate green permanently. Each case now raises a
+  `CommandError` with its own wording, naming the URL. **This can turn a
+  previously-green CI gate red.** If your pipeline runs `check_queries --url`
+  against a path that does not resolve, or against a view that raises, the
+  build will now fail where it previously passed -- which is the point of the
+  fix. Check the URL before upgrading.
+- **The N+1 analyzer no longer prescribes a field that raises `FieldError`.**
+  On a repeated primary-key lookup the field name was derived by string-slicing
+  the table name (`testapp_author` -> `author`) whenever no foreign key was
+  found, and the foreign-key path was no safer: it searched every model in the
+  project for a field pointing at the target table, with no knowledge of which
+  model the caller was iterating. `Author.objects.get(pk=pk)` in a loop
+  prescribed `.select_related('author')`, which raises. A relation is now named
+  only after it resolves through `Model._meta.get_field()`, and only when an
+  earlier query in the same capture read the table that declares it -- so a
+  genuine forward-FK N+1 still gets `select_related`, and a bare `get(pk=...)`
+  loop gets the advice that actually applies: fetch the rows in one query with
+  `in_bulk()` or `filter(pk__in=...)`. The prescription text changes for both
+  cases, and it now names the model the call belongs to.
+- The reverse-foreign-key branch of the same analyzer had the same defect,
+  found while fixing the above: for `WHERE "book"."author_id" = ?` it read the
+  field name off the column (`author`) and prescribed
+  `prefetch_related('author')` on what is necessarily an `Author` queryset. It
+  now resolves the reverse accessor on the far side of the relation
+  (`books`) and validates it against that model.
+- The `serializer_method` analyzer no longer prescribes `prefetch_related()`
+  for a loop over a scalar attribute. `for ch in obj.title` over a `CharField`
+  produced `prefetch_related('title')`, which raises `ValueError`. The
+  bare-attribute loop branch now confirms the attribute is a relation --
+  through `Meta.model` when the serializer has one, otherwise through Django's
+  own `_set` reverse-accessor suffix -- and emits nothing when it cannot.
+- The `duplicate` analyzer no longer reports a re-read that follows a write to
+  the same table. Read, write, read back is ordinary Django, and following the
+  prescription ("assign the result to a variable and reuse it") returns the
+  pre-write row. This was the one finding in the set whose fix was a
+  correctness regression rather than a missed optimisation, so the group is
+  suppressed rather than reworded.
+- `fat_select` no longer counts a joined table's columns against the base
+  table. The column count came from the whole select list while the table name
+  came from the `FROM` clause, so `Book.objects.select_related("author")`
+  reported 13 columns "from testapp_book" when Book has 8, and the prescribed
+  `.defer()` addressed only a fraction of them.
+- `fat_select` no longer fires on a single-row lookup. `Book.objects.get(pk=1)`
+  returns one row and hit the default threshold of 8 with the model's own
+  columns, so every read of an ordinary Django model produced a finding. A
+  primary-key equality test or an explicit `LIMIT 1` is now exempt.
+- `extract_tables()` reports the target table of `UPDATE`, `INSERT INTO` and
+  `DELETE FROM` statements. It matched only `FROM` and `JOIN`, so every write
+  reported no tables at all and was invisible to any analyzer reasoning about
+  which tables a statement touches.
+- `write_nplusone`'s IN-list and VALUES counters are aware of quoted string
+  literals. `WHERE "name" IN ('a,b')` counted two items, so the statement was
+  classified as a bulk write and the finding was suppressed. Reaching this
+  needs a literal inlined into the SQL through `.extra()`, `RawSQL` or a
+  hand-written `cursor.execute()`, because Django's ORM parameterises.
+- Embedding the middleware by hand around an async handler now emits a
+  `QueryDoctorWarning` instead of silently reporting zero. On that route the
+  `execute_wrapper` is installed on the event loop thread's connection while
+  Django runs async ORM work on a separate executor thread, so `aget`,
+  `acreate`, `acount`, `aexists` and async iteration were never captured and
+  nothing said so. The condition is probed by asking the executor whether it
+  can see the interceptor, not predicted, so an async handler doing sync ORM
+  inline stays quiet. The warning describes the wiring rather than one
+  request, so it is emitted at most once per middleware instance. Suites that
+  escalate warnings to errors will fail on a hand-embedded async middleware.
+- Removed the dead `_severity_color()` helper from the project report
+  generator, and two parameters that were declared and never read:
+  `_suggest_simplification`'s `score` (whose docstring documented it) and
+  `_render_executive_summary`'s `total_warnings`. 2.2.0 removed five dead
+  symbols, so a reader could reasonably assume the sweep was complete.
+- `tests/test_management_commands.py` drove `check_queries` at `/test/`, which
+  is absent from the test URLconf, so nine tests analysed zero queries and
+  asserted against an empty report. `test_baseline_no_regression_exits_zero`
+  compared an empty baseline against an empty run and would have passed with
+  `--fail-on-regression` deleted; it is rebuilt around a non-empty baseline and
+  paired with a negative control that fails when a regression is introduced.
+  `diagnose_project`'s baseline path -- documented in the baseline guide and
+  previously the largest uncovered block in the package -- now has tests for
+  save, no-regression, regression and resolved-issue reporting.
+- **The example artifacts no longer ship the author's local absolute paths.**
+  `examples/outputs/report.{html,json}` and
+  `examples/screenshots/*.capture.txt` carried `C:\Users\<user>\...` and a
+  pytest fixture directory including a Windows account display name, across 20
+  lines in 4 files. These are generated artifacts committed exactly as
+  produced, and they ship inside the sdist, so the paths were published.
+  `scripts/regen_examples.py` now normalizes them -- the repository root
+  becomes a repo-relative path with forward slashes, the fixture directory
+  becomes `<tmpdir>` -- and asserts before writing that nothing leaked. All
+  four artifacts are regenerated. The published 2.2.0 sdist is immutable and
+  keeps its copies permanently; this fix applies from the next release
+  onwards. The artifacts were **not** hand-edited: hand-editing a generated
+  capture is what produced the fabricated files `51c72cd` had to delete.
+- `tests/test_svg_capture_sync.py` covers the two artifacts it never touched
+  (`report.html` and `report.json`), asserts that no generated artifact
+  carries an absolute local path in any of its spellings, and adds the
+  staleness check that was missing: both captures are regenerated into a
+  temporary directory and diffed against the committed copies, with durations
+  masked because they legitimately differ between runs. The staleness check
+  was only possible once the paths were normalized, since the fixture
+  directory's counter changed on every run. It immediately earned its place:
+  the console capture had drifted from the N+1 prescription wording changed
+  above, and the transcription in `examples/generate_svgs.py` was corrected
+  rather than the test relaxed.
 
 ## [2.2.0] - 2026-07-30
 

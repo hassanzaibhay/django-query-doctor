@@ -164,6 +164,6 @@ OpenTelemetry configuration (exporter endpoint, service name) is done through th
 
 ## Next Steps
 
-- [Configuration](../getting-started/configuration.md) — all settings
-- [CI/CD Integration](../guides/ci-integration.md) — using JSON output in pipelines
-- [Benchmark Dashboard](../guides/benchmark-dashboard.md) — QueryTurbo-specific HTML report
+- [Configuration](../getting-started/configuration.md) -- all settings
+- [CI/CD Integration](../guides/ci-integration.md) -- using JSON output in pipelines
+- [Benchmark Dashboard](../guides/benchmark-dashboard.md) -- QueryTurbo-specific HTML report

@@ -11,7 +11,7 @@
 - [ ] chore
 
 ## Breaking change?
-- [ ] Yes — requires a major version bump and a migration note in CHANGELOG
+- [ ] Yes -- requires a major version bump and a migration note in CHANGELOG
 - [ ] No
 
 ## Changelog entry

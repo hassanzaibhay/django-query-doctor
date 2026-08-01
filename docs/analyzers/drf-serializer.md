@@ -7,7 +7,7 @@ django-query-doctor statically analyzes DRF `SerializerMethodField`
 code. This catches the #1 hidden N+1 source in DRF apps: a `get_<field>`
 method that triggers a database query per serialized object.
 
-This is a **static** analyzer only — it reads source code, not runtime
+This is a **static** analyzer only -- it reads source code, not runtime
 queries. Run it explicitly via the `check_serializers` management command;
 it does not run automatically in the middleware/request pipeline.
 
@@ -46,11 +46,11 @@ The analyzer walks the AST of each `get_<field>` method and detects four pattern
 
 ## What It Does Not Detect
 
-- **Indirect queryset access** — If a `get_<field>` method calls a helper function that internally runs a query, the analyzer cannot follow that call chain.
-- **Dynamic attribute access** — `getattr(obj, field_name)` is not analyzed.
-- **Cached properties** — If `obj.author` is a `@cached_property`, the analyzer still flags it as a potential N+1 since it cannot determine caching at the AST level.
-- **Methods with no source** — C extensions or dynamically generated methods where `inspect.getsource()` fails are silently skipped.
-- **Queries in exception handlers** — Queries inside `try`/`except` blocks are detected, but the analyzer does not account for whether the code path is actually reached.
+- **Indirect queryset access** -- If a `get_<field>` method calls a helper function that internally runs a query, the analyzer cannot follow that call chain.
+- **Dynamic attribute access** -- `getattr(obj, field_name)` is not analyzed.
+- **Cached properties** -- If `obj.author` is a `@cached_property`, the analyzer still flags it as a potential N+1 since it cannot determine caching at the AST level.
+- **Methods with no source** -- C extensions or dynamically generated methods where `inspect.getsource()` fails are silently skipped.
+- **Queries in exception handlers** -- Queries inside `try`/`except` blocks are detected, but the analyzer does not account for whether the code path is actually reached.
 
 ## Problem Code
 

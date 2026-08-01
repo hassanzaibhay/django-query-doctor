@@ -41,6 +41,12 @@ _FROM_TABLE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# A lookup that can return at most one row: a primary-key equality test, or
+# an explicit LIMIT 1. Neither is a data-transfer problem however wide the
+# row is, and the pk form is the most ordinary operation in Django.
+_PK_EQUALITY_RE = re.compile(r'WHERE\s+"?\w+"?\."?id"?\s*=\s*\?', re.IGNORECASE)
+_LIMIT_ONE_RE = re.compile(r"\bLIMIT\s+1\b", re.IGNORECASE)
+
 # Default threshold -- flag SELECTs with this many columns or more
 _DEFAULT_FIELD_COUNT_THRESHOLD = 8
 
@@ -110,13 +116,22 @@ class FatSelectAnalyzer(BaseAnalyzer):
             if not query.is_select:
                 continue
 
-            columns = self._extract_columns(query.normalized_sql or query.sql)
+            sql = query.normalized_sql or query.sql
+            if self._is_single_row_lookup(sql):
+                continue
+
+            table = self._extract_table(sql)
+            if not table or table in seen_tables:
+                continue
+
+            # Count only the columns belonging to the table the message will
+            # name. Counting the whole select list attributes a joined
+            # table's columns to the base table, so the number does not mean
+            # what it says and .defer() cannot shrink it proportionally.
+            columns = self._extract_columns(sql, table)
             if not columns or len(columns) < threshold:
                 continue
 
-            table = self._extract_table(query.normalized_sql or query.sql)
-            if not table or table in seen_tables:
-                continue
             seen_tables.add(table)
 
             large_fields = self._find_large_fields(table, columns)
@@ -125,8 +140,28 @@ class FatSelectAnalyzer(BaseAnalyzer):
 
         return prescriptions
 
-    def _extract_columns(self, sql: str) -> list[str]:
-        """Extract column names from a SELECT query."""
+    @staticmethod
+    def _is_single_row_lookup(sql: str) -> bool:
+        """Report whether the statement can return at most one row.
+
+        Args:
+            sql: The normalized SQL of the query.
+
+        Returns:
+            True for a primary-key equality test or an explicit LIMIT 1.
+        """
+        return bool(_PK_EQUALITY_RE.search(sql) or _LIMIT_ONE_RE.search(sql))
+
+    def _extract_columns(self, sql: str, table: str | None = None) -> list[str]:
+        """Extract the selected column names, optionally for one table only.
+
+        Args:
+            sql: The SQL to read the select list from.
+            table: When given, keep only columns qualified by this table.
+
+        Returns:
+            The column names, in select-list order.
+        """
         match = _SELECT_COLS_RE.search(sql)
         if not match:
             return []
@@ -136,7 +171,7 @@ class FatSelectAnalyzer(BaseAnalyzer):
             return ["*"]
 
         col_matches = re.findall(r'"(\w+)"\."(\w+)"', cols_str)
-        return [col for _, col in col_matches]
+        return [col for qualifier, col in col_matches if table is None or qualifier == table]
 
     def _extract_table(self, sql: str) -> str | None:
         """Extract the main table name from a SQL query."""

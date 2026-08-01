@@ -182,28 +182,54 @@ class Command(BaseCommand):
             raise CommandError(f"Query doctor found issues at severity '{fail_on}' or higher")
 
     def _run_analysis(self, url: str) -> DiagnosisReport:
-        """Run query analysis for the given URL."""
+        """Run query analysis for the given URL.
+
+        Both ways this can fail are usage errors from the command's point of
+        view, and both used to be swallowed into an empty report that exited
+        0. For a tool whose CI story is "fail the build on new issues",
+        analysing nothing is indistinguishable from finding nothing, so each
+        is now raised with its own wording:
+
+        * the URL does not resolve against ``ROOT_URLCONF``;
+        * the view it resolves to raised.
+
+        Args:
+            url: The URL path to resolve and call.
+
+        Returns:
+            The report for the queries the view issued.
+
+        Raises:
+            CommandError: If the URL does not resolve, or the view raised.
+        """
+        from django.db import connection
+        from django.urls import Resolver404, resolve
+
         from query_doctor.pipeline import analyze as pipeline_analyze
 
         interceptor = build_interceptor()
         report = DiagnosisReport()
 
+        request = RequestFactory().get(url)
+
         try:
-            from django.db import connection
+            match = resolve(url)
+        except Resolver404 as exc:
+            raise CommandError(
+                f"--url '{url}' does not resolve against ROOT_URLCONF. "
+                f"Nothing was analysed. Check the path, including its leading "
+                f"and trailing slashes."
+            ) from exc
 
-            factory = RequestFactory()
-            request = factory.get(url)
-
-            from django.urls import resolve
-
-            with connection.execute_wrapper(interceptor):
-                try:
-                    match = resolve(url)
-                    match.func(request, *match.args, **match.kwargs)
-                except Exception:
-                    pass
-        except Exception:
-            pass
+        with connection.execute_wrapper(interceptor):
+            try:
+                match.func(request, *match.args, **match.kwargs)
+            except Exception as exc:
+                raise CommandError(
+                    f"The view serving '{url}' raised "
+                    f"{type(exc).__name__}: {exc}. The analysis is incomplete, "
+                    f"so it is reported as a failure rather than as a clean run."
+                ) from exc
 
         queries = interceptor.get_queries()
         report.captured_queries = queries

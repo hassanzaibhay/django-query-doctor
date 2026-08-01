@@ -31,6 +31,7 @@ All outputs must be valid UTF-8; strings the tool emits are pure ASCII.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -38,6 +39,79 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUTPUTS = REPO_ROOT / "examples" / "outputs"
 SCREENSHOTS = REPO_ROOT / "examples" / "screenshots"
+
+# Placeholder for the pytest fixture directory. Its counter (pytest-<n>) and
+# the Windows account display name inside it both change between runs, so the
+# whole prefix is replaced rather than pinned.
+TMPDIR_PLACEHOLDER = "<tmpdir>"
+
+# NUL cannot appear in any artifact, so it is safe as an internal marker.
+_ROOT_MARK = "\x00root\x00"
+_TMP_MARK = "\x00tmp\x00"
+_MARKED_PATH_RE = re.compile(r"(\x00(?:root|tmp)\x00)([^\s\"']*)")
+
+
+def _path_forms(base: Path) -> list[str]:
+    """Every spelling of ``base`` that can appear inside a generated artifact.
+
+    Three of them, and missing any one leaves a leak behind: the native
+    Windows form, the forward-slash form, and the JSON-escaped form that
+    ``json.dumps`` produces for a value containing backslashes. The first
+    audit of this defect used a single-backslash pattern and missed an entire
+    file for exactly that reason.
+
+    Args:
+        base: An absolute directory to build spellings for.
+
+    Returns:
+        The spellings, longest first so no prefix shadows a longer match.
+    """
+    native = str(base)
+    forms = {native, native.replace("\\", "/"), native.replace("\\", "\\\\")}
+    return sorted(forms, key=len, reverse=True)
+
+
+def normalize_paths(text: str, tmp_dir: Path | None = None) -> str:
+    """Replace machine-specific absolute paths with stable, portable ones.
+
+    These artifacts are committed and ship inside the sdist, so an absolute
+    path in one is published. The repository root becomes a repo-relative
+    path with forward slashes; a pytest fixture directory becomes
+    ``<tmpdir>``.
+
+    Args:
+        text: The rendered artifact.
+        tmp_dir: The pytest fixture directory used by this run, if any.
+
+    Returns:
+        The text with every machine-specific prefix replaced.
+    """
+    for form in _path_forms(REPO_ROOT):
+        text = text.replace(form, _ROOT_MARK)
+    if tmp_dir is not None:
+        for form in _path_forms(tmp_dir):
+            text = text.replace(form, _TMP_MARK)
+
+    def _rewrite(match: re.Match[str]) -> str:
+        prefix = TMPDIR_PLACEHOLDER if match.group(1) == _TMP_MARK else ""
+        tail = match.group(2).replace("\\\\", "/").replace("\\", "/").lstrip("/")
+        return f"{prefix}/{tail}" if prefix else tail
+
+    return _MARKED_PATH_RE.sub(_rewrite, text)
+
+
+def _write(path: Path, text: str, tmp_dir: Path | None = None) -> None:
+    """Normalize paths, assert none leaked, and write the artifact.
+
+    Args:
+        path: Destination file.
+        text: The rendered artifact.
+        tmp_dir: The pytest fixture directory used by this run, if any.
+    """
+    normalized = normalize_paths(text, tmp_dir)
+    for leak in ("C:\\Users", "C:/Users", "pytest-of-"):
+        assert leak not in normalized, f"{path.name} still carries {leak!r}"
+    path.write_text(normalized, encoding="utf-8")
 
 
 @pytest.mark.django_db
@@ -71,10 +145,11 @@ def test_regenerate_outputs() -> None:
     assert report.issues > 0  # positive control
 
     json_text = JSONReporter().render(report)
-    (OUTPUTS / "report.json").write_text(
-        json.dumps(json.loads(json_text), indent=2, default=str), encoding="utf-8"
+    _write(
+        OUTPUTS / "report.json",
+        json.dumps(json.loads(json_text), indent=2, default=str),
     )
-    (OUTPUTS / "report.html").write_text(HTMLReporter().render(report), encoding="utf-8")
+    _write(OUTPUTS / "report.html", HTMLReporter().render(report))
 
     @query_budget(max_queries=5)
     def budget_limited_view() -> None:
@@ -88,7 +163,8 @@ def test_regenerate_outputs() -> None:
     except QueryBudgetError as e:
         budget_text = f"Budget: EXCEEDED - {e}"
 
-    (OUTPUTS / "query_budget_output.txt").write_text(
+    _write(
+        OUTPUTS / "query_budget_output.txt",
         "=" * 60 + "\n"
         "Query Doctor - Query Budget Example\n" + "=" * 60 + "\n\n"
         "@query_budget(max_queries=5)\n"
@@ -97,7 +173,6 @@ def test_regenerate_outputs() -> None:
         "    for b in books:\n"
         "        _ = b.author.name  # N+1 - exceeds budget\n\n"
         f"Result: {budget_text}\n",
-        encoding="utf-8",
     )
 
 
@@ -124,7 +199,7 @@ def test_capture_console_output() -> None:
     assert report.issues >= 3  # positive control
     output = ConsoleReporter()._render_plain(report)
     output.encode("ascii")  # SVG source text must stay ASCII
-    (SCREENSHOTS / "console_output.capture.txt").write_text(output, encoding="utf-8")
+    _write(SCREENSHOTS / "console_output.capture.txt", output)
 
 
 def test_capture_fix_queries_dry_run(tmp_path: Path) -> None:
@@ -188,4 +263,4 @@ def test_capture_fix_queries_dry_run(tmp_path: Path) -> None:
         + f"\n{len(fixes)} fix(es) available. Run with --apply to write changes.\n"
     )
     text.encode("ascii")  # SVG source text must stay ASCII
-    (SCREENSHOTS / "auto_fix.capture.txt").write_text(text, encoding="utf-8")
+    _write(SCREENSHOTS / "auto_fix.capture.txt", text, tmp_dir=tmp_path)

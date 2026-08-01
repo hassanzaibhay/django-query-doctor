@@ -1,6 +1,6 @@
 # Custom Plugins
 
-django-query-doctor provides a plugin API for writing your own analyzers. Custom analyzers integrate seamlessly with the pipeline -- they receive the same captured query data and produce the same `Prescription` objects as the built-in analyzers.
+django-query-doctor provides a plugin API for writing your own analyzers. A custom analyzer runs through the same pipeline as a built-in one: it receives the same captured query list and returns the same `Prescription` objects, so it reaches every reporter and every `.queryignore` rule without any additional wiring.
 
 ---
 
@@ -63,7 +63,42 @@ This is the only method you must implement. It receives:
 | Parameter | Type | Description |
 |---|---|---|
 | `queries` | `list[CapturedQuery]` | All queries captured during the request/scope |
-| `models_meta` | `dict[str, Any] \| None` | Optional Django model metadata; may be `None` |
+| `models_meta` | `dict[str, Any] \| None` | **Deprecated, and always `None` today. 3.0.0 removes it.** See the warning below. |
+
+!!! danger "`models_meta` is deprecated -- 3.0.0 removes it"
+
+    **Announced in 2.3.0.** The parameter is removed from the
+    `BaseAnalyzer.analyze()` signature in 3.0.0. Nothing is required of you for
+    2.3.0: an `analyze(self, queries, models_meta=None)` signature keeps
+    working unchanged.
+
+    Because the argument is never passed, you can drop the parameter **today**
+    and be correct on both releases:
+
+    ```python
+    # accepted by 2.3.0, required by 3.0.0
+    def analyze(self, queries: list[CapturedQuery]) -> list[Prescription]:
+        ...
+    ```
+
+    If you keep the parameter, remove it when you adopt 3.0.0. If you read the
+    value and branch on it, that branch is unreachable today and should go now.
+
+!!! warning "`models_meta` is never populated"
+
+    This parameter is part of the analyzer contract, so your `analyze()` must
+    accept it -- but nothing in the package ever passes it. The single call
+    site, `pipeline.analyze()`, calls `analyzer.analyze(queries)` for every
+    analyzer on every run, so the value is `None` unconditionally. All eight
+    built-in analyzers ignore it.
+
+    Do not write a plugin that reads it. If you need model metadata, get it
+    from `django.apps.apps` yourself, which is what `missing_index` and
+    `fat_select` do.
+
+    Removing the parameter breaks every third-party analyzer signature that
+    declares it, which is why the removal waits for a major version rather
+    than happening in a minor one. See the deprecation notice above.
 
 Each `CapturedQuery` object has:
 

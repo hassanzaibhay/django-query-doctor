@@ -67,11 +67,11 @@ python manage.py fix_queries --url /api/books/
 ```
 
 !!! note
-    Management commands run analysis via your URL patterns without the middleware. This is the recommended approach for large codebases — keep middleware off day-to-day, run commands in CI or on-demand.
+    Management commands run analysis via your URL patterns without the middleware. This is the recommended approach for large codebases -- keep middleware off day-to-day, run commands in CI or on-demand.
 
 ## What's Next?
 
-- [Configuration](configuration.md) — Customize which analyzers run, set thresholds, choose reporters
-- [Analyzers Overview](../analyzers/overview.md) — Deep dive into what each analyzer detects
-- [Management Commands](../guides/management-commands.md) — Full reference for all 6 commands
-- [Pytest Plugin](../guides/pytest-plugin.md) — Catch query issues in your test suite
+- [Configuration](configuration.md) -- Customize which analyzers run, set thresholds, choose reporters
+- [Analyzers Overview](../analyzers/overview.md) -- Deep dive into what each analyzer detects
+- [Management Commands](../guides/management-commands.md) -- Full reference for all 6 commands
+- [Pytest Plugin](../guides/pytest-plugin.md) -- Catch query issues in your test suite

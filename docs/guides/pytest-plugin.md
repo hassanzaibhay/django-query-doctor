@@ -18,7 +18,7 @@ def test_book_list_view(client, query_doctor):
     assert response.status_code == 200
 ```
 
-> **Important:** The report is populated in a test *finalizer* — after the test body has finished running. Assertions on `query_doctor` inside the test body see an empty report (`total_queries == 0`, `issues == 0`) and pass vacuously. Since 2.1.1 the package says so at runtime: requesting the fixture emits a `QueryDoctorWarning` naming the requesting test. Suites that escalate warnings to errors (`-W error`, or `filterwarnings = error` in pytest configuration) will therefore fail on every test that requests the fixture; suppress the category with `ignore::query_doctor.QueryDoctorWarning` if you accept this behavior. Use the fixture to enable capture; use the [`diagnose_queries()` context manager](#context-manager-in-tests) when you want to assert on results inside the test.
+> **Important:** The report is populated in a test *finalizer* -- after the test body has finished running. Assertions on `query_doctor` inside the test body see an empty report (`total_queries == 0`, `issues == 0`) and pass vacuously. Since 2.1.1 the package says so at runtime: requesting the fixture emits a `QueryDoctorWarning` naming the requesting test. Suites that escalate warnings to errors (`-W error`, or `filterwarnings = error` in pytest configuration) will therefore fail on every test that requests the fixture; suppress the category with `ignore::query_doctor.QueryDoctorWarning` if you accept this behavior. Use the fixture to enable capture; use the [`diagnose_queries()` context manager](#context-manager-in-tests) when you want to assert on results inside the test.
 
 The `DiagnosisReport` object exposes:
 
@@ -36,7 +36,7 @@ Each `CapturedQuery` has `sql`, `params`, `duration_ms`, `fingerprint`, `normali
 
 ### End-of-Session Summary
 
-Because the report is populated at teardown, its findings are surfaced after the session finishes rather than inside the test. A `pytest_terminal_summary` hook (`src/query_doctor/pytest_plugin.py:140`) reads the report each fixture use produced and prints a `query_doctor` section: one header line stating how many fixture-using tests were observed and how many were clean, then **one line per test that had findings** — tests with zero issues produce no line, so the section stays proportionate to the problems found:
+Because the report is populated at teardown, its findings are surfaced after the session finishes rather than inside the test. A `pytest_terminal_summary` hook (`src/query_doctor/pytest_plugin.py:140`) reads the report each fixture use produced and prints a `query_doctor` section: one header line stating how many fixture-using tests were observed and how many were clean, then **one line per test that had findings** -- tests with zero issues produce no line, so the section stays proportionate to the problems found:
 
 ```text
 ================================= query_doctor =================================
@@ -108,7 +108,7 @@ def test_no_nplusone(client):
 
 ## CI Integration
 
-Assertions written with `diagnose_queries()` fail the test when violated, which fails the CI job — no extra pytest flags are needed:
+Assertions written with `diagnose_queries()` fail the test when violated, which fails the CI job -- no extra pytest flags are needed:
 
 ```bash
 pytest -v

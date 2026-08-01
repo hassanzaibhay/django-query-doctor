@@ -125,6 +125,9 @@ class QueryDoctorMiddleware:
         """
         self.get_response = get_response
         self._is_async = iscoroutinefunction(get_response)
+        # Set once the hand-embed capture gap has been reported for this
+        # instance; the wiring it describes cannot change between requests.
+        self._warned_unreachable_executor = False
 
     def __call__(self, request: HttpRequest) -> Any:
         """Process a request through the query doctor pipeline.
@@ -165,6 +168,7 @@ class QueryDoctorMiddleware:
 
         with connection.execute_wrapper(interceptor):
             response = await self.get_response(request)
+            await self._warn_if_executor_is_unreachable(interceptor)
 
         try:
             self._analyze_and_report(interceptor, config, request)
@@ -172,6 +176,69 @@ class QueryDoctorMiddleware:
             logger.warning("query_doctor: analysis failed", exc_info=True)
 
         return response
+
+    async def _warn_if_executor_is_unreachable(self, interceptor: Any) -> None:
+        """Warn when this route cannot see the ORM, instead of reporting zero.
+
+        ``__acall__`` is reached only when the middleware is embedded by hand
+        around an async handler; through Django's ``MIDDLEWARE`` chain the
+        class is adapted with ``sync_to_async(thread_sensitive=True)`` and
+        ``_sync_call`` runs instead. On the hand-embed route the
+        ``execute_wrapper`` is installed on the event loop thread's
+        connection, while Django routes ORM work from ``async`` code to the
+        thread-sensitive executor, which holds a different connection object.
+
+        The condition is probed rather than predicted. "Did any query get
+        captured" warns spuriously on a genuinely query-free request, and "is
+        there a running loop" is unconditionally true inside a coroutine, so
+        neither discriminates. Asking the thread-sensitive executor whether it
+        can see this interceptor does: an async handler doing sync ORM inline
+        resolves the loop thread's own connection, finds the interceptor
+        there, and stays quiet.
+
+        What the probe answers is a property of the **route**, not of the
+        request: it reports that async ORM in this handler would not be
+        captured, whether or not any ran. A handler that touches no database
+        at all therefore also matches. That is why the warning is emitted at
+        most once per middleware instance -- it is telling the developer about
+        a wiring choice, which does not change between requests, and repeating
+        it per request would be noise.
+
+        Never raises: a probe failure leaves the request untouched.
+
+        Args:
+            interceptor: The wrapper installed on this thread's connection.
+        """
+        if self._warned_unreachable_executor:
+            return
+        try:
+            from asgiref.sync import sync_to_async
+
+            def _executor_sees_interceptor() -> bool:
+                from django.db import connection
+
+                return interceptor in connection.execute_wrappers
+
+            if await sync_to_async(_executor_sees_interceptor, thread_sensitive=True)():
+                return
+        except Exception:
+            logger.debug("query_doctor: executor probe failed", exc_info=True)
+            return
+
+        self._warned_unreachable_executor = True
+
+        warnings.warn(
+            "query_doctor: this middleware was embedded by hand around an async "
+            "handler, so its execute_wrapper is installed on the event loop "
+            "thread's connection. Django runs ORM work from async code on a "
+            "separate executor thread holding a different connection, so async "
+            "ORM calls (aget, acreate, acount, aexists, async iteration) in this "
+            "handler are NOT captured and the report will understate them. List "
+            "the middleware in MIDDLEWARE instead, where Django adapts it into "
+            "the same executor thread. See docs/guides/async-support.md.",
+            QueryDoctorWarning,
+            stacklevel=2,
+        )
 
     def _sync_call(self, request: HttpRequest) -> Any:
         """Process a sync request through the query doctor pipeline.

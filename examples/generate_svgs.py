@@ -98,7 +98,7 @@ def create_terminal_svg(
 # Content captured from a real v2.1.0 run against tests/testapp
 # (ConsoleReporter plain renderer); file paths relabeled to myapp/views.py.
 create_terminal_svg(
-    title="query-doctor — Console Output",
+    title="query-doctor -- Console Output",
     prompt="python manage.py runserver",
     filename="console_output.svg",
     width=980,
@@ -109,10 +109,10 @@ create_terminal_svg(
         {"text": "Total queries: 15 | Time: 0.2ms | Issues: 4", "color": "#569CD6"},
         {"text": "============================================================", "color": "#569CD6"},
         {"text": ""},
-        {"text": "CRITICAL: N+1 detected: 12 queries for table \"testapp_author\" (field: author)", "color": "#F44747", "bold": True},
+        {"text": "CRITICAL: N+1 detected: 12 queries for table \"testapp_author\" (via Book.author)", "color": "#F44747", "bold": True},
         {"text": "Location: myapp/views.py:26 in book_list", "color": "#808080", "indent": 3},
         {"text": "Code: _ = book.author.name", "color": "#808080", "indent": 3},
-        {"text": "Fix: Add .select_related('author') to your queryset", "color": "#4EC9B0", "indent": 3},
+        {"text": "Fix: Add .select_related('author') to your Book queryset", "color": "#4EC9B0", "indent": 3},
         {"text": "Queries: 12 | Est. savings: ~0.2ms", "color": "#808080", "indent": 3},
         {"text": ""},
         {"text": "WARNING: Duplicate query: 2 identical queries for table \"testapp_book\"", "color": "#CE9178", "bold": True},
@@ -134,7 +134,7 @@ create_terminal_svg(
 
 # ── SVG 2: Context Manager / Test Usage ────────────────────
 create_terminal_svg(
-    title="query-doctor — Test Usage",
+    title="query-doctor -- Test Usage",
     prompt="pytest tests/test_queries.py -v",
     filename="test_usage.svg",
     lines=[
@@ -158,7 +158,7 @@ create_terminal_svg(
 # the fix_queries dry-run wrapper text); file paths relabeled to myapp/views.py.
 # N+1 fixes carry the [MANUAL FIX ONLY] tag: --apply refuses to write them.
 create_terminal_svg(
-    title="query-doctor — Auto-Fix Preview (dry run)",
+    title="query-doctor -- Auto-Fix Preview (dry run)",
     prompt="python manage.py fix_queries --url /api/books/",
     filename="auto_fix.svg",
     width=980,
@@ -194,7 +194,7 @@ create_terminal_svg(
 
 # ── SVG 4: Project-Wide Diagnosis ──────────────────────────
 create_terminal_svg(
-    title="query-doctor — Project Health Scan",
+    title="query-doctor -- Project Health Scan",
     prompt="python manage.py diagnose_project",
     filename="project_diagnosis.svg",
     lines=[
@@ -226,7 +226,7 @@ create_terminal_svg(
 
 # ── SVG 5: Query Budget Decorator ─────────────────────────
 create_terminal_svg(
-    title="query-doctor — Query Budget",
+    title="query-doctor -- Query Budget",
     prompt="python -c 'from myapp.views import my_view; my_view()'",
     filename="query_budget.svg",
     lines=[
@@ -246,7 +246,7 @@ create_terminal_svg(
 
 # ── SVG 6: Quick Start (3 steps) ──────────────────────────
 create_terminal_svg(
-    title="query-doctor — Quick Start",
+    title="query-doctor -- Quick Start",
     prompt=None,
     filename="quick_start.svg",
     width=720,

@@ -277,3 +277,95 @@ class TestFatSelectEdgeCases:
             results = FatSelectAnalyzer().analyze(queries)
             get_config.cache_clear()
         assert len(results) == 0
+
+
+class TestColumnAttribution:
+    """Entry 52: the column count must belong to the table the message names.
+
+    ``_SELECT_COLS_RE`` takes everything between SELECT and FROM while the
+    table comes from the FROM clause alone, so a joined query counted the
+    joined table's columns and attributed them to the base table. The
+    prescribed ``.defer()`` then addresses a fraction of the number shown.
+    """
+
+    _BOOK_COLS = (
+        '"testapp_book"."id", "testapp_book"."title", "testapp_book"."isbn", '
+        '"testapp_book"."author_id", "testapp_book"."publisher_id", '
+        '"testapp_book"."price", "testapp_book"."description", '
+        '"testapp_book"."published_date"'
+    )
+    _AUTHOR_COLS = (
+        '"testapp_author"."id", "testapp_author"."name", "testapp_author"."email", '
+        '"testapp_author"."bio", "testapp_author"."publisher_id"'
+    )
+
+    def test_join_does_not_inflate_the_base_table_count(self) -> None:
+        """select_related must not change the count reported for the base table."""
+        analyzer = FatSelectAnalyzer(field_count_threshold=5)
+        plain = _make_query(f'SELECT {self._BOOK_COLS} FROM "testapp_book"')
+        joined = _make_query(
+            f'SELECT {self._BOOK_COLS}, {self._AUTHOR_COLS} FROM "testapp_book" '
+            'INNER JOIN "testapp_author" ON '
+            '("testapp_book"."author_id" = "testapp_author"."id")'
+        )
+
+        plain_result = analyzer.analyze([plain])
+        joined_result = FatSelectAnalyzer(field_count_threshold=5).analyze([joined])
+
+        assert len(plain_result) == 1
+        assert len(joined_result) == 1
+        assert plain_result[0].extra["column_count"] == 8
+        assert joined_result[0].extra["column_count"] == 8
+
+    def test_joined_table_columns_are_not_counted(self) -> None:
+        """Positive control: the joined columns really are present in the SQL."""
+        analyzer = FatSelectAnalyzer(field_count_threshold=5)
+        joined = _make_query(
+            f'SELECT {self._BOOK_COLS}, {self._AUTHOR_COLS} FROM "testapp_book" '
+            'INNER JOIN "testapp_author" ON '
+            '("testapp_book"."author_id" = "testapp_author"."id")'
+        )
+        assert joined.sql.count('"testapp_author"."') > 5
+
+        result = analyzer.analyze([joined])
+        assert result[0].extra["table"] == "testapp_book"
+        assert result[0].extra["column_count"] < 13
+
+
+class TestSingleRowLookups:
+    """Entry 53: a primary-key fetch of one row is not a fat SELECT.
+
+    ``Book.objects.get(pk=1)`` returns one row and hits the default
+    threshold of 8 with Book's own columns, so every read of the model
+    fired. It was the finding a first-time user saw most often, on queries
+    that are not defects.
+    """
+
+    _BOOK_COLS = TestColumnAttribution._BOOK_COLS
+
+    def test_pk_lookup_is_not_flagged(self) -> None:
+        """WHERE "table"."id" = ? returns at most one row."""
+        analyzer = FatSelectAnalyzer(field_count_threshold=5)
+        sql = f'SELECT {self._BOOK_COLS} FROM "testapp_book" WHERE "testapp_book"."id" = ?'
+        assert analyzer.analyze([_make_query(sql)]) == []
+
+    def test_limit_one_is_not_flagged(self) -> None:
+        """LIMIT 1 bounds the result set just as explicitly."""
+        analyzer = FatSelectAnalyzer(field_count_threshold=5)
+        sql = f'SELECT {self._BOOK_COLS} FROM "testapp_book" LIMIT 1'
+        assert analyzer.analyze([_make_query(sql)]) == []
+
+    def test_unbounded_select_is_still_flagged(self) -> None:
+        """Negative control: the same columns without a bound still fire."""
+        analyzer = FatSelectAnalyzer(field_count_threshold=5)
+        sql = f'SELECT {self._BOOK_COLS} FROM "testapp_book"'
+        assert len(analyzer.analyze([_make_query(sql)])) == 1
+
+    def test_non_pk_filter_is_still_flagged(self) -> None:
+        """A WHERE on a non-unique column bounds nothing."""
+        analyzer = FatSelectAnalyzer(field_count_threshold=5)
+        sql = (
+            f'SELECT {self._BOOK_COLS} FROM "testapp_book" '
+            'WHERE "testapp_book"."published_date" = ?'
+        )
+        assert len(analyzer.analyze([_make_query(sql)])) == 1

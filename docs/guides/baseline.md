@@ -1,6 +1,6 @@
 # Baseline Regression Detection
 
-A baseline is a snapshot of known query issues saved to a JSON file. On subsequent runs, django-query-doctor compares the current issues against the baseline and reports only **new regressions** — issues that were not present when the baseline was created.
+A baseline is a snapshot of known query issues saved to a JSON file. On subsequent runs, django-query-doctor compares the current issues against the baseline and reports only **new regressions** -- issues that were not present when the baseline was created.
 
 ---
 
@@ -8,13 +8,13 @@ A baseline is a snapshot of known query issues saved to a JSON file. On subseque
 
 The baseline comparison logic is in `query_doctor.baseline.BaselineSnapshot`:
 
-1. **What a baseline contains** — Each issue is stored as a serialized prescription dict with the analyzer type, file path, and description.
+1. **What a baseline contains** -- Each issue is stored as a serialized prescription dict with the analyzer type, file path, and description.
 
-2. **Why line numbers are ignored** — The baseline hashes each issue using a SHA-256 digest of `{issue_type}:{file_path}:{description}`. Line numbers are deliberately excluded because refactoring changes line numbers without changing the underlying issue. This prevents false regressions from code reformatting.
+2. **Why line numbers are ignored** -- The baseline hashes each issue using a SHA-256 digest of `{issue_type}:{file_path}:{description}`. Line numbers are deliberately excluded because refactoring changes line numbers without changing the underlying issue. This prevents false regressions from code reformatting.
 
-3. **What counts as a regression** — Any issue in the current run whose hash is not found in the baseline. These are new issues introduced since the baseline was created.
+3. **What counts as a regression** -- Any issue in the current run whose hash is not found in the baseline. These are new issues introduced since the baseline was created.
 
-4. **What counts as resolved** — Any issue in the baseline whose hash is not found in the current run. These are issues that have been fixed since the baseline was created.
+4. **What counts as resolved** -- Any issue in the baseline whose hash is not found in the current run. These are issues that have been fixed since the baseline was created.
 
 ---
 
@@ -45,11 +45,11 @@ This runs the full analysis and saves all detected issues to the specified JSON 
 }
 ```
 
-The schema is flat — there is no nested `callsite` object, and `severity` is
+The schema is flat -- there is no nested `callsite` object, and `severity` is
 lowercase (`"critical"`, `"warning"`, or `"info"`). The `version` field records
 the django-query-doctor version that saved the baseline; comparing against a
 baseline saved with a different version prints a non-blocking warning.
-Regenerate your baseline after upgrading — analyzer coverage can widen between
+Regenerate your baseline after upgrading -- analyzer coverage can widen between
 versions, and an old baseline reports newly-covered findings as regressions.
 
 ---
@@ -123,14 +123,14 @@ python manage.py diagnose_project \
 
 ## Limitations
 
-- **Per-project, not per-branch** — The baseline file does not track which git branch it was created on. If different branches have different query patterns, you may need separate baseline files.
-- **Resolved issues are not automatically removed** — When you fix an issue, it remains in the baseline file until you regenerate it with `--save-baseline`.
-- **Baseline file should be committed to version control** — This ensures all CI runs and developers compare against the same known state.
-- **URL-dependent** — The baseline captures issues for whatever URLs were analyzed. If you add new endpoints, they won't be covered until you regenerate the baseline.
+- **Per-project, not per-branch** -- The baseline file does not track which git branch it was created on. If different branches have different query patterns, you may need separate baseline files.
+- **Resolved issues are not automatically removed** -- When you fix an issue, it remains in the baseline file until you regenerate it with `--save-baseline`.
+- **Baseline file should be committed to version control** -- This ensures all CI runs and developers compare against the same known state.
+- **URL-dependent** -- The baseline captures issues for whatever URLs were analyzed. If you add new endpoints, they won't be covered until you regenerate the baseline.
 
 ---
 
 ## Further Reading
 
-- [Management Commands](management-commands.md) — Full flag reference for `check_queries` and `diagnose_project`
-- [CI/CD Integration](ci-integration.md) — Setting up automated query checks in your pipeline
+- [Management Commands](management-commands.md) -- Full flag reference for `check_queries` and `diagnose_project`
+- [CI/CD Integration](ci-integration.md) -- Setting up automated query checks in your pipeline

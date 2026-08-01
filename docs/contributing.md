@@ -39,10 +39,10 @@ MkDocs and related packages for building documentation locally.
 pytest
 
 # Check linting
-ruff check src/ tests/
+ruff check src/ tests/ scripts/ benchmarks/
 
 # Check types
-mypy src/query_doctor/
+mypy src/query_doctor/ scripts/ benchmarks/
 ```
 
 All three commands should pass before you start making changes.
@@ -116,22 +116,22 @@ For each analyzer, include these test cases:
 
 ```bash
 # Check for issues
-ruff check src/ tests/
+ruff check src/ tests/ scripts/ benchmarks/
 
 # Auto-fix issues
-ruff check src/ tests/ --fix
+ruff check src/ tests/ scripts/ benchmarks/ --fix
 
 # Format code
-ruff format src/ tests/
+ruff format src/ tests/ scripts/ benchmarks/
 
 # Check formatting without changes
-ruff format src/ tests/ --check
+ruff format src/ tests/ scripts/ benchmarks/ --check
 ```
 
 ### Type Checking with mypy
 
 ```bash
-mypy src/query_doctor/
+mypy src/query_doctor/ scripts/ benchmarks/
 ```
 
 All function signatures must have type hints. The project uses strict mypy
@@ -160,7 +160,7 @@ configuration.
 - **Module docstrings**: Every module has a module-level docstring explaining
   its purpose.
 - **No mutable module state**: Use `contextvars.ContextVar` for per-request
-  state — it is correct under threads *and* coroutines, unlike
+  state -- it is correct under threads *and* coroutines, unlike
   `threading.local()`. See
   [Per-Instance ContextVar Storage](deep-dive/architecture.md#per-instance-contextvar-storage).
 - **No direct settings access**: Use `query_doctor.conf.get_config()` instead
@@ -183,9 +183,9 @@ configuration.
 5. **Verify** everything passes:
    ```bash
    pytest
-   ruff check src/ tests/
-   ruff format src/ tests/ --check
-   mypy src/query_doctor/
+   ruff check src/ tests/ scripts/ benchmarks/
+   ruff format src/ tests/ scripts/ benchmarks/ --check
+   mypy src/query_doctor/ scripts/ benchmarks/
    ```
 6. **Commit** with a conventional commit message:
    ```bash
@@ -335,7 +335,12 @@ class MyAnalyzer(BaseAnalyzer):
 
         Args:
             queries: List of captured and fingerprinted queries.
-            models_meta: Optional Django model metadata.
+            models_meta: DEPRECATED; 3.0.0 removes this parameter. It is
+                currently always None -- nothing passes it. Accept it for
+                signature compatibility with older releases, or drop it
+                now: the argument is never passed, so a two-argument
+                analyze() is correct on 2.3.0 and required by 3.0.0.
+                Get model metadata from django.apps.apps instead.
 
         Returns:
             List of prescriptions for any detected issues.

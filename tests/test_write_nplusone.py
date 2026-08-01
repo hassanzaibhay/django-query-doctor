@@ -6,7 +6,11 @@ import pytest
 from django.db import connection
 from django.test import override_settings
 
-from query_doctor.analyzers.write_nplusone import WriteNPlusOneAnalyzer
+from query_doctor.analyzers.write_nplusone import (
+    WriteNPlusOneAnalyzer,
+    _max_in_list_size,
+    _values_tuple_count,
+)
 from query_doctor.conf import get_config
 from query_doctor.interceptor import QueryInterceptor
 from query_doctor.types import CallSite, CapturedQuery, IssueType, Severity
@@ -571,3 +575,43 @@ class TestWriteNPlusOneNeverCrashes:
         assert prescriptions[0].extra["model"] is None
         assert 'table "legacy_audit_rows"' in prescriptions[0].description
         assert "Model.objects.bulk_create" in prescriptions[0].fix_suggestion
+
+
+class TestQuoteAwareScanning:
+    """Entry 36: a comma inside a quoted literal is not a list separator.
+
+    Both counters were plain substring walks, so ``IN ('a,b')`` counted two
+    items, the statement was classified bulk, and the finding was suppressed.
+    The failure direction is safe -- a missed finding, never a wrong
+    prescription -- and reaching it needs a literal inlined into the SQL via
+    ``.extra()``, ``RawSQL`` or a hand-written ``cursor.execute()``, because
+    Django's ORM parameterises.
+    """
+
+    def test_in_list_ignores_commas_inside_a_literal(self) -> None:
+        """One quoted value containing commas is one item, not several."""
+        assert _max_in_list_size("""DELETE FROM "t" WHERE "name" IN ('a,b')""") == 1
+
+    def test_in_list_handles_doubled_quote_escapes(self) -> None:
+        """SQL escapes a quote by doubling it; the literal has not ended."""
+        assert _max_in_list_size("""DELETE FROM "t" WHERE "name" IN ('it''s,a,b')""") == 1
+
+    def test_in_list_still_counts_real_separators(self) -> None:
+        """Negative control: genuine multi-value lists must still read as bulk."""
+        assert _max_in_list_size("""DELETE FROM "t" WHERE "id" IN (?, ?, ?)""") == 3
+        assert _max_in_list_size("""DELETE FROM "t" WHERE "name" IN ('a,b', 'c')""") == 2
+
+    def test_values_tuple_count_ignores_parens_inside_a_literal(self) -> None:
+        """A parenthesis inside a string does not open a new row tuple."""
+        sql = """INSERT INTO "t" ("name") VALUES ('a(b')"""
+        assert _values_tuple_count(sql) == 1
+
+    def test_values_tuple_count_still_counts_real_tuples(self) -> None:
+        """Negative control: a genuine multi-row INSERT must still read as bulk."""
+        sql = """INSERT INTO "t" ("name") VALUES (?), (?), (?)"""
+        assert _values_tuple_count(sql) == 3
+
+    def test_in_list_ignores_the_keyword_inside_a_literal(self) -> None:
+        """`IN (` appearing inside a string is not an IN list at all."""
+        sql = """UPDATE "t" SET "note" = 'chained IN (a, b, c)' WHERE "id" = ?"""
+        assert _max_in_list_size(sql) == 0

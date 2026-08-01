@@ -16,7 +16,7 @@ from query_doctor.exceptions import QueryBudgetError
 def get_all_books():
     books = list(Book.objects.all())
     for book in books:
-        _ = book.author.name  # N+1 — will be reported
+        _ = book.author.name  # N+1 -- will be reported
     return books
 
 # Calling get_all_books() prints diagnosis to stderr
@@ -28,14 +28,14 @@ books = get_all_books()
 def efficient_book_list():
     return list(Book.objects.select_related('author', 'publisher').all())
 
-# This passes — optimized query stays under budget
+# This passes -- optimized query stays under budget
 books = efficient_book_list()
 
 @query_budget(max_queries=5)
 def inefficient_book_list():
     books = list(Book.objects.all())
     for book in books:
-        _ = book.author.name  # N+1 — will exceed budget
+        _ = book.author.name  # N+1 -- will exceed budget
     return books
 
 # This raises QueryBudgetError!

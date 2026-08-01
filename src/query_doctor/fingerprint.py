@@ -18,7 +18,13 @@ _RE_FALSE = re.compile(r"\bFALSE\b", re.IGNORECASE)
 _RE_NUMERIC = re.compile(r"\b\d+(?:\.\d+)?\b")
 _RE_IN_CLAUSE = re.compile(r"\bIN\s*\([^)]*\)", re.IGNORECASE)
 _RE_WHITESPACE = re.compile(r"\s+")
-_RE_FROM_JOIN_TABLE = re.compile(r'(?:FROM|JOIN)\s+"?(\w+)"?', re.IGNORECASE)
+# FROM/JOIN covers reads. The write forms name their target table after a
+# different keyword and would otherwise report no tables at all, which left
+# every write invisible to any analyzer that reasons about table overlap.
+_RE_FROM_JOIN_TABLE = re.compile(
+    r'(?:FROM|JOIN|UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+"?(\w+)"?',
+    re.IGNORECASE,
+)
 
 
 def normalize_sql(sql: str) -> str:
@@ -72,13 +78,14 @@ def fingerprint(sql: str) -> str:
 
 
 def extract_tables(sql: str) -> list[str]:
-    """Extract table names from FROM and JOIN clauses in a SQL query.
+    """Extract the table names a SQL statement reads or writes.
 
     Handles: FROM table, JOIN table, FROM table AS alias,
-    FROM "quoted_table", and subqueries.
+    FROM "quoted_table", and subqueries; plus the write forms
+    UPDATE table, INSERT INTO table and DELETE FROM table.
     Returns a deduplicated list of table names (without quotes or aliases).
     """
-    # Match FROM or JOIN followed by a table name (optionally quoted)
+    # Match the keywords that introduce a table name (optionally quoted)
     matches = _RE_FROM_JOIN_TABLE.findall(sql)
 
     # Deduplicate while preserving order

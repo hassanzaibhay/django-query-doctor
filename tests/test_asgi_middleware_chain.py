@@ -35,6 +35,7 @@ from asgiref.sync import sync_to_async
 from django.http import HttpResponse
 from django.test import AsyncClient, Client, RequestFactory, override_settings
 
+from query_doctor.exceptions import QueryDoctorWarning
 from query_doctor.interceptor import QueryInterceptor
 from query_doctor.middleware import QueryDoctorMiddleware
 from tests.asgi_driver import asgi_get_concurrent_sync, asgi_get_sync, drive_embedded
@@ -512,3 +513,60 @@ class TestDirectInstantiationPredicate:
         middleware = QueryDoctorMiddleware(sync_to_async(view))
 
         assert middleware._is_async is True
+
+
+class TestDirectEmbedWarnsInsteadOfSilentZero:
+    """Entry 35: the hand-embed route announces the limitation it hits.
+
+    Entry 22 ended the silent-nothing for ``diagnose_queries()``. The
+    identical failure on this route stayed silent, so the two behaved
+    inconsistently: one announced the limitation, the other reported a clean
+    zero. PR #33's predicate does not transfer -- ``asyncio.get_running_loop()``
+    is unconditionally true inside ``__acall__`` -- so the warning is driven by
+    a direct probe of the thread-sensitive executor's connection instead. That
+    is exact in both directions: an async handler doing sync ORM inline
+    resolves the loop thread's connection and captures correctly, and must not
+    warn.
+    """
+
+    @ASYNC_ORM_DB
+    def test_async_orm_on_the_embed_route_warns(self) -> None:
+        """Zero captured queries on a route that cannot capture is announced."""
+        with pytest.warns(QueryDoctorWarning, match="executor thread"):
+            captured = drive_embedded(views.async_orm_aget)
+        assert captured == []
+
+    @ASYNC_ORM_DB
+    def test_sync_view_through_the_same_harness_does_not_warn(self) -> None:
+        """Negative control: the working route must stay quiet.
+
+        Without this the warning above would be indistinguishable from one
+        that fires unconditionally.
+        """
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", QueryDoctorWarning)
+            captured = drive_embedded(views.sync_orm_publisher)
+        assert len(captured) > 0, "positive control: this route really does capture"
+
+    @ASYNC_ORM_DB
+    def test_warning_is_emitted_once_per_instance(self) -> None:
+        """The warning describes wiring, so it must not repeat per request.
+
+        The wiring cannot change between requests, so a per-request warning
+        would be pure noise on a long-running process.
+        """
+        import warnings
+
+        # acount is idempotent, so three drives do not disturb each other.
+        middleware = QueryDoctorMiddleware(views.async_orm_acount)
+        factory = RequestFactory()
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", QueryDoctorWarning)
+            for _ in range(3):
+                asyncio.run(middleware(factory.get("/embedded/")))
+
+        relevant = [w for w in caught if issubclass(w.category, QueryDoctorWarning)]
+        assert len(relevant) == 1
