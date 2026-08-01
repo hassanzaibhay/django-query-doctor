@@ -1850,9 +1850,287 @@ and rendered here automatically by MkDocs.</p>
 <p>All notable changes to this project will be documented in this file.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/">Semantic Versioning</a>.</p>
+<blockquote>
+<p><strong>Two sections below describe releases that were never published: <code>[1.0.3]</code>
+and <code>[2.0.1]</code>.</strong> There are ten version sections here and eight git tags, and
+the two without a tag are the same two with no artifact on PyPI. If you are
+choosing a version to install, those two are not installable; use <code>1.0.2</code> or
+<code>2.0.0</code> respectively. The sections are left in place rather than deleted,
+because released sections are never edited retroactively -- this note is the
+additive remedy.</p>
+<p>Section dates are the PyPI upload date. That holds exactly for 2.1.0 through
+2.2.0. Three earlier headings are within a day of their upload, which is a
+timezone artifact (PyPI reports UTC, uploads were from UTC+5) and not an
+error; <code>2.0.0</code> is dated two days before its upload and is simply wrong.</p>
+</blockquote>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
-<h2 id="220-2026-07-30">[2.2.0] - 2026-07-30<a class="headerlink" href="#220-2026-07-30" title="Permanent link">&para;</a></h2>
+<h2 id="230-2026-08-01">[2.3.0] - 2026-08-01<a class="headerlink" href="#230-2026-08-01" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>reset_turbo_override()</code> is exported from <code>query_doctor.turbo</code>, alongside
+  <code>set_turbo_override()</code> and <code>get_turbo_override()</code>. 2.2.0's release notes
+  pointed users at <code>set_turbo_override()</code> as the replacement for the removed
+  <code>turbo.patch.set_thread_override</code>, but the token it returns could not be
+  reset from outside the module: resetting a <code>ContextVar</code> needs the variable
+  itself, and <code>_turbo_override</code> is private. The manual override is now
+  actually usable, is documented in the QueryTurbo guide, and is covered by
+  tests. <code>turbo_enabled()</code> and <code>turbo_disabled()</code> now route through
+  <code>set_turbo_override()</code> rather than setting the ContextVar directly, so the
+  helper the changelog recommends has a caller in the package.</li>
+<li>The console reporter prints a one-line note when a report contains both an
+  N+1 finding and a fat SELECT finding, saying that fixing the N+1 widens the
+  base query and that the fat SELECT findings should be re-read afterwards.
+  Prescriptions are now returned in the order they should be applied rather
+  than in analyzer-discovery order: N+1 first, fat SELECT last.</li>
+<li><code>check_serializers</code>' loop check and the N+1 analyzer's relation resolution
+  are covered by tests that <em>run</em> the prescribed queryset call against real
+  Django, so a prescription naming a field that does not resolve fails with
+  the error Django raises rather than passing a string comparison.</li>
+</ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>docs/deep-dive/architecture.md</code> no longer shows a fabricated console
+  block.</strong> The section illustrated the console reporter with hand-written
+  output the tool has never produced: three of its four distinctive strings
+  (<code>QUERY DOCTOR REPORT</code>, <code>N+1 Query Detected</code>, <code>match fingerprint</code>) appear
+  zero times in <code>src/</code>, and the fourth (<code>Total queries:</code>) appears on 3 lines
+  but only as part of a differently shaped summary line. It is replaced with
+  an excerpt of the real committed capture, and the surrounding prose now
+  describes the Rich and plain paths as the different renderings they are
+  rather than claiming they print the same block.</li>
+<li><strong>The QueryTurbo speedup table is re-measured and correctly labelled.</strong> The
+  published figures (123x / 153x / 294x / 374x / 214x / 1,050x) did not
+  reproduce with the documented command: every value came back 30-50% lower,
+  and the complex scenario measured 523.4x -- below the 727x floor that the
+  "hardware variance" note disclosed, so the caveat failed too. The table is
+  replaced with a single run on a named machine, is explicitly labelled as the
+  <code>compilation_only</code> section of <code>benchmarks/results.json</code>, and the docs now
+  state up front that the last line the command prints is the <em>end-to-end</em>
+  result and comes out below 1x on SQLite in-memory, explaining why that is
+  expected rather than a defect. That end-to-end figure is given as a run with
+  its observed run-to-run spread rather than as a single value, since publishing
+  one point estimate as a constant is the fault this entry was about. The table
+  was duplicated on two pages; it now lives on one, with the other linking to
+  it.</li>
+<li><code>docs/guides/auto-fix.md</code> lists all nine <code>IssueType</code> members instead of
+  seven, and marks which are selectable via <code>--issue-type</code>. The guide said
+  "five of the seven issue types", omitted <code>serializer_method_field</code> (shipped
+  in v2.0) and <code>write_n_plus_one</code> (shipped in 2.2.0), and described
+  <code>--issue-type complexity</code> as accepted-but-fruitless when argparse rejects it
+  outright -- contradicting the guide's own statement two paragraphs below that
+  an unknown value "is rejected with an error before anything runs".</li>
+<li><code>docs/api/reference.md</code> autodocs all eight analyzers. <code>WriteNPlusOneAnalyzer</code>
+  and <code>SerializerMethodAnalyzer</code> were absent, so the API reference disagreed
+  with the two other pages that count the analyzer set correctly.</li>
+<li><strong><code>models_meta</code> is documented as reserved and always <code>None</code>.</strong> The parameter
+  is part of the <code>BaseAnalyzer</code> contract and appears in all eight analyzers,
+  but nothing in the package passes it: the only call site,
+  <code>pipeline.analyze()</code>, calls <code>analyzer.analyze(queries)</code>. <code>base.py</code> described
+  it as "for enhanced analysis" and the plugin guide said it "may be <code>None</code>" --
+  both of which invite a plugin author to write code against a value that never
+  arrives. All six documentation sites and the base-class docstring now say it
+  is always <code>None</code>. Removing the parameter would break third-party analyzer
+  signatures, so it happens in a major version; see <strong>Deprecated</strong> below, where
+  that removal is announced for 3.0.0.</li>
+<li>Three documents quoted the <code>missing_index</code> TODO comment with an em dash the
+  fixer does not emit (it writes an ASCII hyphen). Corrected, and pinned by a
+  test that asserts the emitted separator <em>and</em> sweeps every tracked markdown
+  file for a recurrence -- a test on the emitted string alone would have stayed
+  green throughout, because the defect was never in <code>src/</code>.</li>
+<li><code>docs/guides/async-support.md</code> backs or withdraws the claims its own
+  inventory flagged as asserted-unbacked. <code>async with diagnose_queries()</code>
+  raising, and <code>@query_budget</code> on a coroutine not enforcing, are now measured,
+  each with a control. Backing the first corrected it: the guide said it raises
+  <code>TypeError</code>, which holds only on Python 3.11 and later -- on 3.10 the same
+  code raises <code>AttributeError: __aenter__</code>, so a reader on the oldest supported
+  interpreter writing <code>except TypeError</code> would not have caught it. Both types
+  are now named, in both places the guide states the limitation. The
+  concurrency and "not a change relative to 2.1.1" claims cite the tests that
+  establish them. The connection-pooler and
+  <code>asyncpg</code> limitations now say plainly that neither is exercised here. The
+  claim that the interceptor's <code>ContextVar</code> storage "does propagate across
+  <code>await</code>" is withdrawn rather than reworded: no code path shares an
+  interceptor between contexts, so no test could distinguish it from thread
+  separation, and the thread-locality of Django's connection registry is what
+  decides the outcome anyway.</li>
+<li><code>CHANGELOG.md</code> gains a note at the top recording that <code>[1.0.3]</code> and
+  <code>[2.0.1]</code> describe releases that were never published -- ten version sections
+  against eight git tags, and the two without a tag are the two with no PyPI
+  artifact. The sections are left in place; released sections are not edited
+  retroactively, so the note is the additive remedy.</li>
+<li><strong><code>benchmarks/</code> is inside the gates.</strong> The v2.0 QueryTurbo suite sat outside
+  the commands, which named <code>src/ tests/ scripts/</code>, and failed them: 12 ruff
+  errors and 14 mypy errors. Both are fixed and all three gate declarations --
+  CI, the pre-push hook, and the contributor docs -- are widened in the same
+  change, so the errors cannot be reintroduced. Two waivers are recorded with
+  reasons rather than left implicit: <code>E501</code> for <code>benchmarks/report.py</code>, whose
+  long lines are CSS and Chart.js inside an HTML template rather than Python,
+  and <code>attr-defined</code> for <code>benchmarks.*</code>, because the django-stubs plugin
+  resolves models against <code>tests.settings</code> where the benchmark app is
+  deliberately not installed. Nothing shipped is affected: the wheel packages
+  <code>src/query_doctor</code> only.</li>
+<li><strong>A new gate keeps <code>src/</code> and config free of em and en dashes.</strong> It ships
+  green -- the baseline is zero -- which is the cheapest moment to install one;
+  the exposure it closes is that the clean state was previously unenforced.
+  <code>scripts/dash_gate.py</code> classifies by token kind, as CLAUDE.md prescribes,
+  flagging only COMMENT tokens and docstring STRING tokens. That makes the
+  program-output exemption fall out automatically rather than needing a
+  maintained list: <code>print()</code> heredocs and <code>title=</code> arguments are not
+  docstrings. It runs in CI and on pre-push, and is stdlib-only so it needs no
+  install. Its own tests feed it dash-carrying input in every flagged position
+  <em>and</em> in every exempt one, because a gate verified only against a clean tree
+  is verified against nothing.</li>
+<li><strong>The CI matrix exercises the two claimed cells it was skipping.</strong> Python
+  3.10 x Django 5.1 and 3.10 x Django 5.2 were excluded despite Django
+  declaring <code>requires_python &gt;= 3.10</code> for both, so the README badge and the
+  trove classifiers claimed combinations nothing tested. Only the two
+  genuinely impossible cells remain excluded (Django 6.0 needs 3.12), taking
+  the matrix from 16 to 18 jobs.</li>
+<li>Two marketing-register sentences are replaced with checkable statements:
+  <code>comparison.md</code>'s "provides the most comprehensive CI analysis" now says what
+  it does that <code>nplusone</code> does not, and <code>custom-plugins.md</code>'s "integrate
+  seamlessly" now says what integration actually means.</li>
+</ul>
+<h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>models_meta</code> is deprecated. 3.0.0 removes it from the
+  <code>BaseAnalyzer.analyze()</code> signature.</strong> Nothing has ever populated it. The sole
+  call site, <code>pipeline.py:92</code>, calls <code>analyzer.analyze(queries)</code> for every
+  analyzer on every run, so the argument is <code>None</code> unconditionally, and all
+  eight built-in analyzers ignore it. It is part of the plugin contract rather
+  than an internal detail, which is the only reason its removal waits for a
+  major version instead of happening in this release.</li>
+</ul>
+<p><strong>What a third-party analyzer author has to do.</strong> Nothing for 2.3.0: an
+  <code>analyze(self, queries, models_meta=None)</code> signature keeps working
+  unchanged. But since the argument is never passed, you can drop the
+  parameter today and be correct on both 2.3.0 and 3.0.0:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># accepted by 2.3.0, required by 3.0.0</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">CapturedQuery</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Prescription</span><span class="p">]:</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">...</span>
+</span></code></pre></div>
+<p>If you keep the parameter, remove it when you adopt 3.0.0. If you read the
+  value and branch on it, that branch is unreachable today and should go now.
+  Do not add a <code>None</code> check waiting for a value to arrive, because none will.</p>
+<p>The documentation that described the parameter was corrected in this release
+  rather than left to the deprecation: six doc sites and the <code>base.py</code>
+  docstring said "optional model metadata" or "may be <code>None</code>", which invited
+  exactly that <code>None</code> check. They now state that it is reserved and always
+  <code>None</code>, and <code>docs/guides/custom-plugins.md</code> and <code>docs/contributing.md</code> carry
+  this removal notice.</p>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>check_queries --url</code> no longer exits 0 for a URL that does not resolve.</strong>
+  Both a <code>Resolver404</code> and any exception raised inside the view were swallowed
+  identically, and the command went on to report zero captured queries and
+  exit 0. For a tool whose CI story is "fail the build on new issues",
+  analysing nothing was indistinguishable from finding nothing, so a typo in a
+  <code>--url</code> argument turned the gate green permanently. Each case now raises a
+  <code>CommandError</code> with its own wording, naming the URL. <strong>This can turn a
+  previously-green CI gate red.</strong> If your pipeline runs <code>check_queries --url</code>
+  against a path that does not resolve, or against a view that raises, the
+  build will now fail where it previously passed -- which is the point of the
+  fix. Check the URL before upgrading.</li>
+<li><strong>The N+1 analyzer no longer prescribes a field that raises <code>FieldError</code>.</strong>
+  On a repeated primary-key lookup the field name was derived by string-slicing
+  the table name (<code>testapp_author</code> -&gt; <code>author</code>) whenever no foreign key was
+  found, and the foreign-key path was no safer: it searched every model in the
+  project for a field pointing at the target table, with no knowledge of which
+  model the caller was iterating. <code>Author.objects.get(pk=pk)</code> in a loop
+  prescribed <code>.select_related('author')</code>, which raises. A relation is now named
+  only after it resolves through <code>Model._meta.get_field()</code>, and only when an
+  earlier query in the same capture read the table that declares it -- so a
+  genuine forward-FK N+1 still gets <code>select_related</code>, and a bare <code>get(pk=...)</code>
+  loop gets the advice that actually applies: fetch the rows in one query with
+  <code>in_bulk()</code> or <code>filter(pk__in=...)</code>. The prescription text changes for both
+  cases, and it now names the model the call belongs to.</li>
+<li>The reverse-foreign-key branch of the same analyzer had the same defect,
+  found while fixing the above: for <code>WHERE "book"."author_id" = ?</code> it read the
+  field name off the column (<code>author</code>) and prescribed
+  <code>prefetch_related('author')</code> on what is necessarily an <code>Author</code> queryset. It
+  now resolves the reverse accessor on the far side of the relation
+  (<code>books</code>) and validates it against that model.</li>
+<li>The <code>serializer_method</code> analyzer no longer prescribes <code>prefetch_related()</code>
+  for a loop over a scalar attribute. <code>for ch in obj.title</code> over a <code>CharField</code>
+  produced <code>prefetch_related('title')</code>, which raises <code>ValueError</code>. The
+  bare-attribute loop branch now confirms the attribute is a relation --
+  through <code>Meta.model</code> when the serializer has one, otherwise through Django's
+  own <code>_set</code> reverse-accessor suffix -- and emits nothing when it cannot.</li>
+<li>The <code>duplicate</code> analyzer no longer reports a re-read that follows a write to
+  the same table. Read, write, read back is ordinary Django, and following the
+  prescription ("assign the result to a variable and reuse it") returns the
+  pre-write row. This was the one finding in the set whose fix was a
+  correctness regression rather than a missed optimisation, so the group is
+  suppressed rather than reworded.</li>
+<li><code>fat_select</code> no longer counts a joined table's columns against the base
+  table. The column count came from the whole select list while the table name
+  came from the <code>FROM</code> clause, so <code>Book.objects.select_related("author")</code>
+  reported 13 columns "from testapp_book" when Book has 8, and the prescribed
+  <code>.defer()</code> addressed only a fraction of them.</li>
+<li><code>fat_select</code> no longer fires on a single-row lookup. <code>Book.objects.get(pk=1)</code>
+  returns one row and hit the default threshold of 8 with the model's own
+  columns, so every read of an ordinary Django model produced a finding. A
+  primary-key equality test or an explicit <code>LIMIT 1</code> is now exempt.</li>
+<li><code>extract_tables()</code> reports the target table of <code>UPDATE</code>, <code>INSERT INTO</code> and
+  <code>DELETE FROM</code> statements. It matched only <code>FROM</code> and <code>JOIN</code>, so every write
+  reported no tables at all and was invisible to any analyzer reasoning about
+  which tables a statement touches.</li>
+<li><code>write_nplusone</code>'s IN-list and VALUES counters are aware of quoted string
+  literals. <code>WHERE "name" IN ('a,b')</code> counted two items, so the statement was
+  classified as a bulk write and the finding was suppressed. Reaching this
+  needs a literal inlined into the SQL through <code>.extra()</code>, <code>RawSQL</code> or a
+  hand-written <code>cursor.execute()</code>, because Django's ORM parameterises.</li>
+<li>Embedding the middleware by hand around an async handler now emits a
+  <code>QueryDoctorWarning</code> instead of silently reporting zero. On that route the
+  <code>execute_wrapper</code> is installed on the event loop thread's connection while
+  Django runs async ORM work on a separate executor thread, so <code>aget</code>,
+  <code>acreate</code>, <code>acount</code>, <code>aexists</code> and async iteration were never captured and
+  nothing said so. The condition is probed by asking the executor whether it
+  can see the interceptor, not predicted, so an async handler doing sync ORM
+  inline stays quiet. The warning describes the wiring rather than one
+  request, so it is emitted at most once per middleware instance. Suites that
+  escalate warnings to errors will fail on a hand-embedded async middleware.</li>
+<li>Removed the dead <code>_severity_color()</code> helper from the project report
+  generator, and two parameters that were declared and never read:
+  <code>_suggest_simplification</code>'s <code>score</code> (whose docstring documented it) and
+  <code>_render_executive_summary</code>'s <code>total_warnings</code>. 2.2.0 removed five dead
+  symbols, so a reader could reasonably assume the sweep was complete.</li>
+<li><code>tests/test_management_commands.py</code> drove <code>check_queries</code> at <code>/test/</code>, which
+  is absent from the test URLconf, so nine tests analysed zero queries and
+  asserted against an empty report. <code>test_baseline_no_regression_exits_zero</code>
+  compared an empty baseline against an empty run and would have passed with
+  <code>--fail-on-regression</code> deleted; it is rebuilt around a non-empty baseline and
+  paired with a negative control that fails when a regression is introduced.
+  <code>diagnose_project</code>'s baseline path -- documented in the baseline guide and
+  previously the largest uncovered block in the package -- now has tests for
+  save, no-regression, regression and resolved-issue reporting.</li>
+<li><strong>The example artifacts no longer ship the author's local absolute paths.</strong>
+  <code>examples/outputs/report.{html,json}</code> and
+  <code>examples/screenshots/*.capture.txt</code> carried <code>C:\Users\&lt;user&gt;\...</code> and a
+  pytest fixture directory including a Windows account display name, across 20
+  lines in 4 files. These are generated artifacts committed exactly as
+  produced, and they ship inside the sdist, so the paths were published.
+  <code>scripts/regen_examples.py</code> now normalizes them -- the repository root
+  becomes a repo-relative path with forward slashes, the fixture directory
+  becomes <code>&lt;tmpdir&gt;</code> -- and asserts before writing that nothing leaked. All
+  four artifacts are regenerated. The published 2.2.0 sdist is immutable and
+  keeps its copies permanently; this fix applies from the next release
+  onwards. The artifacts were <strong>not</strong> hand-edited: hand-editing a generated
+  capture is what produced the fabricated files <code>51c72cd</code> had to delete.</li>
+<li><code>tests/test_svg_capture_sync.py</code> covers the two artifacts it never touched
+  (<code>report.html</code> and <code>report.json</code>), asserts that no generated artifact
+  carries an absolute local path in any of its spellings, and adds the
+  staleness check that was missing: both captures are regenerated into a
+  temporary directory and diffed against the committed copies, with durations
+  masked because they legitimately differ between runs. The staleness check
+  was only possible once the paths were normalized, since the fixture
+  directory's counter changed on every run. It immediately earned its place:
+  the console capture had drifted from the N+1 prescription wording changed
+  above, and the transcription in <code>examples/generate_svgs.py</code> was corrected
+  rather than the test relaxed.</li>
+</ul>
+<h2 id="220-2026-07-30">[2.2.0] - 2026-07-30<a class="headerlink" href="#220-2026-07-30" title="Permanent link">&para;</a></h2>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>An eighth built-in analyzer, <code>write_nplusone</code>, detects repeated single-row
   writes — the <code>.save()</code>, <code>.create()</code> or <code>.delete()</code> in a loop that issues one
@@ -1900,7 +2178,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   middleware returns before analysis when nothing was captured while the six
   other dispatch surfaces do not.</li>
 </ul>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Settings that were accepted and then ignored now take effect.
   <code>STACK_TRACE_EXCLUDE</code> reaches the callsite finder, <code>QUERYIGNORE_PATH</code>
@@ -1975,7 +2253,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   <code>turbo.context.set_turbo_override</code>. It had no caller in the package, no test,
   and no mention in the docs. Use <code>set_turbo_override</code> directly.</li>
 </ul>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Prescriptions no longer point at a line inside Django on Debian and Ubuntu
   system Python. Callsite detection named only three Django ORM modules in its
@@ -2024,7 +2302,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   is qualified, not withdrawn.</li>
 </ul>
 <h2 id="212-2026-07-22">[2.1.2] - 2026-07-22<a class="headerlink" href="#212-2026-07-22" title="Permanent link">&para;</a></h2>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>QueryDoctorMiddleware.async_capable</code> is now <code>False</code></strong> (was <code>True</code>). This is
   the fix for the two ASGI defects below, not a withdrawal of ASGI support —
@@ -2049,7 +2327,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   The <code>async_capable = False</code> subclass workaround circulating in issue #11
   becomes redundant but stays harmless.</li>
 </ul>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>ASGI requests failed with <code>TypeError: object HttpResponse can't be used in
   'await' expression</code></strong> (<code>HttpResponseServerError</code> when <code>DEBUG = False</code>), raised
@@ -2091,14 +2369,14 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   asgiref-wrapped handler — so this affected direct instantiation only.</li>
 </ul>
 <h2 id="211-2026-07-17">[2.1.1] - 2026-07-17<a class="headerlink" href="#211-2026-07-17" title="Permanent link">&para;</a></h2>
-<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>QueryDoctorWarning</code> (subclass of <code>UserWarning</code>), exported from
   <code>query_doctor</code> — the package's warning category for runtime advisories,
   filterable by category (<code>ignore::query_doctor.QueryDoctorWarning</code>)
   without touching other <code>UserWarning</code>s.</li>
 </ul>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The <code>query_doctor</code> pytest fixture now emits a <code>QueryDoctorWarning</code> when
   requested: its <code>DiagnosisReport</code> is populated only during test teardown,
@@ -2108,7 +2386,7 @@ and this project adheres to <a href="https://semver.org/">Semantic Versioning</a
   fixture use — that is the intended signal; suppress just this category
   with <code>ignore::query_doctor.QueryDoctorWarning</code>.</li>
 </ul>
-<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The CI integration guide prescribed in-test assertions on the
   <code>query_doctor</code> fixture object and claimed they gate CI — those
@@ -2139,14 +2417,14 @@ analyzer coverage means an old baseline will report newly-covered findings as
 regressions until it's refreshed. Comparing against a baseline saved with a
 different query-doctor version now prints a non-blocking warning rather than
 failing the check. See <code>UPGRADING.md</code> for the full 2.1.0 upgrade checklist.</p>
-<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
+<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>IssueType.SERIALIZER_METHOD_FIELD</code> — findings from <code>SerializerMethodAnalyzer</code>
   (the <code>check_serializers</code> static analyzer) now carry their own issue type
   instead of sharing <code>IssueType.DRF_SERIALIZER</code> with the deleted runtime
   analyzer. <code>DRF_SERIALIZER</code> remains in the enum for plugin/fixer compatibility.</li>
 </ul>
-<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_4">Fixed<a class="headerlink" href="#fixed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>nplusone</code>, <code>duplicate</code>, and <code>missing_index</code> analyzers now respect their
   <code>ANALYZERS.&lt;name&gt;.enabled</code> config setting. Previously, disabling these
@@ -2201,7 +2479,7 @@ including the <code>fix_queries --apply</code> corruption fix below — first re
 PyPI in 2.1.0. To check whether a 2.0.0 <code>--apply</code> run already damaged
 your source, see <code>UPGRADING.md</code>.</p>
 </blockquote>
-<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>docs/getting-started/configuration.md</code>: full rewrite. The previous
   example used dotted class paths for <code>ANALYZERS</code> and dotted-path
@@ -2215,7 +2493,7 @@ your source, see <code>UPGRADING.md</code>.</p>
 <li><code>docs/guides/auto-fix.md</code>: updated to describe the new safe/unsafe split
   and the <code>ast.parse()</code> validation floor.</li>
 </ul>
-<h3 id="fixed_4">Fixed<a class="headerlink" href="#fixed_4" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_5">Fixed<a class="headerlink" href="#fixed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>fix_queries --apply</code> could write broken code into your source files.</strong>
   The fixer edits the query's <em>callsite</em> line, but for <code>n_plus_one</code> and
@@ -2242,7 +2520,7 @@ your source, see <code>UPGRADING.md</code>.</p>
   <code>drf_serializer</code> is never emitted by the runtime pipeline <code>fix_queries</code>
   uses, so it never reaches the fixer at all.</p>
 <h2 id="200-2026-03-21">[2.0.0] - 2026-03-21<a class="headerlink" href="#200-2026-03-21" title="Permanent link">&para;</a></h2>
-<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
+<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>QueryTurbo</strong>: SQL compilation cache with three-phase trust lifecycle
   (UNTRUSTED → TRUSTED → POISONED). On cache miss, compiles and caches.
@@ -2299,7 +2577,7 @@ your source, see <code>UPGRADING.md</code>.</p>
 <li><strong>Annotation source field fingerprinting</strong>: Annotations with the same
   name but different field targets produce different fingerprints.</li>
 </ul>
-<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
+<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Minimum Python version remains 3.10</li>
 <li>All existing v1.x APIs remain backward compatible</li>
@@ -2313,13 +2591,13 @@ your source, see <code>UPGRADING.md</code>.</p>
 <p><strong>Never published to PyPI.</strong> This version exists only in the repository
 history; its changes first shipped to PyPI as part of 2.0.0.</p>
 </blockquote>
-<h3 id="fixed_5">Fixed<a class="headerlink" href="#fixed_5" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_6">Fixed<a class="headerlink" href="#fixed_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Missing Index analyzer now recommends <code>Meta.indexes</code> with <code>models.Index()</code> instead of <code>db_index=True</code>, following Django's official recommendation since 4.2 (fixes #1)</li>
 <li>Auto-fix for missing indexes now generates <code>Meta.indexes</code> suggestion instead of <code>db_index=True</code></li>
 <li><code>_field_is_indexed</code> now checks <code>Meta.constraints</code> for <code>UniqueConstraint</code> (modern Django 4.2+ pattern) in addition to <code>unique_together</code></li>
 </ul>
-<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
+<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Full audit of all prescription texts across all 7 analyzers to align with Django 4.2–6.0 best practices</li>
 <li>Fat SELECT prescriptions now mention <code>.values()</code>/<code>.values_list()</code> as alternatives when model instances aren't needed</li>
@@ -2328,13 +2606,13 @@ history; its changes first shipped to PyPI as part of 2.0.0.</p>
 <li>Updated docs, README, and all affected tests to reflect new recommendation text</li>
 </ul>
 <h2 id="102-2026-03-16">[1.0.2] - 2026-03-16<a class="headerlink" href="#102-2026-03-16" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_6">Fixed<a class="headerlink" href="#fixed_6" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_7">Fixed<a class="headerlink" href="#fixed_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Fixed SVG terminal renders not displaying on GitHub (switched to absolute URLs)</li>
 <li>Removed Google Fonts @import from SVGs blocked by GitHub CSP</li>
 </ul>
 <h2 id="101-2026-03-15">[1.0.1] - 2026-03-15<a class="headerlink" href="#101-2026-03-15" title="Permanent link">&para;</a></h2>
-<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
+<h3 id="changed_7">Changed<a class="headerlink" href="#changed_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Added SVG terminal renders to README for visual feature showcase</li>
 <li>Added Django 6.0 mention in README requirements</li>
@@ -2352,7 +2630,7 @@ render project-report data; that dead code — the function, its global, and
 the unused context key — was removed in 2.2.0. The original entries are
 preserved unchanged below.</p>
 </blockquote>
-<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
+<h3 id="added_5">Added<a class="headerlink" href="#added_5" title="Permanent link">&para;</a></h3>
 <h4 id="core-pipeline">Core Pipeline<a class="headerlink" href="#core-pipeline" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Query interception via <code>connection.execute_wrapper()</code> — works without <code>DEBUG=True</code></li>

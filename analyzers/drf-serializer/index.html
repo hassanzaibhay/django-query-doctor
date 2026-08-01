@@ -2069,7 +2069,7 @@
 <code>get_&lt;field&gt;</code> methods using Python's <code>ast</code> module, without executing the
 code. This catches the #1 hidden N+1 source in DRF apps: a <code>get_&lt;field&gt;</code>
 method that triggers a database query per serialized object.</p>
-<p>This is a <strong>static</strong> analyzer only — it reads source code, not runtime
+<p>This is a <strong>static</strong> analyzer only -- it reads source code, not runtime
 queries. Run it explicitly via the <code>check_serializers</code> management command;
 it does not run automatically in the middleware/request pipeline.</p>
 <h2 id="running-it">Running It<a class="headerlink" href="#running-it" title="Permanent link">&para;</a></h2>
@@ -2126,11 +2126,11 @@ it does not run automatically in the middleware/request pipeline.</p>
 </table>
 <h2 id="what-it-does-not-detect">What It Does Not Detect<a class="headerlink" href="#what-it-does-not-detect" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Indirect queryset access</strong> — If a <code>get_&lt;field&gt;</code> method calls a helper function that internally runs a query, the analyzer cannot follow that call chain.</li>
-<li><strong>Dynamic attribute access</strong> — <code>getattr(obj, field_name)</code> is not analyzed.</li>
-<li><strong>Cached properties</strong> — If <code>obj.author</code> is a <code>@cached_property</code>, the analyzer still flags it as a potential N+1 since it cannot determine caching at the AST level.</li>
-<li><strong>Methods with no source</strong> — C extensions or dynamically generated methods where <code>inspect.getsource()</code> fails are silently skipped.</li>
-<li><strong>Queries in exception handlers</strong> — Queries inside <code>try</code>/<code>except</code> blocks are detected, but the analyzer does not account for whether the code path is actually reached.</li>
+<li><strong>Indirect queryset access</strong> -- If a <code>get_&lt;field&gt;</code> method calls a helper function that internally runs a query, the analyzer cannot follow that call chain.</li>
+<li><strong>Dynamic attribute access</strong> -- <code>getattr(obj, field_name)</code> is not analyzed.</li>
+<li><strong>Cached properties</strong> -- If <code>obj.author</code> is a <code>@cached_property</code>, the analyzer still flags it as a potential N+1 since it cannot determine caching at the AST level.</li>
+<li><strong>Methods with no source</strong> -- C extensions or dynamically generated methods where <code>inspect.getsource()</code> fails are silently skipped.</li>
+<li><strong>Queries in exception handlers</strong> -- Queries inside <code>try</code>/<code>except</code> blocks are detected, but the analyzer does not account for whether the code path is actually reached.</li>
 </ul>
 <h2 id="problem-code">Problem Code<a class="headerlink" href="#problem-code" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookSerializer</span><span class="p">(</span><span class="n">serializers</span><span class="o">.</span><span class="n">ModelSerializer</span><span class="p">):</span>
@@ -2215,7 +2215,7 @@ without error.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

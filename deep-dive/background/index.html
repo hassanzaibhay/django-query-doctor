@@ -2145,7 +2145,7 @@
 <p>Why django-query-doctor exists, the problems it solves, and the key architectural decisions that shape it.</p>
 <hr />
 <h2 id="the-problem">The Problem<a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h2>
-<p>The N+1 query problem is the most common performance issue in Django applications. Code fetches a list of objects, then individually queries related objects one at a time — turning 2 queries into hundreds:</p>
+<p>The N+1 query problem is the most common performance issue in Django applications. Code fetches a list of objects, then individually queries related objects one at a time -- turning 2 queries into hundreds:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookListView</span><span class="p">(</span><span class="n">generics</span><span class="o">.</span><span class="n">ListAPIView</span><span class="p">):</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">queryset</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>  <span class="c1"># No select_related</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">serializer_class</span> <span class="o">=</span> <span class="n">BookSerializer</span>  <span class="c1"># Accesses author, publisher, categories</span>
@@ -2174,11 +2174,11 @@
 </tr>
 <tr>
 <td>django-auto-prefetch</td>
-<td>Automatically prefetches ForeignKey/OneToOne relations instead of reporting them — no visibility into what changed, and it doesn't cover M2M or other issue categories</td>
+<td>Automatically prefetches ForeignKey/OneToOne relations instead of reporting them -- no visibility into what changed, and it doesn't cover M2M or other issue categories</td>
 </tr>
 </tbody>
 </table>
-<p>django-query-doctor addresses all of these gaps: 8 analyzer categories, exact file:line references, copy-paste code fixes, CI integration, and no <code>DEBUG=True</code> requirement. (Note: Django itself is gaining a similar on-demand-prefetch mechanism — <a href="https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/">fetch modes</a>, new in Django 6.1 — covering the same ground as django-auto-prefetch's long-standing approach.)</p>
+<p>django-query-doctor addresses all of these gaps: 8 analyzer categories, exact file:line references, copy-paste code fixes, CI integration, and no <code>DEBUG=True</code> requirement. (Note: Django itself is gaining a similar on-demand-prefetch mechanism -- <a href="https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/">fetch modes</a>, new in Django 6.1 -- covering the same ground as django-auto-prefetch's long-standing approach.)</p>
 <hr />
 <h2 id="key-design-decisions">Key Design Decisions<a class="headerlink" href="#key-design-decisions" title="Permanent link">&para;</a></h2>
 <h3 id="1-execute_wrapper-not-monkey-patching">1. execute_wrapper, Not Monkey-Patching<a class="headerlink" href="#1-execute_wrapper-not-monkey-patching" title="Permanent link">&para;</a></h3>
@@ -2186,7 +2186,7 @@
 <h3 id="2-fingerprint-before-analysis">2. Fingerprint Before Analysis<a class="headerlink" href="#2-fingerprint-before-analysis" title="Permanent link">&para;</a></h3>
 <p>Queries are normalized (parameters replaced with <code>?</code>, whitespace collapsed, IN-lists normalized) and SHA-256 hashed before any analyzer runs. This gives all downstream analyzers clean, canonical SQL with O(1) comparisons. N+1 detection groups by fingerprint; duplicate detection groups by fingerprint + parameters.</p>
 <h3 id="3-stack-traces-for-source-location">3. Stack Traces for Source Location<a class="headerlink" href="#3-stack-traces-for-source-location" title="Permanent link">&para;</a></h3>
-<p>Stack traces capture <em>where the query was triggered</em> (the evaluation site), not where the queryset was defined. A queryset defined in a manager but evaluated in a template — the stack trace points to the template, where the fix belongs.</p>
+<p>Stack traces capture <em>where the query was triggered</em> (the evaluation site), not where the queryset was defined. A queryset defined in a manager but evaluated in a template -- the stack trace points to the template, where the fix belongs.</p>
 <p>Trade-off: ~20-40 μs per query. Disable with <code>CAPTURE_STACK_TRACES: False</code> if needed.</p>
 <h3 id="4-prescriptions-not-just-warnings">4. Prescriptions, Not Just Warnings<a class="headerlink" href="#4-prescriptions-not-just-warnings" title="Permanent link">&para;</a></h3>
 <p>Every issue produces a <code>Prescription</code> with the problem description AND the exact code fix:</p>
@@ -2196,9 +2196,9 @@
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>          - Book.objects.all()
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>          + Book.objects.select_related(&#39;author&#39;)
 </span></code></pre></div>
-<p>The fixer generates the fix suggestion text from stack trace analysis and SQL pattern matching. Applying the fix (<code>fix_queries --apply</code>) is a separate, simpler step: a regex substitution on the single source line at the callsite — it does not parse or restructure code. See <a href="../../guides/auto-fix/">Auto-Fix</a> for the real mechanics and its limitations.</p>
+<p>The fixer generates the fix suggestion text from stack trace analysis and SQL pattern matching. Applying the fix (<code>fix_queries --apply</code>) is a separate, simpler step: a regex substitution on the single source line at the callsite -- it does not parse or restructure code. See <a href="../../guides/auto-fix/">Auto-Fix</a> for the real mechanics and its limitations.</p>
 <h3 id="5-per-request-synchronous-analysis">5. Per-Request Synchronous Analysis<a class="headerlink" href="#5-per-request-synchronous-analysis" title="Permanent link">&para;</a></h3>
-<p>Analysis runs at the end of each request (or scope), not in a background worker. For a typical 50-200 query request, analysis takes 1-5ms — negligible compared to DB time. No external dependencies (Celery, Redis) needed.</p>
+<p>Analysis runs at the end of each request (or scope), not in a background worker. For a typical 50-200 query request, analysis takes 1-5ms -- negligible compared to DB time. No external dependencies (Celery, Redis) needed.</p>
 <h3 id="6-optional-dependencies-only">6. Optional Dependencies Only<a class="headerlink" href="#6-optional-dependencies-only" title="Permanent link">&para;</a></h3>
 <p>The only runtime dependency is Django. Rich (console formatting), DRF (serializer analysis), psycopg3 (prepared statements), and OpenTelemetry are all optional:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">try</span><span class="p">:</span>
@@ -2208,7 +2208,7 @@
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">HAS_RICH</span> <span class="o">=</span> <span class="kc">False</span>
 </span></code></pre></div>
 <h3 id="7-never-crash-the-host-app">7. Never Crash the Host App<a class="headerlink" href="#7-never-crash-the-host-app" title="Permanent link">&para;</a></h3>
-<p>All analysis and reporting code is wrapped in try/except. If django-query-doctor encounters an internal error, it logs a warning and lets the request proceed. The worst case is a missing report — never a 500 error.</p>
+<p>All analysis and reporting code is wrapped in try/except. If django-query-doctor encounters an internal error, it logs a warning and lets the request proceed. The worst case is a missing report -- never a 500 error.</p>
 <hr />
 <h2 id="decision-summary">Decision Summary<a class="headerlink" href="#decision-summary" title="Permanent link">&para;</a></h2>
 <table>
@@ -2260,9 +2260,9 @@
 <hr />
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../architecture/">Architecture</a> — the four-stage pipeline in detail</li>
-<li><a href="../performance/">Performance &amp; Benchmarks</a> — overhead measurements</li>
-<li><a href="../comparison/">Comparison with Alternatives</a> — feature-by-feature comparison</li>
+<li><a href="../architecture/">Architecture</a> -- the four-stage pipeline in detail</li>
+<li><a href="../performance/">Performance &amp; Benchmarks</a> -- overhead measurements</li>
+<li><a href="../comparison/">Comparison with Alternatives</a> -- feature-by-feature comparison</li>
 </ul>
 
 
@@ -2286,7 +2286,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 30, 2026 04:26:17 UTC">July 30, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

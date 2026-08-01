@@ -855,6 +855,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="What Is a Prescription?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#apply-them-in-the-order-they-are-reported" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Apply them in the order they are reported
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2042,6 +2059,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="What Is a Prescription?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#apply-them-in-the-order-they-are-reported" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Apply them in the order they are reported
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2272,6 +2306,26 @@
 </tbody>
 </table>
 <p>Prescriptions are not just warnings. They are actionable: the <code>fix_suggestion</code> field contains the exact code change you need to make, and the <code>callsite</code> field tells you exactly where to make it.</p>
+<h3 id="apply-them-in-the-order-they-are-reported">Apply them in the order they are reported<a class="headerlink" href="#apply-them-in-the-order-they-are-reported" title="Permanent link">&para;</a></h3>
+<p>Prescriptions are <strong>not independent</strong>, so the report is ordered rather than
+alphabetical or severity-sorted alone. <code>pipeline.analyze()</code> returns them in the
+order you should apply them: N+1 findings first, then duplicates and serializer
+findings, then indexes and queryset-evaluation findings, then complexity, and
+fat SELECT last.</p>
+<p>The reason fat SELECT is last is that fixing an N+1 makes it worse. Applying the
+prescribed <code>.select_related('author')</code> collapses N round trips into one join, and
+that one query now selects the joined table's columns as well:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>before: [n_plus_one] N+1 detected: 6 queries for table &quot;testapp_author&quot;
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>        [fat_select] Fat SELECT: 8 columns from &quot;testapp_book&quot;
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>after applying the prescribed .select_related(&#39;author&#39;):
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        (n_plus_one gone)
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        [fat_select] Fat SELECT: 8 columns from &quot;testapp_book&quot;   # base table only
+</span></code></pre></div>
+<p>The column count is attributed to the base table only, so it no longer grows
+with the join -- but the query really is wider, and <code>.defer()</code> decisions are
+only worth making once the N+1 findings above them are resolved. When both
+findings are present, the console reporter prints a one-line note saying so.</p>
 <hr />
 <h2 id="connection-level-not-orm-level">Connection-Level, Not ORM-Level<a class="headerlink" href="#connection-level-not-orm-level" title="Permanent link">&para;</a></h2>
 <p>A common question is whether django-query-doctor works with raw SQL or only with ORM queries. Because interception happens at the <strong>database connection level</strong> (<code>connection.execute_wrapper</code>), it captures all SQL that passes through Django's database backend:</p>
@@ -2333,7 +2387,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

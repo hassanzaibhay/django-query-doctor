@@ -1106,6 +1106,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Context Managers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setting-the-override-manually" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting the override manually
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1116,6 +1133,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Compilation-Skip Benchmarks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reproducing-these-numbers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproducing these numbers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2320,6 +2354,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Context Managers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setting-the-override-manually" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting the override manually
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2330,6 +2381,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Compilation-Skip Benchmarks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reproducing-these-numbers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproducing these numbers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2388,9 +2456,9 @@
     UNTRUSTED --&gt; POISONED: SQL mismatch detected
     TRUSTED --&gt; POISONED: SQL mismatch detected
     POISONED --&gt; POISONED: all future hits (permanent)</code></pre>
-<p><strong>UNTRUSTED</strong> — When a query fingerprint is first cached, the entry starts in the UNTRUSTED state. On each subsequent cache hit, QueryTurbo runs a fresh <code>as_sql()</code> call and compares the result against the cached SQL. If the SQL matches, the entry's <code>validated_count</code> is incremented. Once <code>validated_count</code> reaches <code>VALIDATION_THRESHOLD</code> (default: <strong>3</strong>), the entry is promoted to TRUSTED.</p>
-<p><strong>TRUSTED</strong> — The <code>as_sql()</code> call is skipped entirely. Instead, parameters are extracted directly from the Django <code>Query</code> tree's <code>WhereNode</code> structure. This is the fast path that provides the compilation-skip speedup.</p>
-<p><strong>POISONED</strong> — If at any point the cached SQL does not match a fresh <code>as_sql()</code> result (a fingerprint collision), the entry is permanently marked as POISONED. Poisoned fingerprints are stored in a separate set (<code>_poisoned_fps</code>) that:</p>
+<p><strong>UNTRUSTED</strong> -- When a query fingerprint is first cached, the entry starts in the UNTRUSTED state. On each subsequent cache hit, QueryTurbo runs a fresh <code>as_sql()</code> call and compares the result against the cached SQL. If the SQL matches, the entry's <code>validated_count</code> is incremented. Once <code>validated_count</code> reaches <code>VALIDATION_THRESHOLD</code> (default: <strong>3</strong>), the entry is promoted to TRUSTED.</p>
+<p><strong>TRUSTED</strong> -- The <code>as_sql()</code> call is skipped entirely. Instead, parameters are extracted directly from the Django <code>Query</code> tree's <code>WhereNode</code> structure. This is the fast path that provides the compilation-skip speedup.</p>
+<p><strong>POISONED</strong> -- If at any point the cached SQL does not match a fresh <code>as_sql()</code> result (a fingerprint collision), the entry is permanently marked as POISONED. Poisoned fingerprints are stored in a separate set (<code>_poisoned_fps</code>) that:</p>
 <ul>
 <li>Survives <code>cache.clear()</code> (which is triggered by the <code>post_migrate</code> signal)</li>
 <li>Lives for the lifetime of the process</li>
@@ -2415,22 +2483,22 @@
 <h2 id="when-to-enable-queryturbo">When to Enable QueryTurbo<a class="headerlink" href="#when-to-enable-queryturbo" title="Permanent link">&para;</a></h2>
 <p>Enable QueryTurbo if your application meets these conditions:</p>
 <ul>
-<li><strong>PostgreSQL with psycopg3</strong> — gives the full benefit: compilation skip +
+<li><strong>PostgreSQL with psycopg3</strong> -- gives the full benefit: compilation skip +
   protocol-level prepared statements</li>
-<li><strong>High-frequency identical-structure queries</strong> — the same ORM pattern executes
+<li><strong>High-frequency identical-structure queries</strong> -- the same ORM pattern executes
   100+ times per process lifetime (pagination, list views, API endpoints
   with consistent filters)</li>
-<li><strong>Complex queries</strong> — JOINs, annotations, Q objects benefit most from skipping
+<li><strong>Complex queries</strong> -- JOINs, annotations, Q objects benefit most from skipping
   compilation (up to 337 μs saved per query)</li>
-<li><strong>Long-lived processes</strong> — gunicorn workers, Celery workers, or Django dev server
+<li><strong>Long-lived processes</strong> -- gunicorn workers, Celery workers, or Django dev server
   sessions where the TRUSTED state (reached after 3 validations) is maintained</li>
 </ul>
 <p><strong>Do not enable on:</strong></p>
 <ul>
-<li>SQLite databases (development or testing) — fingerprinting overhead exceeds
+<li>SQLite databases (development or testing) -- fingerprinting overhead exceeds
   compilation savings; end-to-end performance is worse</li>
-<li>Short-lived processes (serverless, AWS Lambda) — cache never warms up to TRUSTED</li>
-<li>If you use <code>RawQuerySet</code> or <code>Manager.raw()</code> exclusively — these bypass QueryTurbo
+<li>Short-lived processes (serverless, AWS Lambda) -- cache never warms up to TRUSTED</li>
+<li>If you use <code>RawQuerySet</code> or <code>Manager.raw()</code> exclusively -- these bypass QueryTurbo
   entirely (<code>SKIP_RAW_SQL = True</code> by default)</li>
 </ul>
 <hr />
@@ -2505,7 +2573,7 @@
 </tr>
 </tbody>
 </table>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># settings.py — full example with all defaults shown</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># settings.py -- full example with all defaults shown</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="s2">&quot;TURBO&quot;</span><span class="p">:</span> <span class="p">{</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="s2">&quot;ENABLED&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
@@ -2530,7 +2598,7 @@
 <h3 id="what-prepare_threshold-controls">What <code>PREPARE_THRESHOLD</code> Controls<a class="headerlink" href="#what-prepare_threshold-controls" title="Permanent link">&para;</a></h3>
 <p>After a query has been executed <code>PREPARE_THRESHOLD</code> times (default: 5), the prepared statement strategy passes <code>prepare=True</code> to <code>cursor.execute()</code>. This tells psycopg3 to create a server-side prepared statement for subsequent executions.</p>
 <h3 id="fallback-behavior">Fallback Behavior<a class="headerlink" href="#fallback-behavior" title="Permanent link">&para;</a></h3>
-<p>If the database backend does not support prepared statements (or if <code>prepare=True</code> raises a <code>TypeError</code>), QueryTurbo permanently disables prepared statements for that vendor and falls back to normal execution. This happens silently — no error is raised.</p>
+<p>If the database backend does not support prepared statements (or if <code>prepare=True</code> raises a <code>TypeError</code>), QueryTurbo permanently disables prepared statements for that vendor and falls back to normal execution. This happens silently -- no error is raised.</p>
 <h3 id="backend-specific-strategies">Backend-Specific Strategies<a class="headerlink" href="#backend-specific-strategies" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2554,17 +2622,17 @@
 <tr>
 <td>MySQL</td>
 <td><code>NoPrepareStrategy</code></td>
-<td>No-op — compilation cache only</td>
+<td>No-op -- compilation cache only</td>
 </tr>
 <tr>
 <td>SQLite</td>
 <td><code>NoPrepareStrategy</code></td>
-<td>No-op — compilation cache only</td>
+<td>No-op -- compilation cache only</td>
 </tr>
 <tr>
 <td>PostgreSQL + psycopg2</td>
 <td><code>NoPrepareStrategy</code></td>
-<td>No-op — psycopg2 does not support <code>prepare=True</code></td>
+<td>No-op -- psycopg2 does not support <code>prepare=True</code></td>
 </tr>
 </tbody>
 </table>
@@ -2742,26 +2810,69 @@ and Oracle databases are not yet in CI.</p>
 </span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="c1"># queries here always use standard as_sql()</span>
 </span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">books</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
 </span></code></pre></div>
+<h3 id="setting-the-override-manually">Setting the override manually<a class="headerlink" href="#setting-the-override-manually" title="Permanent link">&para;</a></h3>
+<p>Both context managers are built on <code>set_turbo_override()</code>, which the 2.2.0
+release notes name as the replacement for the removed
+<code>turbo.patch.set_thread_override</code>. Use it directly when the scope you want to
+override does not line up with a <code>with</code> block. It returns a
+<code>contextvars.Token</code>, and you are responsible for handing that token back to
+<code>reset_turbo_override()</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.turbo.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_turbo_override</span><span class="p">,</span> <span class="n">reset_turbo_override</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">query_doctor.turbo.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_turbo_override</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">token</span> <span class="o">=</span> <span class="n">set_turbo_override</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="k">assert</span> <span class="n">get_turbo_override</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">False</span>  <span class="c1"># turbo is off for this thread/coroutine</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">books</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">finally</span><span class="p">:</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">reset_turbo_override</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>get_turbo_override()</code> returns <code>True</code> when force-enabled, <code>False</code> when
+force-disabled, and <code>None</code> when no override is in force and the global
+<code>TURBO.ENABLED</code> setting decides. Prefer <code>turbo_enabled()</code> / <code>turbo_disabled()</code>
+unless you need the manual form: they pair the set and the reset for you,
+including on an exception.</p>
 <hr />
 <h2 id="compilation-skip-benchmarks">Compilation-Skip Benchmarks<a class="headerlink" href="#compilation-skip-benchmarks" title="Permanent link">&para;</a></h2>
 <p>When a query reaches TRUSTED state, the <code>as_sql()</code> call is skipped entirely. Measured on SQLite (compilation-only, no DB I/O):</p>
 <div class="admonition important">
 <p class="admonition-title">What these numbers measure</p>
-<p>The speedup figures below measure <strong>SQL compilation overhead only</strong> —
+<p>The speedup figures below measure <strong>SQL compilation overhead only</strong> -- 
 the time Django spends in <code>SQLCompiler.as_sql()</code> constructing the SQL
 template before executing it against the database.</p>
 <p>They do <strong>not</strong> measure total query time including database round-trip.</p>
 <p><strong>When QueryTurbo helps most:</strong> high-frequency endpoints where the same
 query structure executes repeatedly (pagination, list views, API endpoints
-with consistent filters). The benefit grows with query complexity — complex
+with consistent filters). The benefit grows with query complexity -- complex
 queries with JOINs, annotations, and Q objects save the most compilation time.</p>
 <p><strong>When QueryTurbo adds overhead:</strong> low-latency backends (SQLite, in-memory
 databases) where query execution is faster than the fingerprinting cost.
 On SQLite in-memory, end-to-end benchmarks show QueryTurbo adds ~35%
 overhead. On PostgreSQL with real network latency (1–5ms per query), the
 compilation saving is meaningful.</p>
-<p>Run <code>python benchmarks/run.py</code> to reproduce these numbers on your hardware.</p>
 </div>
+<h3 id="reproducing-these-numbers">Reproducing these numbers<a class="headerlink" href="#reproducing-these-numbers" title="Permanent link">&para;</a></h3>
+<p><code>python benchmarks/run.py</code> writes <code>benchmarks/results.json</code> with <strong>two</strong>
+sections, and the table below is the <code>compilation_only</code> one. Read that
+distinction before running the command, because the last thing it prints is
+the <em>other</em> section:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Total baseline: 9,872.8ms
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>Total turbo: 15,707.6ms
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>Total saved: -5,834.8ms
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>Overall speedup: 0.63x
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>Cache hit rate: 100.0%
+</span></code></pre></div>
+<p>That <code>0.63x</code> is real and is not a defect. It is the <strong>end-to-end</strong> suite on
+SQLite in-memory, where a query executes faster than QueryTurbo's
+fingerprinting costs, so the cache is a net loss. Read it as a run, not as a
+constant: two independent runs of this command on the same machine gave
+<code>0.63x</code> and <code>0.66x</code>, and the per-scenario end-to-end figures moved by a
+comparable amount, so expect your own run to land somewhere near rather than
+on it. It is the same fact the
+"When QueryTurbo adds overhead" note above states, measured. The
+compilation-only table is what QueryTurbo actually claims to improve; on a
+backend with real network latency the compilation saving is not cancelled out
+this way.</p>
 <table>
 <thead>
 <tr>
@@ -2773,74 +2884,85 @@ compilation saving is meaningful.</p>
 <tbody>
 <tr>
 <td>Simple filter</td>
-<td>123x</td>
-<td>38.8 μs</td>
+<td>85.5x</td>
+<td>32.9 μs</td>
 </tr>
 <tr>
 <td>Multi filter</td>
-<td>153x</td>
-<td>49.2 μs</td>
+<td>109.5x</td>
+<td>42.0 μs</td>
 </tr>
 <tr>
 <td>select_related</td>
-<td>294x</td>
-<td>92.5 μs</td>
+<td>202.4x</td>
+<td>78.1 μs</td>
 </tr>
 <tr>
 <td>Deep select_related</td>
-<td>374x</td>
-<td>121.1 μs</td>
+<td>260.5x</td>
+<td>101.5 μs</td>
 </tr>
 <tr>
 <td>Annotate</td>
-<td>214x</td>
-<td>68.6 μs</td>
+<td>152.5x</td>
+<td>59.2 μs</td>
 </tr>
 <tr>
 <td>Complex (JOINs + Q + annotate)</td>
-<td>1,050x</td>
-<td>337.9 μs</td>
+<td>523.4x</td>
+<td>204.3 μs</td>
 </tr>
 </tbody>
 </table>
-<div class="admonition note">
-<p class="admonition-title">Hardware variance</p>
-<p>Compilation speedup numbers are hardware-dependent. The "complex" scenario
-shows the most variance (727x–1,050x across different machines) because
-complex query compilation is more sensitive to CPU cache state and Python
-interpreter warmup.</p>
+<p>Measured on one machine: Windows 11, Intel64 Family 6 Model 141, Python
+3.12.0, Django 6.0.7, SQLite 3.42.0, <code>compilation_only</code> section of
+<code>benchmarks/results.json</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">These figures replace a set that did not reproduce</p>
+<p>Through 2.2.0 this table published 123x / 153x / 294x / 374x / 214x /
+1,050x, and a "hardware variance" note giving the complex scenario a range
+of 727x–1,050x. Re-measured with the documented command, every value came
+back 30–50% lower, and the complex scenario measured <strong>523.4x</strong> -- below
+the stated floor, so the disclosure was wrong as well as the numbers.</p>
+<p>The values above are one run on one named machine, not a range. Ordering
+and order of magnitude are stable across runs and machines; the absolute
+values are not, so treat a run of yours that disagrees by tens of percent
+as information about your host. The honest summary is that compilation
+caching is worth 1.5 to 2.5 orders of magnitude on the compilation step
+alone, and that the end-to-end effect depends entirely on how slow your
+database is relative to Python.</p>
 </div>
 <p>On PostgreSQL with psycopg3, prepared statements provide additional savings of 0.5–5ms of query planner time per repeat query.</p>
 <hr />
 <h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
 <ol>
 <li>
-<p><strong>Case/When expressions</strong> — Queries using Django's <code>Case(When(...))</code> are cached but the parameter extraction path uses <code>When.as_sql()</code> as a fallback. If the fallback fails, the query falls back to source expression traversal. These queries execute correctly but may not achieve the full TRUSTED speedup.</p>
+<p><strong>Case/When expressions</strong> -- Queries using Django's <code>Case(When(...))</code> are cached but the parameter extraction path uses <code>When.as_sql()</code> as a fallback. If the fallback fails, the query falls back to source expression traversal. These queries execute correctly but may not achieve the full TRUSTED speedup.</p>
 </li>
 <li>
-<p><strong>Raw SQL</strong> — <code>RawQuerySet</code> and <code>Manager.raw()</code> are bypassed entirely when <code>SKIP_RAW_SQL = True</code> (the default). When set to <code>False</code>, raw SQL is fingerprinted and cached, but parameter extraction is not guaranteed to be correct for hand-written SQL.</p>
+<p><strong>Raw SQL</strong> -- <code>RawQuerySet</code> and <code>Manager.raw()</code> are bypassed entirely when <code>SKIP_RAW_SQL = True</code> (the default). When set to <code>False</code>, raw SQL is fingerprinted and cached, but parameter extraction is not guaranteed to be correct for hand-written SQL.</p>
 </li>
 <li>
-<p><strong>Cache cleared on migration</strong> — The <code>post_migrate</code> signal calls <code>cache.clear()</code>, which removes all LRU entries and resets counters. All entries restart from UNTRUSTED after a migration run. However, poisoned fingerprints survive the clear and persist for the lifetime of the process.</p>
+<p><strong>Cache cleared on migration</strong> -- The <code>post_migrate</code> signal calls <code>cache.clear()</code>, which removes all LRU entries and resets counters. All entries restart from UNTRUSTED after a migration run. However, poisoned fingerprints survive the clear and persist for the lifetime of the process.</p>
 </li>
 <li>
-<p><strong>Process-local</strong> — The cache is in-memory per process. In multi-process deployments (gunicorn with multiple workers), each worker maintains its own independent cache. There is no shared state across processes.</p>
+<p><strong>Process-local</strong> -- The cache is in-memory per process. In multi-process deployments (gunicorn with multiple workers), each worker maintains its own independent cache. There is no shared state across processes.</p>
 </li>
 <li>
-<p><strong>Custom SQL compilers</strong> — Third-party packages that override <code>SQLCompiler</code> or <code>SQLCompiler.execute_sql()</code> may be incompatible. The QueryTurbo patch wraps the standard Django <code>SQLCompiler.execute_sql()</code> method.</p>
+<p><strong>Custom SQL compilers</strong> -- Third-party packages that override <code>SQLCompiler</code> or <code>SQLCompiler.execute_sql()</code> may be incompatible. The QueryTurbo patch wraps the standard Django <code>SQLCompiler.execute_sql()</code> method.</p>
 </li>
 <li>
-<p><strong><code>.extra()</code> and subqueries</strong> — By default, queries using <code>.extra()</code> (<code>SKIP_EXTRA = True</code>) and queries containing subqueries (<code>SKIP_SUBQUERIES = True</code>) are not cached due to the complexity of parameter extraction.</p>
+<p><strong><code>.extra()</code> and subqueries</strong> -- By default, queries using <code>.extra()</code> (<code>SKIP_EXTRA = True</code>) and queries containing subqueries (<code>SKIP_SUBQUERIES = True</code>) are not cached due to the complexity of parameter extraction.</p>
 </li>
 </ol>
 <hr />
 <h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../../getting-started/configuration/">Configuration</a> — Full settings reference</li>
-<li><a href="../../deep-dive/performance/">Performance &amp; Benchmarks</a> — Overhead model and benchmark methodology</li>
-<li><a href="../../deep-dive/architecture/">Architecture</a> — How QueryTurbo fits in the pipeline</li>
-<li><a href="../management-commands/">Management Commands</a> — CLI tools including <code>query_doctor_report</code></li>
-<li><a href="../benchmark-dashboard/">Benchmark Dashboard</a> — Interactive HTML report</li>
+<li><a href="../../getting-started/configuration/">Configuration</a> -- Full settings reference</li>
+<li><a href="../../deep-dive/performance/">Performance &amp; Benchmarks</a> -- Overhead model and benchmark methodology</li>
+<li><a href="../../deep-dive/architecture/">Architecture</a> -- How QueryTurbo fits in the pipeline</li>
+<li><a href="../management-commands/">Management Commands</a> -- CLI tools including <code>query_doctor_report</code></li>
+<li><a href="../benchmark-dashboard/">Benchmark Dashboard</a> -- Interactive HTML report</li>
 </ul>
 
 
@@ -2864,7 +2986,7 @@ interpreter warmup.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 05:34:48 UTC">July 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

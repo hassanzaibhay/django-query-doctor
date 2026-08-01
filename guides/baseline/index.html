@@ -2088,22 +2088,22 @@
 
 
 <h1 id="baseline-regression-detection">Baseline Regression Detection<a class="headerlink" href="#baseline-regression-detection" title="Permanent link">&para;</a></h1>
-<p>A baseline is a snapshot of known query issues saved to a JSON file. On subsequent runs, django-query-doctor compares the current issues against the baseline and reports only <strong>new regressions</strong> — issues that were not present when the baseline was created.</p>
+<p>A baseline is a snapshot of known query issues saved to a JSON file. On subsequent runs, django-query-doctor compares the current issues against the baseline and reports only <strong>new regressions</strong> -- issues that were not present when the baseline was created.</p>
 <hr />
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <p>The baseline comparison logic is in <code>query_doctor.baseline.BaselineSnapshot</code>:</p>
 <ol>
 <li>
-<p><strong>What a baseline contains</strong> — Each issue is stored as a serialized prescription dict with the analyzer type, file path, and description.</p>
+<p><strong>What a baseline contains</strong> -- Each issue is stored as a serialized prescription dict with the analyzer type, file path, and description.</p>
 </li>
 <li>
-<p><strong>Why line numbers are ignored</strong> — The baseline hashes each issue using a SHA-256 digest of <code>{issue_type}:{file_path}:{description}</code>. Line numbers are deliberately excluded because refactoring changes line numbers without changing the underlying issue. This prevents false regressions from code reformatting.</p>
+<p><strong>Why line numbers are ignored</strong> -- The baseline hashes each issue using a SHA-256 digest of <code>{issue_type}:{file_path}:{description}</code>. Line numbers are deliberately excluded because refactoring changes line numbers without changing the underlying issue. This prevents false regressions from code reformatting.</p>
 </li>
 <li>
-<p><strong>What counts as a regression</strong> — Any issue in the current run whose hash is not found in the baseline. These are new issues introduced since the baseline was created.</p>
+<p><strong>What counts as a regression</strong> -- Any issue in the current run whose hash is not found in the baseline. These are new issues introduced since the baseline was created.</p>
 </li>
 <li>
-<p><strong>What counts as resolved</strong> — Any issue in the baseline whose hash is not found in the current run. These are issues that have been fixed since the baseline was created.</p>
+<p><strong>What counts as resolved</strong> -- Any issue in the baseline whose hash is not found in the current run. These are issues that have been fixed since the baseline was created.</p>
 </li>
 </ol>
 <hr />
@@ -2127,11 +2127,11 @@
 </span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="p">]</span>
 </span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>The schema is flat — there is no nested <code>callsite</code> object, and <code>severity</code> is
+<p>The schema is flat -- there is no nested <code>callsite</code> object, and <code>severity</code> is
 lowercase (<code>"critical"</code>, <code>"warning"</code>, or <code>"info"</code>). The <code>version</code> field records
 the django-query-doctor version that saved the baseline; comparing against a
 baseline saved with a different version prints a non-blocking warning.
-Regenerate your baseline after upgrading — analyzer coverage can widen between
+Regenerate your baseline after upgrading -- analyzer coverage can widen between
 versions, and an old baseline reports newly-covered findings as regressions.</p>
 <hr />
 <h2 id="using-in-ci">Using in CI<a class="headerlink" href="#using-in-ci" title="Permanent link">&para;</a></h2>
@@ -2204,16 +2204,16 @@ versions, and an old baseline reports newly-covered findings as regressions.</p>
 <hr />
 <h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Per-project, not per-branch</strong> — The baseline file does not track which git branch it was created on. If different branches have different query patterns, you may need separate baseline files.</li>
-<li><strong>Resolved issues are not automatically removed</strong> — When you fix an issue, it remains in the baseline file until you regenerate it with <code>--save-baseline</code>.</li>
-<li><strong>Baseline file should be committed to version control</strong> — This ensures all CI runs and developers compare against the same known state.</li>
-<li><strong>URL-dependent</strong> — The baseline captures issues for whatever URLs were analyzed. If you add new endpoints, they won't be covered until you regenerate the baseline.</li>
+<li><strong>Per-project, not per-branch</strong> -- The baseline file does not track which git branch it was created on. If different branches have different query patterns, you may need separate baseline files.</li>
+<li><strong>Resolved issues are not automatically removed</strong> -- When you fix an issue, it remains in the baseline file until you regenerate it with <code>--save-baseline</code>.</li>
+<li><strong>Baseline file should be committed to version control</strong> -- This ensures all CI runs and developers compare against the same known state.</li>
+<li><strong>URL-dependent</strong> -- The baseline captures issues for whatever URLs were analyzed. If you add new endpoints, they won't be covered until you regenerate the baseline.</li>
 </ul>
 <hr />
 <h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../management-commands/">Management Commands</a> — Full flag reference for <code>check_queries</code> and <code>diagnose_project</code></li>
-<li><a href="../ci-integration/">CI/CD Integration</a> — Setting up automated query checks in your pipeline</li>
+<li><a href="../management-commands/">Management Commands</a> -- Full flag reference for <code>check_queries</code> and <code>diagnose_project</code></li>
+<li><a href="../ci-integration/">CI/CD Integration</a> -- Setting up automated query checks in your pipeline</li>
 </ul>
 
 
@@ -2237,7 +2237,7 @@ versions, and an old baseline reports newly-covered findings as regressions.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

@@ -2927,48 +2927,21 @@
 <h2 id="queryturbo-compilation-skip-benchmarks-v20">QueryTurbo Compilation-Skip Benchmarks <em>(v2.0)</em><a class="headerlink" href="#queryturbo-compilation-skip-benchmarks-v20" title="Permanent link">&para;</a></h2>
 <p>When <a href="../../guides/queryturbo/">QueryTurbo</a> is enabled and a query reaches TRUSTED state, the <code>as_sql()</code> call is skipped entirely. Parameters are extracted directly from the Django Query tree.</p>
 <h3 id="compilation-skip-speedups">Compilation-Skip Speedups<a class="headerlink" href="#compilation-skip-speedups" title="Permanent link">&para;</a></h3>
-<p>Measured on SQLite (compilation-only, no DB I/O). Run <code>python benchmarks/run.py</code> to reproduce.</p>
-<table>
-<thead>
-<tr>
-<th>Query Pattern</th>
-<th>Speedup</th>
-<th>Saved per Query</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Simple filter</td>
-<td>123x</td>
-<td>38.8 μs</td>
-</tr>
-<tr>
-<td>Multi filter</td>
-<td>153x</td>
-<td>49.2 μs</td>
-</tr>
-<tr>
-<td>select_related</td>
-<td>294x</td>
-<td>92.5 μs</td>
-</tr>
-<tr>
-<td>Deep select_related</td>
-<td>374x</td>
-<td>121.1 μs</td>
-</tr>
-<tr>
-<td>Annotate</td>
-<td>214x</td>
-<td>68.6 μs</td>
-</tr>
-<tr>
-<td>Complex (JOINs + Q + annotate)</td>
-<td>1,050x</td>
-<td>337.9 μs</td>
-</tr>
-</tbody>
-</table>
+<p>The measured table lives on one page only, in
+<a href="../../guides/queryturbo/#reproducing-these-numbers">Reproducing these numbers</a>.
+It used to be duplicated here, which is how two copies of a figure get
+corrected in one place and not the other.</p>
+<p>Two things to know before you run <code>python benchmarks/run.py</code>:</p>
+<ul>
+<li>The published table is the <strong><code>compilation_only</code></strong> section of
+  <code>benchmarks/results.json</code>, not the summary the command prints last.</li>
+<li>The command's final line is the <strong>end-to-end</strong> result, and on SQLite
+  in-memory it comes out below 1x. That is expected: SQLite executes a query
+  faster than QueryTurbo fingerprints it, so the cache is a net loss there. It
+  is not the number the compilation table reports and it is not a defect. The
+  measured value and its run-to-run spread are on the guide page linked above,
+  and are deliberately not repeated here.</li>
+</ul>
 <h3 id="prepared-statement-savings-postgresql-psycopg3">Prepared Statement Savings (PostgreSQL + psycopg3)<a class="headerlink" href="#prepared-statement-savings-postgresql-psycopg3" title="Permanent link">&para;</a></h3>
 <p>On PostgreSQL with psycopg3, prepared statements provide additional savings of 0.5--5ms of query planner time per repeat query, with the greatest benefit on complex queries with multiple JOINs.</p>
 <h3 id="database-backend-support">Database Backend Support<a class="headerlink" href="#database-backend-support" title="Permanent link">&para;</a></h3>
@@ -3042,7 +3015,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

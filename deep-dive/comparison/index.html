@@ -2433,7 +2433,7 @@ project's PyPI page):</p>
 </tr>
 </tbody>
 </table>
-<p>Cells marked "—" are capabilities the project's own documentation does not
+<p>Cells marked " -- " are capabilities the project's own documentation does not
 address. If a project has since gained a feature listed as missing here,
 please open an issue.</p>
 </blockquote>
@@ -2625,15 +2625,15 @@ please open an issue.</p>
 <td style="text-align: center;">No</td>
 <td style="text-align: center;">Partial (profiling decorators usable in tasks)</td>
 <td style="text-align: center;">Partial (generic <code>Profiler</code> context manager)</td>
-<td style="text-align: center;">—</td>
+<td style="text-align: center;">--</td>
 </tr>
 <tr>
 <td>Async Django support</td>
 <td style="text-align: center;">Yes³</td>
 <td style="text-align: center;">Partial (experimental, no concurrent requests)</td>
-<td style="text-align: center;">—</td>
+<td style="text-align: center;">--</td>
 <td style="text-align: center;">No (predates async Django)</td>
-<td style="text-align: center;">—</td>
+<td style="text-align: center;">--</td>
 </tr>
 <tr>
 <td>CI/CD integration</td>
@@ -2780,7 +2780,7 @@ in-test assertions, use <code>diagnose_queries()</code> (see the
 under a real ASGI handler; see <code>tests/test_asgi_middleware_chain.py</code>, which drives
 <code>django.core.handlers.asgi.ASGIHandler</code> across Django's <code>startproject</code> middleware
 defaults and asserts the captured query count, not just the response status.
-2.1.1 and earlier either crashed or captured nothing under ASGI — see
+2.1.1 and earlier either crashed or captured nothing under ASGI -- see
 <a href="../../guides/async-support/">Async Support</a>.</p>
 <hr />
 <h2 id="tool-by-tool-comparison">Tool-by-Tool Comparison<a class="headerlink" href="#tool-by-tool-comparison" title="Permanent link">&para;</a></h2>
@@ -2830,7 +2830,7 @@ defaults and asserts the captured query count, not just the response status.
 - Git diff-aware filtering for incremental adoption
 - Designed to run in production; nplusone's own documentation says it should only be used in development</p>
 <blockquote>
-<p><strong>Note:</strong> nplusone's most recent release is 1.0.0, published in May 2018 (per its PyPI page) — the project has been unmaintained for years, though it remains installable and functional on the ORMs of its era.</p>
+<p><strong>Note:</strong> nplusone's most recent release is 1.0.0, published in May 2018 (per its PyPI page) -- the project has been unmaintained for years, though it remains installable and functional on the ORMs of its era.</p>
 </blockquote>
 <h3 id="vs-django-auto-prefetch">vs. django-auto-prefetch<a class="headerlink" href="#vs-django-auto-prefetch" title="Permanent link">&para;</a></h3>
 <p><strong>django-auto-prefetch</strong> takes a fundamentally different approach: instead of detecting and reporting issues, it automatically prefetches to-one relations (ForeignKey and OneToOneField, including reverse OneToOne) at the model level, so accessing an unfetched relation triggers a single follow-up query for the whole batch instead of one query per instance.</p>
@@ -2838,7 +2838,7 @@ defaults and asserts the captured query count, not just the response status.
 - Zero developer effort after initial setup
 - Immediate performance improvement for ForeignKey/OneToOne N+1
 - No reports to read or fixes to apply
-- Written by Gordon Wrigley (GitHub: <code>tolomea</code>) and maintained by Adam Johnson (<code>adamchainz</code>), per <a href="https://pypi.org/project/django-auto-prefetch/">its PyPI page</a> — as of 1.14.0 it supports Django 4.2-6.0 and Python 3.9-3.14</p>
+- Written by Gordon Wrigley (GitHub: <code>tolomea</code>) and maintained by Adam Johnson (<code>adamchainz</code>), per <a href="https://pypi.org/project/django-auto-prefetch/">its PyPI page</a> -- as of 1.14.0 it supports Django 4.2-6.0 and Python 3.9-3.14</p>
 <p><strong>Where django-query-doctor adds value:</strong>
 - Visibility into what queries ran and why (auto-prefetch's mitigation happens silently)
 - Handles ManyToMany and reverse-FK relationships (auto-prefetch handles ForeignKey/OneToOne only)
@@ -2846,7 +2846,7 @@ defaults and asserts the captured query count, not just the response status.
 - Per-view control instead of a global model-level behavior change
 - Helps developers learn to write better querysets, since it reports rather than silently mitigates</p>
 <blockquote>
-<p><strong>Note:</strong> django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off — automatic mitigation instead of manual <code>select_related()</code> calls — and the same on-demand-prefetch idea is coming to Django core as <a href="https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/">fetch modes</a> (<code>FETCH_PEERS</code>), new in <a href="https://docs.djangoproject.com/en/dev/releases/6.1/">Django 6.1</a> — see the linked release notes for its current status. django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.</p>
+<p><strong>Note:</strong> django-auto-prefetch changes query behavior at the model level for every access to an unfetched to-one field, application-wide. That is the intended trade-off -- automatic mitigation instead of manual <code>select_related()</code> calls -- and the same on-demand-prefetch idea is coming to Django core as <a href="https://docs.djangoproject.com/en/dev/topics/db/fetch-modes/">fetch modes</a> (<code>FETCH_PEERS</code>), new in <a href="https://docs.djangoproject.com/en/dev/releases/6.1/">Django 6.1</a> -- see the linked release notes for its current status. django-query-doctor takes the opposite approach: report and suggest a fix rather than change behavior automatically. Both are valid; pick based on whether you want automatic mitigation or explicit, reviewable fixes.</p>
 </blockquote>
 <hr />
 <h2 id="when-to-use-what">When to Use What<a class="headerlink" href="#when-to-use-what" title="Permanent link">&para;</a></h2>
@@ -2910,7 +2910,7 @@ defaults and asserts the captured query count, not just the response status.
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Endpoint scan</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python manage.py check_queries --url /api/books/ --format json --fail-on warning</span>
 </span></code></pre></div>
-<p>In CI, only django-query-doctor and nplusone can run (debug-toolbar and silk require a browser/server). django-query-doctor provides the most comprehensive CI analysis.</p>
+<p>In CI, only django-query-doctor and nplusone can run (debug-toolbar and silk require a browser/server). Between the two, django-query-doctor detects more issue categories and can fail a build on a severity threshold or on a regression against a recorded baseline; nplusone raises or logs on the N+1 patterns it detects. Which of those you want depends on whether you are gating a build or annotating a test run.</p>
 <h3 id="production-stack">Production Stack<a class="headerlink" href="#production-stack" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># settings/production.py</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">QUERY_DOCTOR</span> <span class="o">=</span> <span class="p">{</span>
@@ -3027,7 +3027,7 @@ defaults and asserts the captured query count, not just the response status.
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 24, 2026 11:03:49 UTC">July 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

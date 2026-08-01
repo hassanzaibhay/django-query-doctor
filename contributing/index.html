@@ -2503,10 +2503,10 @@ MkDocs and related packages for building documentation locally.</p>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pytest
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Check linting</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>ruff<span class="w"> </span>check<span class="w"> </span>src/<span class="w"> </span>tests/
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>ruff<span class="w"> </span>check<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Check types</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>mypy<span class="w"> </span>src/query_doctor/
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>mypy<span class="w"> </span>src/query_doctor/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/
 </span></code></pre></div>
 <p>All three commands should pass before you start making changes.</p>
 <hr />
@@ -2573,19 +2573,19 @@ models: <code>Author</code>, <code>Publisher</code>, <code>Book</code> (FK to Au
 <h2 id="code-style">Code Style<a class="headerlink" href="#code-style" title="Permanent link">&para;</a></h2>
 <h3 id="linting-with-ruff">Linting with Ruff<a class="headerlink" href="#linting-with-ruff" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Check for issues</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>ruff<span class="w"> </span>check<span class="w"> </span>src/<span class="w"> </span>tests/
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>ruff<span class="w"> </span>check<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Auto-fix issues</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>ruff<span class="w"> </span>check<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>--fix
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>ruff<span class="w"> </span>check<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/<span class="w"> </span>--fix
 </span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
 </span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1"># Format code</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>ruff<span class="w"> </span>format<span class="w"> </span>src/<span class="w"> </span>tests/
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>ruff<span class="w"> </span>format<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/
 </span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
 </span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1"># Check formatting without changes</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>ruff<span class="w"> </span>format<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>--check
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>ruff<span class="w"> </span>format<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/<span class="w"> </span>--check
 </span></code></pre></div>
 <h3 id="type-checking-with-mypy">Type Checking with mypy<a class="headerlink" href="#type-checking-with-mypy" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>mypy<span class="w"> </span>src/query_doctor/
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>mypy<span class="w"> </span>src/query_doctor/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/
 </span></code></pre></div>
 <p>All function signatures must have type hints. The project uses strict mypy
 configuration.</p>
@@ -2613,7 +2613,7 @@ configuration.</p>
 <li><strong>Module docstrings</strong>: Every module has a module-level docstring explaining
   its purpose.</li>
 <li><strong>No mutable module state</strong>: Use <code>contextvars.ContextVar</code> for per-request
-  state — it is correct under threads <em>and</em> coroutines, unlike
+  state -- it is correct under threads <em>and</em> coroutines, unlike
   <code>threading.local()</code>. See
   <a href="../deep-dive/architecture/#per-instance-contextvar-storage">Per-Instance ContextVar Storage</a>.</li>
 <li><strong>No direct settings access</strong>: Use <code>query_doctor.conf.get_config()</code> instead
@@ -2632,9 +2632,9 @@ configuration.</p>
 <li><strong>Implement</strong> the feature or fix</li>
 <li><strong>Verify</strong> everything passes:
    <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pytest
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>ruff<span class="w"> </span>check<span class="w"> </span>src/<span class="w"> </span>tests/
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>ruff<span class="w"> </span>format<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>--check
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>mypy<span class="w"> </span>src/query_doctor/
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>ruff<span class="w"> </span>check<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>ruff<span class="w"> </span>format<span class="w"> </span>src/<span class="w"> </span>tests/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/<span class="w"> </span>--check
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>mypy<span class="w"> </span>src/query_doctor/<span class="w"> </span>scripts/<span class="w"> </span>benchmarks/
 </span></code></pre></div></li>
 <li><strong>Commit</strong> with a conventional commit message:
    <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;feat: add slow-query-log analyzer&quot;</span>
@@ -2768,16 +2768,21 @@ accepted.</p>
 </span><span id="__span-16-21"><a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a>
 </span><span id="__span-16-22"><a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a><span class="sd">        Args:</span>
 </span><span id="__span-16-23"><a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a><span class="sd">            queries: List of captured and fingerprinted queries.</span>
-</span><span id="__span-16-24"><a id="__codelineno-16-24" name="__codelineno-16-24" href="#__codelineno-16-24"></a><span class="sd">            models_meta: Optional Django model metadata.</span>
-</span><span id="__span-16-25"><a id="__codelineno-16-25" name="__codelineno-16-25" href="#__codelineno-16-25"></a>
-</span><span id="__span-16-26"><a id="__codelineno-16-26" name="__codelineno-16-26" href="#__codelineno-16-26"></a><span class="sd">        Returns:</span>
-</span><span id="__span-16-27"><a id="__codelineno-16-27" name="__codelineno-16-27" href="#__codelineno-16-27"></a><span class="sd">            List of prescriptions for any detected issues.</span>
-</span><span id="__span-16-28"><a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="__span-16-29"><a id="__codelineno-16-29" name="__codelineno-16-29" href="#__codelineno-16-29"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_enabled</span><span class="p">():</span>
-</span><span id="__span-16-30"><a id="__codelineno-16-30" name="__codelineno-16-30" href="#__codelineno-16-30"></a>            <span class="k">return</span> <span class="p">[]</span>
-</span><span id="__span-16-31"><a id="__codelineno-16-31" name="__codelineno-16-31" href="#__codelineno-16-31"></a>        <span class="n">prescriptions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Prescription</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-16-32"><a id="__codelineno-16-32" name="__codelineno-16-32" href="#__codelineno-16-32"></a>        <span class="c1"># Detection logic here</span>
-</span><span id="__span-16-33"><a id="__codelineno-16-33" name="__codelineno-16-33" href="#__codelineno-16-33"></a>        <span class="k">return</span> <span class="n">prescriptions</span>
+</span><span id="__span-16-24"><a id="__codelineno-16-24" name="__codelineno-16-24" href="#__codelineno-16-24"></a><span class="sd">            models_meta: DEPRECATED; 3.0.0 removes this parameter. It is</span>
+</span><span id="__span-16-25"><a id="__codelineno-16-25" name="__codelineno-16-25" href="#__codelineno-16-25"></a><span class="sd">                currently always None -- nothing passes it. Accept it for</span>
+</span><span id="__span-16-26"><a id="__codelineno-16-26" name="__codelineno-16-26" href="#__codelineno-16-26"></a><span class="sd">                signature compatibility with older releases, or drop it</span>
+</span><span id="__span-16-27"><a id="__codelineno-16-27" name="__codelineno-16-27" href="#__codelineno-16-27"></a><span class="sd">                now: the argument is never passed, so a two-argument</span>
+</span><span id="__span-16-28"><a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a><span class="sd">                analyze() is correct on 2.3.0 and required by 3.0.0.</span>
+</span><span id="__span-16-29"><a id="__codelineno-16-29" name="__codelineno-16-29" href="#__codelineno-16-29"></a><span class="sd">                Get model metadata from django.apps.apps instead.</span>
+</span><span id="__span-16-30"><a id="__codelineno-16-30" name="__codelineno-16-30" href="#__codelineno-16-30"></a>
+</span><span id="__span-16-31"><a id="__codelineno-16-31" name="__codelineno-16-31" href="#__codelineno-16-31"></a><span class="sd">        Returns:</span>
+</span><span id="__span-16-32"><a id="__codelineno-16-32" name="__codelineno-16-32" href="#__codelineno-16-32"></a><span class="sd">            List of prescriptions for any detected issues.</span>
+</span><span id="__span-16-33"><a id="__codelineno-16-33" name="__codelineno-16-33" href="#__codelineno-16-33"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-16-34"><a id="__codelineno-16-34" name="__codelineno-16-34" href="#__codelineno-16-34"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_enabled</span><span class="p">():</span>
+</span><span id="__span-16-35"><a id="__codelineno-16-35" name="__codelineno-16-35" href="#__codelineno-16-35"></a>            <span class="k">return</span> <span class="p">[]</span>
+</span><span id="__span-16-36"><a id="__codelineno-16-36" name="__codelineno-16-36" href="#__codelineno-16-36"></a>        <span class="n">prescriptions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Prescription</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-16-37"><a id="__codelineno-16-37" name="__codelineno-16-37" href="#__codelineno-16-37"></a>        <span class="c1"># Detection logic here</span>
+</span><span id="__span-16-38"><a id="__codelineno-16-38" name="__codelineno-16-38" href="#__codelineno-16-38"></a>        <span class="k">return</span> <span class="n">prescriptions</span>
 </span></code></pre></div>
 <h3 id="3-register-the-analyzer">3. Register the Analyzer<a class="headerlink" href="#3-register-the-analyzer" title="Permanent link">&para;</a></h3>
 <p>Add a <code>{"enabled": True}</code> entry for your analyzer's name under
@@ -2820,7 +2825,7 @@ accepted.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 12:45:48 UTC">July 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

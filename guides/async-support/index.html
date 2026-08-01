@@ -2130,22 +2130,22 @@
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">]</span>
 </span></code></pre></div>
 <h3 id="how-capture-works-under-asgi">How capture works under ASGI<a class="headerlink" href="#how-capture-works-under-asgi" title="Permanent link">&para;</a></h3>
-<p>The middleware declares <code>sync_capable = True</code> and <code>async_capable = False</code>. Django adapts sync-only middleware with <code>sync_to_async(thread_sensitive=True)</code>, which runs it in the same thread-sensitive executor Django uses for <strong>all</strong> synchronous ORM work — including the ORM calls made inside <code>async def</code> views, which Django routes through that same executor.</p>
-<p>That co-location is the mechanism. Django keeps database connections in thread-local storage (<a href="https://docs.djangoproject.com/en/stable/ref/databases/#connection-management">Django docs: Databases — connection handling</a>, and <code>django.db.utils.ConnectionHandler</code>, which subclasses asgiref's <code>Local</code>), so the <code>execute_wrapper</code> the middleware installs is only visible to queries issued on the same thread. Running the middleware in the executor thread puts the wrapper on the connection object the ORM actually uses.</p>
-<p>This is Django's standard adaptation for any middleware that declares <code>async_capable = False</code>, not a query-doctor-specific compromise — see <a href="https://docs.djangoproject.com/en/stable/topics/async/#async-middleware">Django docs: Asynchronous support — Async middleware</a> and <code>django.core.handlers.base.BaseHandler.load_middleware</code>, which wraps such middleware in <code>sync_to_async(thread_sensitive=True)</code>.</p>
-<p>Under Django's ASGI handler it also costs no request concurrency: <code>ASGIHandler</code> opens a separate <code>ThreadSensitiveContext</code> per request (<code>django/core/handlers/asgi.py</code>), and asgiref allocates one executor thread per such context, so requests do not serialise against one another. This covers normal deployments — <code>get_asgi_application()</code> returns an <code>ASGIHandler</code>, and the <code>application</code> object in a project's <code>asgi.py</code> is what Daphne, Uvicorn, Hypercorn and other ASGI servers serve.</p>
-<p>Code that reaches the middleware chain <em>without</em> going through <code>ASGIHandler</code> — <code>django.test.AsyncClient</code>, which calls <code>get_response_async()</code> directly — gets no such context, and asgiref falls back to a single process-wide executor thread. Requests do serialise there. Capture still works; only concurrency differs.</p>
+<p>The middleware declares <code>sync_capable = True</code> and <code>async_capable = False</code>. Django adapts sync-only middleware with <code>sync_to_async(thread_sensitive=True)</code>, which runs it in the same thread-sensitive executor Django uses for <strong>all</strong> synchronous ORM work -- including the ORM calls made inside <code>async def</code> views, which Django routes through that same executor.</p>
+<p>That co-location is the mechanism. Django keeps database connections in thread-local storage (<a href="https://docs.djangoproject.com/en/stable/ref/databases/#connection-management">Django docs: Databases -- connection handling</a>, and <code>django.db.utils.ConnectionHandler</code>, which subclasses asgiref's <code>Local</code>), so the <code>execute_wrapper</code> the middleware installs is only visible to queries issued on the same thread. Running the middleware in the executor thread puts the wrapper on the connection object the ORM actually uses.</p>
+<p>This is Django's standard adaptation for any middleware that declares <code>async_capable = False</code>, not a query-doctor-specific compromise -- see <a href="https://docs.djangoproject.com/en/stable/topics/async/#async-middleware">Django docs: Asynchronous support -- Async middleware</a> and <code>django.core.handlers.base.BaseHandler.load_middleware</code>, which wraps such middleware in <code>sync_to_async(thread_sensitive=True)</code>.</p>
+<p>Under Django's ASGI handler it also costs no request concurrency: <code>ASGIHandler</code> opens a separate <code>ThreadSensitiveContext</code> per request (<code>django/core/handlers/asgi.py</code>), and asgiref allocates one executor thread per such context, so requests do not serialise against one another. This covers normal deployments -- <code>get_asgi_application()</code> returns an <code>ASGIHandler</code>, and the <code>application</code> object in a project's <code>asgi.py</code> is what Daphne, Uvicorn, Hypercorn and other ASGI servers serve.</p>
+<p>Code that reaches the middleware chain <em>without</em> going through <code>ASGIHandler</code> -- <code>django.test.AsyncClient</code>, which calls <code>get_response_async()</code> directly -- gets no such context, and asgiref falls back to a single process-wide executor thread. Requests do serialise there. Capture still works; only concurrency differs.</p>
 <div class="admonition note">
 <p class="admonition-title">Effect on your own middleware</p>
 <p>Django assigns middleware modes from the inside out, so every middleware listed <strong>before</strong> <code>QueryDoctorMiddleware</code> in <code>MIDDLEWARE</code> runs in sync mode too. With the recommended last position, that is the whole chain.</p>
-<p>This is ordinary Django behaviour for any sync-only middleware, and much third-party middleware is sync-only, so most stacks are already in this situation. It does not affect request concurrency. But if you maintain async-capable middleware of your own, it will run synchronously while query-doctor is installed.</p>
-<p>This is not a change relative to 2.1.1. The missing coroutine marker in 2.0.0–2.1.1 (see the warning below) already forced those middleware into sync mode, while additionally breaking them.</p>
+<p>This is ordinary Django behaviour for any sync-only middleware, and much third-party middleware is sync-only, so most stacks are already in this situation. It does not affect request concurrency, because <code>ASGIHandler</code> opens a <code>ThreadSensitiveContext</code> per request rather than one per process, so two concurrent requests do not serialise on the executor -- measured by <code>tests/test_asgi_middleware_chain.py::TestConcurrentRequestIsolation</code>. But if you maintain async-capable middleware of your own, it will run synchronously while query-doctor is installed.</p>
+<p>This is not a change relative to 2.1.1. The missing coroutine marker in 2.0.0–2.1.1 (see the warning below) already forced those middleware into sync mode, while additionally breaking them -- the breakage is pinned by <code>TestASGIChainServesRequests</code>, whose <code>RESPONSE_TOUCHING_STACKS</code> cases raised on 2.1.1 and whose <code>PASS_THROUGH_STACKS</code> cases returned 200 while capturing nothing.</p>
 </div>
 <p>Under ASGI, the middleware:</p>
 <ul>
 <li>Runs analyzers after the view returns, in the executor thread.</li>
 <li>Captures queries from <code>async def</code> views and from sync views alike.</li>
-<li>Captures queries issued inside <code>sync_to_async</code>-wrapped helpers — provided
+<li>Captures queries issued inside <code>sync_to_async</code>-wrapped helpers -- provided
   they use the default <code>thread_sensitive=True</code>. See
   <a href="#mixed-syncasync-code">Mixed Sync/Async Code</a> for the <code>thread_sensitive=False</code>
   exception.</li>
@@ -2154,7 +2154,7 @@
 <p class="admonition-title">Broken before 2.1.2</p>
 <p>Versions 2.0.0 through 2.1.1 declared <code>async_capable = True</code>. Under ASGI this produced one of two symptoms:</p>
 <ul>
-<li><strong>Every request failed</strong> with <code>TypeError: object HttpResponse can't be used in 'await' expression</code> (or <code>HttpResponseServerError</code> when <code>DEBUG = False</code>), raised at <code>django/core/handlers/base.py</code> in <code>get_response_async</code>. This happened whenever any middleware listed <em>before</em> query-doctor touched the response object — which includes <code>SecurityMiddleware</code>, <code>CommonMiddleware</code>, and <code>XFrameOptionsMiddleware</code>, so the <code>startproject</code> defaults were always affected.</li>
+<li><strong>Every request failed</strong> with <code>TypeError: object HttpResponse can't be used in 'await' expression</code> (or <code>HttpResponseServerError</code> when <code>DEBUG = False</code>), raised at <code>django/core/handlers/base.py</code> in <code>get_response_async</code>. This happened whenever any middleware listed <em>before</em> query-doctor touched the response object -- which includes <code>SecurityMiddleware</code>, <code>CommonMiddleware</code>, and <code>XFrameOptionsMiddleware</code>, so the <code>startproject</code> defaults were always affected.</li>
 <li><strong>Requests succeeded but reported nothing.</strong> In stacks that did not crash, the middleware ran on the event loop thread while the ORM ran in the executor thread, so it wrapped a connection object the queries never touched.</li>
 </ul>
 <p>If you are on an affected version, upgrade to 2.1.2. Any <code>async_capable = False</code> subclass workaround you applied becomes redundant, but remains harmless.</p>
@@ -2176,11 +2176,11 @@
 <p>When the wrapped <code>get_response</code> is a coroutine function, the middleware detects it at construction and <code>__call__</code> awaits <code>__acall__</code>, which runs the same capture-and-analyze pipeline without adapting through <code>sync_to_async</code>. This is the path <code>tests/test_async_support.py</code> and <code>tests/test_asgi_middleware_chain.py</code> exercise, and it is kept as a supported API precisely so those tests remain meaningful.</p>
 <p>Two caveats apply on this route:</p>
 <ul>
-<li><strong>You own the thread placement.</strong> Django is not adapting the middleware into its thread-sensitive executor here, so capture is correct only when the ORM work runs on the same thread as the <code>await</code> — see <a href="#the-context-manager-in-async-code">The Context Manager in Async Code</a> for the same thread-locality constraint.</li>
-<li><strong>The analysis and the reporting both run inline on your loop.</strong> <code>__acall__</code> calls <code>_analyze_and_report()</code> without awaiting it, so the analyzers <em>and</em> the reporters run on your event loop thread and block it for their combined duration. The <strong>analysis stage</strong> scales with the number of <em>captured queries</em>, roughly linearly; the measured figures are below. <strong>They do not include reporter cost</strong>, which is additional and unmeasured: it depends on which reporters you have configured, and a log line and a rendered HTML dashboard are not the same order of magnitude. Reporters run only when the request produced at least one prescription, so a clean request pays none of that — the expensive combination is a request that both issued many queries and has findings to report, which is exactly the case the tool exists to surface. One cost is not conditional on findings: with <code>ADMIN_DASHBOARD.enabled</code> set, the middleware records every report into the dashboard buffer inline, findings or not. The <code>MIDDLEWARE</code>-chain path does not have any of this property, because Django runs the whole middleware in the executor thread.</li>
+<li><strong>You own the thread placement.</strong> Django is not adapting the middleware into its thread-sensitive executor here, so capture is correct only when the ORM work runs on the same thread as the <code>await</code> -- see <a href="#the-context-manager-in-async-code">The Context Manager in Async Code</a> for the same thread-locality constraint.</li>
+<li><strong>The analysis and the reporting both run inline on your loop.</strong> <code>__acall__</code> calls <code>_analyze_and_report()</code> without awaiting it, so the analyzers <em>and</em> the reporters run on your event loop thread and block it for their combined duration. The <strong>analysis stage</strong> scales with the number of <em>captured queries</em>, roughly linearly; the measured figures are below. <strong>They do not include reporter cost</strong>, which is additional and unmeasured: it depends on which reporters you have configured, and a log line and a rendered HTML dashboard are not the same order of magnitude. Reporters run only when the request produced at least one prescription, so a clean request pays none of that -- the expensive combination is a request that both issued many queries and has findings to report, which is exactly the case the tool exists to surface. One cost is not conditional on findings: with <code>ADMIN_DASHBOARD.enabled</code> set, the middleware records every report into the dashboard buffer inline, findings or not. The <code>MIDDLEWARE</code>-chain path does not have any of this property, because Django runs the whole middleware in the executor thread.</li>
 </ul>
 <h3 id="analysis-cost-on-the-hand-embed-route">Analysis cost on the hand-embed route<a class="headerlink" href="#analysis-cost-on-the-hand-embed-route" title="Permanent link">&para;</a></h3>
-<p>Regenerate this table with <code>python -m scripts.bench_analyze</code> — the harness prints the machine, the
+<p>Regenerate this table with <code>python -m scripts.bench_analyze</code> -- the harness prints the machine, the
 Django version, the number of enabled analyzers, the number of <code>.queryignore</code> rules loaded, and the
 shape of the workload, because all five change the answer.</p>
 <table>
@@ -2252,7 +2252,7 @@ below, not the absolute milliseconds, as the durable result.</p>
 <p>The 0-query row is the pipeline's floor, not this route's floor: <code>_analyze_and_report()</code> returns at
 <code>middleware.py</code> before reaching the analysis pipeline when nothing was captured, so a request that
 issued no queries costs <code>__acall__</code> config loading and the <code>_should_process()</code> check, not 0.14 ms of
-analysis. That short-circuit is the middleware's alone — <code>diagnose_queries()</code>, the Celery
+analysis. That short-circuit is the middleware's alone -- <code>diagnose_queries()</code>, the Celery
 integration, the pytest plugin, <code>check_queries</code>, <code>fix_queries</code> and <code>diagnose_project</code> all call
 <code>pipeline.analyze()</code> unguarded, and do pay the floor on an empty query list.</p>
 <div class="admonition note">
@@ -2265,9 +2265,9 @@ between them. The eight analyzers sum to 32.58 ms against that 32.83 ms total; t
 is discovery dispatch and the one <code>load_queryignore()</code> call the pipeline makes per invocation,
 which no analyzer is responsible for. The breakdown times the pipeline again in its own loop,
 so its 32.83 ms and the table's 32.00 ms are two samples of the same thing rather than a
-contradiction — compare shares within the breakdown, not across the two.</p>
+contradiction -- compare shares within the breakdown, not across the two.</p>
 <p>Replacing the wide <code>SELECT</code> with a single-column one, holding the count and the fingerprint
-spread fixed — <code>python -m scripts.bench_analyze --select-width narrow</code> — measured <strong>3.2x
+spread fixed -- <code>python -m scripts.bench_analyze --select-width narrow</code> -- measured <strong>3.2x
 cheaper at 100 captures (6.46 ms to 2.02 ms) and 3.5x cheaper at 500 (32.00 ms to 9.08 ms)</strong>.
 The narrow workload also produces one finding fewer per row from 1 capture up, because
 <code>fat_select</code> has nothing to report on a one-column projection. The grouping analyzers are
@@ -2278,11 +2278,13 @@ the harness against your own if the number matters to you.</p>
 </div>
 <hr />
 <h2 id="django-async-orm-methods">Django Async ORM Methods<a class="headerlink" href="#django-async-orm-methods" title="Permanent link">&para;</a></h2>
-<p><strong>Through the <code>MIDDLEWARE</code> chain</strong>, Django's async ORM methods (<code>aget</code>, <code>acreate</code>, <code>acount</code>, <code>aexists</code>, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's <code>execute_wrapper</code> captures them identically. Async iteration over querysets is captured the same way. Measured for all five on Django 6.0 and 4.2 by <code>tests/test_asgi_middleware_chain.py::TestASGIAsyncORMCapture</code>, which drives a real <code>ASGIHandler</code> and asserts the captured query <em>counts</em> plus a per-method SQL fragment — a raw <code>SELECT 1</code> cannot satisfy it.</p>
+<p><strong>Through the <code>MIDDLEWARE</code> chain</strong>, Django's async ORM methods (<code>aget</code>, <code>acreate</code>, <code>acount</code>, <code>aexists</code>, async iteration) ultimately execute through the same database connection as their sync counterparts, so the interceptor's <code>execute_wrapper</code> captures them identically. Async iteration over querysets is captured the same way. Measured for all five on Django 6.0 and 4.2 by <code>tests/test_asgi_middleware_chain.py::TestASGIAsyncORMCapture</code>, which drives a real <code>ASGIHandler</code> and asserts the captured query <em>counts</em> plus a per-method SQL fragment -- a raw <code>SELECT 1</code> cannot satisfy it.</p>
 <div class="admonition warning">
 <p class="admonition-title">Not on the hand-embedding route</p>
 <p>Those same five methods capture <strong>nothing</strong> when the middleware is embedded by hand around an async handler, the route described under <a href="#embedding-the-middleware-around-an-async-handler">Embedding the middleware around an async handler</a>.</p>
 <p><code>__acall__</code> installs the <code>execute_wrapper</code> on the event loop thread's connection, while every <code>a*</code> method is internally <code>sync_to_async(thread_sensitive=True)</code>, so the ORM runs on an executor thread holding a different <code>connections["default"]</code>. This is the thread-placement caveat on that route applied to async ORM calls, and the same cause as the <code>diagnose_queries()</code> limitation below. The behaviour is pinned by <code>tests/test_asgi_middleware_chain.py::TestDirectEmbedAsyncORMNotCaptured</code>, against a sync view doing identical ORM work through the same driver that captures 2 queries.</p>
+<p><strong>Since 2.3.0 it says so.</strong> The behaviour is unchanged -- the route still captures nothing -- but it no longer does so silently. <code>__acall__</code> asks the thread-sensitive executor whether it can see the installed interceptor; when it cannot, a <code>QueryDoctorWarning</code> names the limitation and steers you to the <code>MIDDLEWARE</code> chain. An async handler doing sync ORM inline resolves the loop thread's own connection, finds the interceptor there, and does not warn.</p>
+<p>The warning reports a property of the <strong>wiring</strong>, not of one request, so a handler that touches no database at all also matches it, and it is emitted at most <strong>once per middleware instance</strong> rather than once per request. Suites that escalate warnings to errors will fail on a hand-embedded async middleware; see <a href="https://github.com/hassanzaibhay/django-query-doctor/blob/main/UPGRADING.md"><code>UPGRADING.md</code></a>.</p>
 <p>Use the <code>MIDDLEWARE</code> chain to diagnose async ORM calls.</p>
 </div>
 <hr />
@@ -2290,9 +2292,9 @@ the harness against your own if the number matters to you.</p>
 <div class="admonition danger">
 <p class="admonition-title"><code>diagnose_queries()</code> captures nothing inside an <code>async def</code> function</p>
 <p>Measured on Django 6.0 under a real ASGI handler: a <code>with diagnose_queries():</code> block inside an <code>async def</code> view reports <strong>zero queries</strong>, however many the block issues.</p>
-<p><strong>Since 2.2.0 it says so.</strong> Entering the block from a coroutine emits a <code>QueryDoctorWarning</code> naming the limitation and steering you to the middleware. The behaviour is unchanged — the block still captures nothing — but it no longer does so silently. The predicate is whether an event loop is running on the entering thread, which fires only on this broken path: a <code>def</code> view served under ASGI and a <code>sync_to_async</code>-wrapped helper both run in the executor thread, capture correctly, and do not warn. Suites that escalate warnings to errors will fail on such a block; see <a href="https://github.com/hassanzaibhay/django-query-doctor/blob/main/UPGRADING.md"><code>UPGRADING.md</code></a>.</p>
+<p><strong>Since 2.2.0 it says so.</strong> Entering the block from a coroutine emits a <code>QueryDoctorWarning</code> naming the limitation and steering you to the middleware. The behaviour is unchanged -- the block still captures nothing -- but it no longer does so silently. The predicate is whether an event loop is running on the entering thread, which fires only on this broken path: a <code>def</code> view served under ASGI and a <code>sync_to_async</code>-wrapped helper both run in the executor thread, capture correctly, and do not warn. Suites that escalate warnings to errors will fail on such a block; see <a href="https://github.com/hassanzaibhay/django-query-doctor/blob/main/UPGRADING.md"><code>UPGRADING.md</code></a>.</p>
 <p>The cause is the same thread-locality described above, applied to the context manager instead of the middleware. The <code>with</code> block runs on the event loop thread and installs its <code>execute_wrapper</code> on <em>that</em> thread's connection object. The ORM work inside it is routed to the thread-sensitive executor on a different thread, which resolves to a different connection. The wrapper never sees the queries.</p>
-<p><code>contextvars</code> do not help here. The interceptor's per-instance <code>ContextVar</code> storage is correct and does propagate across <code>await</code> -- but Django's connection registry is thread-local, not context-local, so the wrapper is on the wrong object before contextvars are ever consulted.</p>
+<p><code>contextvars</code> do not help here, and the reason is not about <code>contextvars</code> at all. Django's connection registry is <strong>thread-local</strong>, so which connection object you get is decided by which thread you are on. The <code>execute_wrapper</code> is attached to a connection object, and by the time any context-local storage could matter the wrapper is already on the wrong object. Whether the interceptor's own <code>ContextVar</code> storage propagates across <code>await</code> is not what decides the outcome here, so this guide does not claim anything about it: no code path in the package shares an interceptor between contexts, which means no test could distinguish the two explanations.</p>
 <p>Use the <strong>middleware</strong> to diagnose async views. It is adapted into the executor thread by Django and captures correctly.</p>
 </div>
 <p><code>diagnose_queries()</code> is a <strong>synchronous</strong> context manager and works as documented in synchronous code -- including inside a <code>def</code> view served under ASGI, where Django runs the whole view in the executor thread:</p>
@@ -2307,7 +2309,7 @@ the harness against your own if the number matters to you.</p>
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="c1"># Prescriptions are generated normally</span>
 </span></code></pre></div>
 <blockquote>
-<p><strong>Not supported:</strong> <code>async with diagnose_queries()</code> raises a <code>TypeError</code> -- the context manager does not implement the async context manager protocol.</p>
+<p><strong>Not supported:</strong> <code>async with diagnose_queries()</code> raises -- the context manager does not implement the async context manager protocol. The exception type differs by interpreter, so do not catch it by type without checking <a href="#limitations">Limitations</a>.</p>
 </blockquote>
 <hr />
 <h2 id="the-diagnose-decorator-and-async-views">The <code>@diagnose</code> Decorator and Async Views<a class="headerlink" href="#the-diagnose-decorator-and-async-views" title="Permanent link">&para;</a></h2>
@@ -2341,7 +2343,7 @@ the harness against your own if the number matters to you.</p>
 thread instead of the thread-sensitive one the middleware was adapted into.
 Django keeps connections in thread-local storage, so the helper resolves a
 <em>different</em> <code>connections["default"]</code> than the one the <code>execute_wrapper</code> is
-installed on, and its queries are never seen — the same cause as the
+installed on, and its queries are never seen -- the same cause as the
 hand-embedding limitation above.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Captured -- default thread_sensitive=True</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">await</span> <span class="n">sync_to_async</span><span class="p">(</span><span class="n">get_related_books</span><span class="p">)(</span><span class="n">book</span><span class="p">)</span>
@@ -2353,15 +2355,16 @@ hand-embedding limitation above.</p>
 <code>tests/test_asgi_middleware_chain.py::TestSyncToAsyncThreadSensitivity</code>,
 which asserts one query captured for the default and zero for
 <code>thread_sensitive=False</code>, and additionally asserts the thread and
-connection identities differ — so a passing result cannot come from a
+connection identities differ -- so a passing result cannot come from a
 harness that captures nothing.</p>
 </div>
 <hr />
 <h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><code>@diagnose</code> / <code>@query_budget</code> on coroutines</strong>: not supported (see above).</li>
-<li><strong>Connection pooling</strong>: If you use a third-party connection pooler (like <code>django-db-connection-pool</code>), ensure it is compatible with Django's <code>execute_wrapper</code> mechanism.</li>
-<li><strong>Raw async drivers</strong>: Queries issued directly through non-Django drivers (e.g. <code>asyncpg</code>) bypass Django's connection and are not captured.</li>
+<li><strong><code>@diagnose</code> / <code>@query_budget</code> on coroutines</strong>: not supported (see above). Both decorators wrap the function synchronously, so applying either to an <code>async def</code> returns the coroutine object and runs the check before the body has executed -- a budget of zero cannot raise however many queries the body goes on to issue. Measured by <code>tests/test_async_support.py::TestDocumentedAsyncLimitationsAreBacked</code>, with the sync case beside it as a control.</li>
+<li><strong><code>async with diagnose_queries()</code></strong>: raises -- it is a synchronous <code>@contextmanager</code> and does not implement the async protocol. <strong>The exception type depends on your Python version</strong>: <code>TypeError</code> on 3.11 and later, <code>AttributeError: __aenter__</code> on 3.10, which is CPython's own change and not something this package controls. Do not write <code>except TypeError</code> around it if you support 3.10. Same test class, which asserts both.</li>
+<li><strong>Connection pooling</strong>: <strong>untested by this project.</strong> Whether a third-party pooler (such as <code>django-db-connection-pool</code>) preserves <code>execute_wrapper</code> depends on how it substitutes the connection object, and none is exercised in our suite or CI. Treat capture under a pooler as unverified and check it against your own stack rather than assuming it works.</li>
+<li><strong>Raw async drivers</strong>: Queries issued directly through non-Django drivers (e.g. <code>asyncpg</code>) are not captured. This follows from the capture mechanism rather than from a measurement: <code>connection.execute_wrapper()</code> is a Django API that wraps Django's own cursor, so a driver used outside <code>django.db</code> never passes through it. No <code>asyncpg</code> test exists here.</li>
 </ul>
 <hr />
 <h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
@@ -2392,7 +2395,7 @@ harness that captures nothing.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 30, 2026 14:09:57 UTC">July 30, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

@@ -2484,49 +2484,49 @@
 <tr>
 <td><code>--fail-on</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Exit with code 1 if issues at this severity or higher are found: <code>critical</code>, <code>warning</code>, or <code>info</code></td>
 </tr>
 <tr>
 <td><code>--diff</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only report issues in files changed vs this git ref (e.g., <code>main</code>, <code>origin/develop</code>, <code>abc123</code>)</td>
 </tr>
 <tr>
 <td><code>--file</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only report issues in files matching this substring. Can be specified multiple times.</td>
 </tr>
 <tr>
 <td><code>--module</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only report issues in modules matching this substring. Can be specified multiple times.</td>
 </tr>
 <tr>
 <td><code>--output</code>, <code>-o</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Write output to a file instead of stdout</td>
 </tr>
 <tr>
 <td><code>--save-baseline</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Save current issues as a baseline snapshot (JSON file)</td>
 </tr>
 <tr>
 <td><code>--baseline</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Compare against a baseline snapshot, show only regressions</td>
 </tr>
 <tr>
 <td><code>--fail-on-regression</code></td>
 <td>flag</td>
-<td>—</td>
+<td>--</td>
 <td>Exit with code 1 if new issues found vs baseline</td>
 </tr>
 <tr>
@@ -2594,19 +2594,19 @@
 <tr>
 <td><code>--app</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only scan serializers in the given app. Can be repeated.</td>
 </tr>
 <tr>
 <td><code>--module</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only scan the given module path. Can be repeated.</td>
 </tr>
 <tr>
 <td><code>--file</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only report issues in files matching this substring. Can be repeated.</td>
 </tr>
 <tr>
@@ -2618,13 +2618,13 @@
 <tr>
 <td><code>--fail-on</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Exit with code 1 if issues at this severity or higher: <code>critical</code>, <code>warning</code>, <code>info</code></td>
 </tr>
 <tr>
 <td><code>--output</code>, <code>-o</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Write output to a file instead of stdout</td>
 </tr>
 </tbody>
@@ -2666,13 +2666,13 @@
 <tr>
 <td><code>--max-time-ms</code></td>
 <td><code>float</code></td>
-<td>—</td>
+<td>--</td>
 <td>Maximum total query time in milliseconds</td>
 </tr>
 <tr>
 <td><code>--execute</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Python code to execute and measure</td>
 </tr>
 </tbody>
@@ -2711,25 +2711,25 @@
 <tr>
 <td><code>--apply</code></td>
 <td>flag</td>
-<td>—</td>
+<td>--</td>
 <td>Apply fixes to source files</td>
 </tr>
 <tr>
 <td><code>--issue-type</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only fix specific issue types. Validated choices: <code>n_plus_one</code>, <code>duplicate_query</code>, <code>fat_select</code>, <code>queryset_eval</code>, <code>missing_index</code> (any other value is rejected). Can be repeated.</td>
 </tr>
 <tr>
 <td><code>--file</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only fix specific files. Can be repeated.</td>
 </tr>
 <tr>
 <td><code>--no-backup</code></td>
 <td>flag</td>
-<td>—</td>
+<td>--</td>
 <td>Do not create <code>.bak</code> files when applying</td>
 </tr>
 <tr>
@@ -2741,7 +2741,7 @@
 </tbody>
 </table>
 <h3 id="examples_3">Examples<a class="headerlink" href="#examples_3" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Dry run (default) — see what would change</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Dry run (default) -- see what would change</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Apply fixes</span>
@@ -2786,7 +2786,7 @@
 <tr>
 <td><code>--apps</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only diagnose specific apps (space-separated)</td>
 </tr>
 <tr>
@@ -2810,31 +2810,31 @@
 <tr>
 <td><code>--file</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only report issues in files matching this substring. Can be repeated.</td>
 </tr>
 <tr>
 <td><code>--module</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Only report issues in modules matching this substring. Can be repeated.</td>
 </tr>
 <tr>
 <td><code>--save-baseline</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Save current issues as a baseline snapshot (JSON file)</td>
 </tr>
 <tr>
 <td><code>--baseline</code></td>
 <td><code>str</code></td>
-<td>—</td>
+<td>--</td>
 <td>Compare against a baseline snapshot, show only regressions</td>
 </tr>
 <tr>
 <td><code>--fail-on-regression</code></td>
 <td>flag</td>
-<td>—</td>
+<td>--</td>
 <td>Exit with code 1 if new issues found vs baseline</td>
 </tr>
 <tr>
@@ -2890,7 +2890,7 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>manage.py<span class="w"> </span>query_doctor_report
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>query_doctor_report<span class="w"> </span>--output<span class="o">=</span>reports/turbo-dashboard.html
 </span></code></pre></div>
-<p>The dashboard shows cache hit rates, top optimized queries, and Chart.js graphs. Data reflects the current process cache — the cache resets on server restart. See <a href="../benchmark-dashboard/">Benchmark Dashboard</a> for details on what the report contains.</p>
+<p>The dashboard shows cache hit rates, top optimized queries, and Chart.js graphs. Data reflects the current process cache -- the cache resets on server restart. See <a href="../benchmark-dashboard/">Benchmark Dashboard</a> for details on what the report contains.</p>
 <div class="admonition warning">
 <p class="admonition-title">Schema Information</p>
 <p>The report contains SQL query templates (without parameter values) that may reveal database schema information. Do not share the report publicly if your schema is confidential.</p>
@@ -2898,12 +2898,12 @@
 <hr />
 <h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../ci-integration/">CI/CD Integration</a> — Using management commands in CI pipelines</li>
-<li><a href="../auto-fix/">Auto-Fix Mode</a> — Details on the auto-fix system</li>
-<li><a href="../baseline/">Baseline Regression</a> — Baseline regression detection guide</li>
-<li><a href="../grouping/">Prescription Grouping</a> — How grouping works</li>
-<li><a href="../benchmark-dashboard/">Benchmark Dashboard</a> — Interactive HTML report</li>
-<li><a href="../middleware/">Middleware</a> — Alternative: analyze every request automatically</li>
+<li><a href="../ci-integration/">CI/CD Integration</a> -- Using management commands in CI pipelines</li>
+<li><a href="../auto-fix/">Auto-Fix Mode</a> -- Details on the auto-fix system</li>
+<li><a href="../baseline/">Baseline Regression</a> -- Baseline regression detection guide</li>
+<li><a href="../grouping/">Prescription Grouping</a> -- How grouping works</li>
+<li><a href="../benchmark-dashboard/">Benchmark Dashboard</a> -- Interactive HTML report</li>
+<li><a href="../middleware/">Middleware</a> -- Alternative: analyze every request automatically</li>
 </ul>
 
 
@@ -2927,7 +2927,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     

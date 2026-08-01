@@ -996,7 +996,7 @@
   <a href="#n_plus_one-dry-run-only-never-auto-applied" class="md-nav__link">
     <span class="md-ellipsis">
       
-        n_plus_one — dry-run only, never auto-applied
+        n_plus_one -- dry-run only, never auto-applied
       
     </span>
   </a>
@@ -1007,7 +1007,7 @@
   <a href="#fat_select-dry-run-only-never-auto-applied" class="md-nav__link">
     <span class="md-ellipsis">
       
-        fat_select — dry-run only, never auto-applied
+        fat_select -- dry-run only, never auto-applied
       
     </span>
   </a>
@@ -2087,7 +2087,7 @@
   <a href="#n_plus_one-dry-run-only-never-auto-applied" class="md-nav__link">
     <span class="md-ellipsis">
       
-        n_plus_one — dry-run only, never auto-applied
+        n_plus_one -- dry-run only, never auto-applied
       
     </span>
   </a>
@@ -2098,7 +2098,7 @@
   <a href="#fat_select-dry-run-only-never-auto-applied" class="md-nav__link">
     <span class="md-ellipsis">
       
-        fat_select — dry-run only, never auto-applied
+        fat_select -- dry-run only, never auto-applied
       
     </span>
   </a>
@@ -2193,18 +2193,18 @@
 <ol>
 <li><strong>Analyzes</strong> the target URL by executing a request and capturing queries.</li>
 <li><strong>Generates prescriptions</strong> with exact file paths, line numbers, and a suggested fix as text.</li>
-<li><strong>Reads the single source line</strong> at the prescription's <code>callsite.line_number</code> and applies a <strong>regex substitution</strong> on that one line — it does not parse or understand the surrounding code.</li>
+<li><strong>Reads the single source line</strong> at the prescription's <code>callsite.line_number</code> and applies a <strong>regex substitution</strong> on that one line -- it does not parse or understand the surrounding code.</li>
 <li>On <code>--apply</code>, <strong>only issue types known to be safe are written to disk</strong> (see <a href="#supported-fix-types">Supported Fix Types</a>); the rest are refused and reported instead.</li>
 </ol>
-<p>Each issue type has its own regex-based line handler; some just append a method call to the end of the line, others prepend a <code># TODO</code> comment. There is no code restructuring or understanding of surrounding context — the handler only ever sees one line.</p>
+<p>Each issue type has its own regex-based line handler; some just append a method call to the end of the line, others prepend a <code># TODO</code> comment. There is no code restructuring or understanding of surrounding context -- the handler only ever sees one line.</p>
 <blockquote>
-<p><strong>Known limitation — the edited line may not be the line you expect.</strong> The line a fix targets is the <em>callsite</em> of the captured query: the closest application-code stack frame to where the query actually executed (see <code>stack_tracer.capture_callsite</code>). For the classic N+1 pattern —</p>
+<p><strong>Known limitation -- the edited line may not be the line you expect.</strong> The line a fix targets is the <em>callsite</em> of the captured query: the closest application-code stack frame to where the query actually executed (see <code>stack_tracer.capture_callsite</code>). For the classic N+1 pattern -- </p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">for</span> <span class="n">book</span> <span class="ow">in</span> <span class="n">books</span><span class="p">:</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">name</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">author</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># triggers one query per book</span>
 </span></code></pre></div>
-<p>— the callsite is the <code>book.author.name</code> line inside the loop, <strong>not</strong> the <code>Book.objects.all()</code> line. Appending <code>.select_related('author')</code> there would produce <code>name = book.author.name.select_related('author')</code>, which is not valid code. <strong>This is exactly why <code>n_plus_one</code> (and <code>fat_select</code>, for the same reason) are not auto-applied</strong> — <code>--apply</code> refuses to write them and reports them for manual review instead. Only <code>--dry-run</code> shows what the fix <em>would</em> look like.</p>
-<p>Before writing anything, the fixer also parses the candidate file content with <code>ast.parse()</code> and refuses to write if that fails — a syntax-error floor. This catches malformed output, not semantic correctness: a fix that lands inside a comment, or after a valid-but-wrong expression, still parses cleanly and would still be written. Treat <code>--apply</code>'s output as a starting diff to review, not a guaranteed-correct edit.</p>
+<p>-- the callsite is the <code>book.author.name</code> line inside the loop, <strong>not</strong> the <code>Book.objects.all()</code> line. Appending <code>.select_related('author')</code> there would produce <code>name = book.author.name.select_related('author')</code>, which is not valid code. <strong>This is exactly why <code>n_plus_one</code> (and <code>fat_select</code>, for the same reason) are not auto-applied</strong> -- <code>--apply</code> refuses to write them and reports them for manual review instead. Only <code>--dry-run</code> shows what the fix <em>would</em> look like.</p>
+<p>Before writing anything, the fixer also parses the candidate file content with <code>ast.parse()</code> and refuses to write if that fails -- a syntax-error floor. This catches malformed output, not semantic correctness: a fix that lands inside a comment, or after a valid-but-wrong expression, still parses cleanly and would still be written. Treat <code>--apply</code>'s output as a starting diff to review, not a guaranteed-correct edit.</p>
 </blockquote>
 <hr />
 <h2 id="dry-run-default">Dry Run (Default)<a class="headerlink" href="#dry-run-default" title="Permanent link">&para;</a></h2>
@@ -2225,13 +2225,14 @@
 <p>To modify your source files, pass the <code>--apply</code> flag:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span>--apply
 </span></code></pre></div>
-<p>Only fixes for <code>queryset_eval</code>, <code>duplicate_query</code>, and <code>missing_index</code> are actually written — see <a href="#supported-fix-types">Supported Fix Types</a> for why the other issue types are refused. If any fixes were skipped as unsafe, or rejected because they'd produce invalid Python, <code>fix_queries</code> prints a warning/error for each and <strong>exits nonzero</strong> (<code>CommandError</code>) even though the safe fixes in the same run were still applied.</p>
+<p>Only fixes for <code>queryset_eval</code>, <code>duplicate_query</code>, and <code>missing_index</code> are actually written -- see <a href="#supported-fix-types">Supported Fix Types</a> for why the other issue types are refused. If any fixes were skipped as unsafe, or rejected because they'd produce invalid Python, <code>fix_queries</code> prints a warning/error for each and <strong>exits nonzero</strong> (<code>CommandError</code>) even though the safe fixes in the same run were still applied.</p>
 <blockquote>
-<p><strong>Warning:</strong> Always ensure your code is committed to version control before running <code>--apply</code>. This is a line-level regex tool, not a code-aware refactorer — the <code>ast.parse()</code> floor only rejects syntactically invalid output, not semantically wrong output. Use <code>git diff</code> to review changes after applying, and use <code>--no-backup</code> only if you don't want the automatic <code>.bak</code> files it creates alongside each modified file.</p>
+<p><strong>Warning:</strong> Always ensure your code is committed to version control before running <code>--apply</code>. This is a line-level regex tool, not a code-aware refactorer -- the <code>ast.parse()</code> floor only rejects syntactically invalid output, not semantically wrong output. Use <code>git diff</code> to review changes after applying, and use <code>--no-backup</code> only if you don't want the automatic <code>.bak</code> files it creates alongside each modified file.</p>
 </blockquote>
 <hr />
 <h2 id="supported-fix-types">Supported Fix Types<a class="headerlink" href="#supported-fix-types" title="Permanent link">&para;</a></h2>
-<p>The fixer dispatches on <code>Prescription.issue_type</code> (<code>fixer.py:_parse_fix</code>). Five of the seven issue types have a fix handler, but <strong><code>--apply</code> only writes three of those five to disk</strong> — the rest are shown in the diff (<code>--dry-run</code> or the pre-write diff under <code>--apply</code>), tagged <code>[MANUAL FIX ONLY]</code>, and refused at write time:</p>
+<p>The fixer dispatches on <code>Prescription.issue_type</code> (<code>fixer.py:_parse_fix</code>). <code>IssueType</code> has <strong>nine</strong> members; five of them have a fix handler, but <strong><code>--apply</code> only writes three of those five to disk</strong> -- the rest are shown in the diff (<code>--dry-run</code> or the pre-write diff under <code>--apply</code>), tagged <code>[MANUAL FIX ONLY]</code>, and refused at write time.</p>
+<p>The last column is the one to read before copying a command: <code>--issue-type</code> validates its argument against an argparse <code>choices</code> list of exactly the five handler-backed types. Passing any of the other four is <strong>rejected with an error</strong>, not accepted-and-fruitless.</p>
 <table>
 <thead>
 <tr>
@@ -2239,6 +2240,7 @@
 <th>What the handler does</th>
 <th>Handler</th>
 <th>Auto-applied by <code>--apply</code>?</th>
+<th>Selectable via <code>--issue-type</code>?</th>
 </tr>
 </thead>
 <tbody>
@@ -2246,51 +2248,72 @@
 <td><code>n_plus_one</code></td>
 <td>Extracts a <code>.select_related(...)</code> or <code>.prefetch_related(...)</code> call from the fix suggestion text and appends it to the end of the callsite line</td>
 <td><code>_fix_nplusone</code></td>
-<td><strong>No</strong> — callsite is often mid-loop, not the queryset definition (see the limitation above)</td>
-</tr>
-<tr>
-<td><code>drf_serializer</code></td>
-<td>Same handler as <code>n_plus_one</code> — but see the note below, this issue type is never produced by the runtime pipeline that <code>fix_queries</code> uses</td>
-<td><code>_fix_nplusone</code></td>
-<td><strong>No</strong> (also never emitted here in the first place)</td>
+<td><strong>No</strong> -- callsite is often mid-loop, not the queryset definition (see the limitation above)</td>
+<td>Yes</td>
 </tr>
 <tr>
 <td><code>fat_select</code></td>
 <td>Extracts a <code>.only(...)</code> or <code>.defer(...)</code> call and appends it to the end of the callsite line</td>
 <td><code>_fix_fat_select</code></td>
-<td><strong>No</strong> — same callsite-line risk as <code>n_plus_one</code></td>
+<td><strong>No</strong> -- same callsite-line risk as <code>n_plus_one</code></td>
+<td>Yes</td>
 </tr>
 <tr>
 <td><code>queryset_eval</code></td>
 <td>Rewrites <code>len(x)</code> → <code>x.count()</code> and/or <code>if x:</code> → <code>if x.exists():</code> on the callsite line via regex</td>
 <td><code>_fix_queryset_eval</code></td>
-<td><strong>Yes</strong> — the analyzer only fires when the anti-pattern is on the callsite line itself, so this handler is safe by construction</td>
+<td><strong>Yes</strong> -- the analyzer only fires when the anti-pattern is on the callsite line itself, so this handler is safe by construction</td>
+<td>Yes</td>
 </tr>
 <tr>
 <td><code>duplicate_query</code></td>
-<td>Prepends a <code># TODO: Cache this query result to avoid duplicate execution</code> comment above the callsite line — it does <strong>not</strong> extract a shared variable</td>
+<td>Prepends a <code># TODO: Cache this query result to avoid duplicate execution</code> comment above the callsite line -- it does <strong>not</strong> extract a shared variable</td>
 <td><code>_fix_duplicate</code></td>
-<td><strong>Yes</strong> — comment-only, can't corrupt code</td>
+<td><strong>Yes</strong> -- comment-only, can't corrupt code</td>
+<td>Yes</td>
 </tr>
 <tr>
 <td><code>missing_index</code></td>
-<td>Prepends a <code># TODO: Consider adding an index via Meta.indexes — &lt;suggestion&gt;</code> comment above the callsite line — it does <strong>not</strong> add a <code>models.Index()</code> entry</td>
+<td>Prepends a <code># TODO: Consider adding an index via Meta.indexes - &lt;suggestion&gt;</code> comment above the callsite line -- it does <strong>not</strong> add a <code>models.Index()</code> entry</td>
 <td><code>_fix_missing_index</code></td>
-<td><strong>Yes</strong> — comment-only, can't corrupt code</td>
+<td><strong>Yes</strong> -- comment-only, can't corrupt code</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>drf_serializer</code></td>
+<td>Same handler as <code>n_plus_one</code> -- but see the note below, this issue type is never produced by the runtime pipeline that <code>fix_queries</code> uses</td>
+<td><code>_fix_nplusone</code></td>
+<td><strong>No</strong> (also never emitted here in the first place)</td>
+<td><strong>No</strong> -- argparse rejects it</td>
 </tr>
 <tr>
 <td><code>complexity</code></td>
-<td>No handler. <code>--issue-type complexity</code> will never produce a fix.</td>
-<td>—</td>
-<td>—</td>
+<td>No handler. The fix is a multi-line restructure, not a single-line edit.</td>
+<td>--</td>
+<td>--</td>
+<td><strong>No</strong> -- argparse rejects it</td>
+</tr>
+<tr>
+<td><code>write_n_plus_one</code></td>
+<td>No handler, for the same reason as <code>complexity</code>: the fix is "build a list, then one bulk call".</td>
+<td>--</td>
+<td>--</td>
+<td><strong>No</strong> -- argparse rejects it</td>
+</tr>
+<tr>
+<td><code>serializer_method_field</code></td>
+<td>No handler. Produced by <code>check_serializers</code>' static analysis, not by the runtime pipeline <code>fix_queries</code> uses.</td>
+<td>--</td>
+<td>--</td>
+<td><strong>No</strong> -- argparse rejects it</td>
 </tr>
 </tbody>
 </table>
-<p>The auto-applied set is a fixed allowlist (<code>fixer.AUTO_APPLIABLE_ISSUE_TYPES</code>) — a future issue type only joins it after its handler is independently verified safe, not by default.</p>
-<p><code>meta_index</code> and <code>cache_queryset</code> are not real fix types in the code — they were names used in an earlier draft of this page. The actual behavior for missing-index and duplicate-query issues is a <code># TODO</code> comment, shown below.</p>
+<p>The auto-applied set is a fixed allowlist (<code>fixer.AUTO_APPLIABLE_ISSUE_TYPES</code>) -- a future issue type only joins it after its handler is independently verified safe, not by default.</p>
+<p><code>meta_index</code> and <code>cache_queryset</code> are not real fix types in the code -- they were names used in an earlier draft of this page. The actual behavior for missing-index and duplicate-query issues is a <code># TODO</code> comment, shown below.</p>
 <hr />
 <h2 id="targeting-specific-fix-types">Targeting Specific Fix Types<a class="headerlink" href="#targeting-specific-fix-types" title="Permanent link">&para;</a></h2>
-<p>Use <code>--issue-type</code> (not <code>--fix-type</code>, which does not exist) to limit which issues are fixed. It accepts one or more values, validated with argparse <code>choices</code> — an unknown value (e.g. a typo, or the analyzer name <code>duplicate</code> instead of the issue-type value <code>duplicate_query</code>) is rejected with an error before anything runs:</p>
+<p>Use <code>--issue-type</code> (not <code>--fix-type</code>, which does not exist) to limit which issues are fixed. It accepts one or more values, validated with argparse <code>choices</code> -- an unknown value (e.g. a typo, or the analyzer name <code>duplicate</code> instead of the issue-type value <code>duplicate_query</code>) is rejected with an error before anything runs:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Only apply N+1 fixes</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>python<span class="w"> </span>manage.py<span class="w"> </span>fix_queries<span class="w"> </span>--url<span class="w"> </span>/api/books/<span class="w"> </span>--issue-type<span class="w"> </span>n_plus_one<span class="w"> </span>--apply
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
@@ -2305,18 +2328,18 @@
 <p><code>--issue-type</code> only accepts the five values that actually produce fixes through <code>fix_queries</code>: <code>n_plus_one</code>, <code>duplicate_query</code>, <code>fat_select</code>, <code>queryset_eval</code>, <code>missing_index</code>. <code>complexity</code> is detected but has no fix handler. <code>SerializerMethodField</code> findings are produced by the separate <code>check_serializers</code> static analyzer (see <a href="../../analyzers/drf-serializer/">SerializerMethodField Analysis</a>), not by the runtime pipeline <code>fix_queries</code> uses, so it isn't a valid <code>--issue-type</code> value.</p>
 <hr />
 <h2 id="fix-details">Fix Details<a class="headerlink" href="#fix-details" title="Permanent link">&para;</a></h2>
-<h3 id="n_plus_one-dry-run-only-never-auto-applied"><code>n_plus_one</code> — dry-run only, never auto-applied<a class="headerlink" href="#n_plus_one-dry-run-only-never-auto-applied" title="Permanent link">&para;</a></h3>
-<p>Targets N+1 patterns caused by accessing ForeignKey, OneToOne, ManyToMany, or reverse-FK relations repeatedly. The suggested fix appends <code>.select_related('field_name')</code> or <code>.prefetch_related('field_name')</code> to the end of the callsite line — see the <a href="#how-it-works">limitation above</a> about which line that is.</p>
+<h3 id="n_plus_one-dry-run-only-never-auto-applied"><code>n_plus_one</code> -- dry-run only, never auto-applied<a class="headerlink" href="#n_plus_one-dry-run-only-never-auto-applied" title="Permanent link">&para;</a></h3>
+<p>Targets N+1 patterns caused by accessing ForeignKey, OneToOne, ManyToMany, or reverse-FK relations repeatedly. The suggested fix appends <code>.select_related('field_name')</code> or <code>.prefetch_related('field_name')</code> to the end of the callsite line -- see the <a href="#how-it-works">limitation above</a> about which line that is.</p>
 <p><code>--dry-run</code> shows what this would look like; <code>--apply</code> refuses to write it and reports it as skipped instead, because the callsite is frequently mid-loop, not the queryset definition:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Suggested — shown in the diff, never written by --apply</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Suggested -- shown in the diff, never written by --apply</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># becomes:</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s1">&#39;author&#39;</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Apply this one by hand, at the actual queryset definition line.</p>
-<h3 id="fat_select-dry-run-only-never-auto-applied"><code>fat_select</code> — dry-run only, never auto-applied<a class="headerlink" href="#fat_select-dry-run-only-never-auto-applied" title="Permanent link">&para;</a></h3>
-<p>Targets queries that fetch all columns when only a subset is used. The suggested fix appends <code>.only(...)</code> or <code>.defer(...)</code> to the end of the callsite line — same callsite-line risk as <code>n_plus_one</code>, so <code>--apply</code> refuses to write it.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Suggested — shown in the diff, never written by --apply</span>
+<h3 id="fat_select-dry-run-only-never-auto-applied"><code>fat_select</code> -- dry-run only, never auto-applied<a class="headerlink" href="#fat_select-dry-run-only-never-auto-applied" title="Permanent link">&para;</a></h3>
+<p>Targets queries that fetch all columns when only a subset is used. The suggested fix appends <code>.only(...)</code> or <code>.defer(...)</code> to the end of the callsite line -- same callsite-line risk as <code>n_plus_one</code>, so <code>--apply</code> refuses to write it.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Suggested -- shown in the diff, never written by --apply</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># becomes:</span>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">books</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;title&#39;</span><span class="p">)</span>
@@ -2330,7 +2353,7 @@
 </span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">total</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
 </span></code></pre></div>
 <h3 id="duplicate_query"><code>duplicate_query</code><a class="headerlink" href="#duplicate_query" title="Permanent link">&para;</a></h3>
-<p>Targets queries executed more than once with identical SQL and parameters. The fix does <strong>not</strong> extract a shared variable — it prepends a comment for you to act on manually:</p>
+<p>Targets queries executed more than once with identical SQL and parameters. The fix does <strong>not</strong> extract a shared variable -- it prepends a comment for you to act on manually:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Before</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">count</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
@@ -2339,12 +2362,12 @@
 </span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">count</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
 </span></code></pre></div>
 <h3 id="missing_index"><code>missing_index</code><a class="headerlink" href="#missing_index" title="Permanent link">&para;</a></h3>
-<p>Targets model fields used in <code>WHERE</code>/<code>ORDER BY</code> clauses without a database index. The fix does <strong>not</strong> add a <code>models.Index()</code> entry — it prepends a comment:</p>
+<p>Targets model fields used in <code>WHERE</code>/<code>ORDER BY</code> clauses without a database index. The fix does <strong>not</strong> add a <code>models.Index()</code> entry -- it prepends a comment:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Before</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">published_date</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">()</span>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># After</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># TODO: Consider adding an index via Meta.indexes — Add an index on published_date</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># TODO: Consider adding an index via Meta.indexes - Add an index on published_date</span>
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">published_date</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">()</span>
 </span></code></pre></div>
 <p>Adding a real index still requires manually editing <code>Meta.indexes</code> and running <code>makemigrations</code>/<code>migrate</code>.</p>
@@ -2355,16 +2378,16 @@
 <li><strong>Commit before applying.</strong> Use version control so you can revert if needed.</li>
 <li><strong>Apply one issue type at a time</strong> with <code>--issue-type</code>. This makes it easier to review and test each change.</li>
 <li><strong>Run tests after applying.</strong> Ensure your test suite passes after each batch of fixes.</li>
-<li><strong>Apply <code>n_plus_one</code> and <code>fat_select</code> fixes by hand.</strong> <code>--apply</code> won't write them for you (see <a href="#supported-fix-types">Supported Fix Types</a>) — use the diff as a starting point and place the fix at the actual queryset definition, not the callsite line.</li>
+<li><strong>Apply <code>n_plus_one</code> and <code>fat_select</code> fixes by hand.</strong> <code>--apply</code> won't write them for you (see <a href="#supported-fix-types">Supported Fix Types</a>) -- use the diff as a starting point and place the fix at the actual queryset definition, not the callsite line.</li>
 <li><strong>Handle <code>missing_index</code> TODOs separately.</strong> These require a manual <code>Meta.indexes</code> edit plus a migration; evaluate each one individually.</li>
 <li><strong>Check the exit code in CI.</strong> <code>fix_queries --apply</code> exits nonzero if any fixes were skipped as unsafe or failed the syntax-validity check, even if other fixes in the same run succeeded.</li>
 </ol>
 <hr />
 <h2 id="further-reading">Further Reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../management-commands/">Management Commands</a> — Full command reference.</li>
-<li><a href="../how-it-works/">How It Works</a> — Understanding prescriptions and the analysis pipeline.</li>
-<li><a href="../ci-integration/">CI Integration</a> — Using auto-fix in CI workflows.</li>
+<li><a href="../management-commands/">Management Commands</a> -- Full command reference.</li>
+<li><a href="../how-it-works/">How It Works</a> -- Understanding prescriptions and the analysis pipeline.</li>
+<li><a href="../ci-integration/">CI Integration</a> -- Using auto-fix in CI workflows.</li>
 </ul>
 
 
@@ -2388,7 +2411,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 10:24:27 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 1, 2026 18:06:39 UTC">August 1, 2026</span>
   </span>
 
     
