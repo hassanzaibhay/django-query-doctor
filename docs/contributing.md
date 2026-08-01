@@ -335,9 +335,12 @@ class MyAnalyzer(BaseAnalyzer):
 
         Args:
             queries: List of captured and fingerprinted queries.
-            models_meta: Reserved; currently always None. Accept it for
-                signature compatibility, but never read it -- nothing
-                passes it. Get model metadata from django.apps.apps.
+            models_meta: DEPRECATED; 3.0.0 removes this parameter. It is
+                currently always None -- nothing passes it. Accept it for
+                signature compatibility with older releases, or drop it
+                now: the argument is never passed, so a two-argument
+                analyze() is correct on 2.3.0 and required by 3.0.0.
+                Get model metadata from django.apps.apps instead.
 
         Returns:
             List of prescriptions for any detected issues.

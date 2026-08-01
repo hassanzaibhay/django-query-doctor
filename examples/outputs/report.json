@@ -1,9 +1,9 @@
 {
-  "version": "2.2.0",
-  "timestamp": "2026-07-31T10:33:33.012434+00:00",
+  "version": "2.3.0",
+  "timestamp": "2026-08-01T14:37:36.381310+00:00",
   "summary": {
     "total_queries": 43,
-    "total_time_ms": 0.7209000759758055,
+    "total_time_ms": 0.830199962365441,
     "issues_found": 5,
     "critical": 2,
     "warnings": 1,
@@ -21,7 +21,7 @@
         "function": "test_regenerate_outputs"
       },
       "query_count": 20,
-      "estimated_savings_ms": 0.31131504802033305
+      "estimated_savings_ms": 0.37201997110969387
     },
     {
       "issue_type": "n_plus_one",
@@ -34,7 +34,7 @@
         "function": "test_regenerate_outputs"
       },
       "query_count": 20,
-      "estimated_savings_ms": 0.2889899886213243
+      "estimated_savings_ms": 0.312169999233447
     },
     {
       "issue_type": "duplicate_query",
@@ -47,7 +47,7 @@
         "function": "test_regenerate_outputs"
       },
       "query_count": 2,
-      "estimated_savings_ms": 0.02635002601891756
+      "estimated_savings_ms": 0.03704999835463241
     },
     {
       "issue_type": "missing_index",

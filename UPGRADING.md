@@ -1,5 +1,110 @@
 # Upgrading django-query-doctor
 
+## From 2.2.x to 2.3.0
+
+### Breaking / behavior changes
+
+**1. `check_queries --url` now exits non-zero for a URL that does not resolve,
+or a view that raises.** Both were swallowed identically: the command reported
+zero captured queries and exited `0`. For a tool whose CI story is "fail the
+build on new issues", analysing nothing was indistinguishable from finding
+nothing, so a typo in `--url` turned the gate permanently green. Each case now
+raises a `CommandError` naming the URL.
+
+**A pipeline that is green today may fail on upgrade. That is the fix working,
+not a regression** -- if it fails, the URL was never being analysed. Check
+before you upgrade, on your current version:
+
+```bash
+python manage.py check_queries --url /your/path/
+```
+
+If the report says `Total queries: 0` for a path you know issues queries, the
+URL is not resolving and 2.3.0 will fail the build on it. Fix the path first.
+A view that raises will also now surface its own error rather than an empty
+report.
+
+**2. N+1 prescription text has changed.** Anything asserting on the old
+wording -- your own test, a scraped report, a diff of `check_queries --format
+json` output -- will differ.
+
+- A repeated `Model.objects.get(pk=...)` in a loop previously prescribed
+  `.select_related('<table>')`, with the field name derived by slicing the app
+  label off the table name. That call raised `FieldError` when followed, since
+  a primary-key lookup traverses no relation. It now gets bulk-fetch advice:
+  `in_bulk()` or `filter(pk__in=...)`.
+- A relation is named only after it resolves through `Model._meta.get_field()`,
+  and only when an earlier query in the same capture read the table that
+  declares it. A genuine forward-FK N+1 still gets `select_related`.
+- The reverse-foreign-key branch previously read the field name off the column
+  (`author_id` -> `author`) and prescribed `prefetch_related('author')` on what
+  is necessarily an `Author` queryset. It now resolves the reverse accessor on
+  the far side (`books`) and validates it against that model.
+- Prescriptions now name the model the call belongs to.
+
+**3. Findings shrink, so a committed baseline reports resolved issues.** Four
+false-positive sources are fixed: `fat_select` no longer fires on a single-row
+primary-key lookup and no longer counts a joined table's columns against the
+base table, `duplicate` no longer reports a re-read that follows a write to the
+same table, and `serializer_method` no longer prescribes `prefetch_related()`
+for a loop over a scalar attribute.
+
+If you use `check_queries --baseline`, **regenerate the baseline after
+upgrading.** Until you do, the command prints a version-mismatch warning
+(`Baseline was created with query-doctor 2.2.0; current version is 2.3.0`) and
+reports the disappeared findings as resolved. Neither is an error, and
+`--fail-on-regression` is unaffected: fewer findings cannot create a
+regression.
+
+**4. Prescription order has changed, and the console prints a new note.**
+Findings are now returned in the order the fixes should be applied -- N+1
+first, fat SELECT last -- rather than in analyzer-discovery order. When a
+report contains both an N+1 and a fat SELECT finding, the console reporter adds
+one line saying that fixing the N+1 widens the base query and that the fat
+SELECT findings should be re-read afterwards. Anything asserting on the
+position of a finding in the list, or on exact console output, will differ.
+
+**5. A hand-embedded async middleware now warns instead of silently reporting
+zero.** If you instantiate `QueryDoctorMiddleware` yourself around an async
+handler -- rather than listing it in `MIDDLEWARE` -- the `execute_wrapper` is
+installed on the event loop thread's connection while Django runs async ORM
+work on a separate executor thread, so `aget`, `acreate`, `acount`, `aexists`
+and async iteration were never captured and nothing said so. It now emits a
+`QueryDoctorWarning`. **Suites that escalate warnings to errors (`-W error`, or
+`filterwarnings = error`) go red on such a setup.**
+
+The condition is probed, not assumed: the middleware asks the executor whether
+it can see the installed interceptor, so an async handler doing sync ORM inline
+stays quiet. The warning describes the wiring rather than one request, so it is
+emitted at most once per middleware instance. Use the `MIDDLEWARE` chain, or
+suppress the category:
+
+```ini
+[pytest]
+filterwarnings =
+    error
+    ignore::query_doctor.QueryDoctorWarning
+```
+
+### Deprecations
+
+**`models_meta` is deprecated and 3.0.0 removes it from
+`BaseAnalyzer.analyze()`.** This affects you only if you ship a third-party
+analyzer. Nothing is required for 2.3.0 -- your existing
+`analyze(self, queries, models_meta=None)` signature keeps working. Because
+the argument is never passed, you can drop the parameter today and be correct
+on both 2.3.0 and 3.0.0:
+
+```python
+# accepted by 2.3.0, required by 3.0.0
+def analyze(self, queries: list[CapturedQuery]) -> list[Prescription]:
+    ...
+```
+
+See the
+[custom analyzers guide](https://hassanzaibhay.github.io/django-query-doctor/guides/custom-plugins/)
+for the full notice.
+
 ## From 2.1.x to 2.2.0
 
 ### Breaking / behavior changes

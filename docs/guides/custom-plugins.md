@@ -63,7 +63,26 @@ This is the only method you must implement. It receives:
 | Parameter | Type | Description |
 |---|---|---|
 | `queries` | `list[CapturedQuery]` | All queries captured during the request/scope |
-| `models_meta` | `dict[str, Any] \| None` | **Reserved, and always `None` today.** See the warning below. |
+| `models_meta` | `dict[str, Any] \| None` | **Deprecated, and always `None` today. 3.0.0 removes it.** See the warning below. |
+
+!!! danger "`models_meta` is deprecated -- 3.0.0 removes it"
+
+    **Announced in 2.3.0.** The parameter is removed from the
+    `BaseAnalyzer.analyze()` signature in 3.0.0. Nothing is required of you for
+    2.3.0: an `analyze(self, queries, models_meta=None)` signature keeps
+    working unchanged.
+
+    Because the argument is never passed, you can drop the parameter **today**
+    and be correct on both releases:
+
+    ```python
+    # accepted by 2.3.0, required by 3.0.0
+    def analyze(self, queries: list[CapturedQuery]) -> list[Prescription]:
+        ...
+    ```
+
+    If you keep the parameter, remove it when you adopt 3.0.0. If you read the
+    value and branch on it, that branch is unreachable today and should go now.
 
 !!! warning "`models_meta` is never populated"
 
@@ -77,8 +96,9 @@ This is the only method you must implement. It receives:
     from `django.apps.apps` yourself, which is what `missing_index` and
     `fat_select` do.
 
-    Removing the parameter would break every third-party analyzer's
-    signature, so it is kept for now and its removal is deferred to 3.0.
+    Removing the parameter breaks every third-party analyzer signature that
+    declares it, which is why the removal waits for a major version rather
+    than happening in a minor one. See the deprecation notice above.
 
 Each `CapturedQuery` object has:
 
