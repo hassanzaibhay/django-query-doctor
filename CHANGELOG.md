@@ -169,9 +169,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   replaced with a single run on a named machine, is explicitly labelled as the
   `compilation_only` section of `benchmarks/results.json`, and the docs now
   state up front that the last line the command prints is the *end-to-end*
-  result and reads `Overall speedup: 0.63x` on SQLite in-memory, explaining why
-  that is expected rather than a defect. The table was duplicated on two pages;
-  it now lives on one, with the other linking to it.
+  result and comes out below 1x on SQLite in-memory, explaining why that is
+  expected rather than a defect. That end-to-end figure is given as a run with
+  its observed run-to-run spread rather than as a single value, since publishing
+  one point estimate as a constant is the fault this entry was about. The table
+  was duplicated on two pages; it now lives on one, with the other linking to
+  it.
 - `docs/guides/auto-fix.md` lists all nine `IssueType` members instead of
   seven, and marks which are selectable via `--issue-type`. The guide said
   "five of the seven issue types", omitted `serializer_method_field` (shipped

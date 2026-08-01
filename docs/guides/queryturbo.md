@@ -325,7 +325,11 @@ Cache hit rate: 100.0%
 
 That `0.63x` is real and is not a defect. It is the **end-to-end** suite on
 SQLite in-memory, where a query executes faster than QueryTurbo's
-fingerprinting costs, so the cache is a net loss. It is the same fact the
+fingerprinting costs, so the cache is a net loss. Read it as a run, not as a
+constant: two independent runs of this command on the same machine gave
+`0.63x` and `0.66x`, and the per-scenario end-to-end figures moved by a
+comparable amount, so expect your own run to land somewhere near rather than
+on it. It is the same fact the
 "When QueryTurbo adds overhead" note above states, measured. The
 compilation-only table is what QueryTurbo actually claims to improve; on a
 backend with real network latency the compilation saving is not cancelled out

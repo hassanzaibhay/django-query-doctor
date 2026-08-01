@@ -311,10 +311,11 @@ Two things to know before you run `python benchmarks/run.py`:
 - The published table is the **`compilation_only`** section of
   `benchmarks/results.json`, not the summary the command prints last.
 - The command's final line is the **end-to-end** result, and on SQLite
-  in-memory it reads `Overall speedup: 0.63x`. That is expected: SQLite
-  executes a query faster than QueryTurbo fingerprints it, so the cache is a
-  net loss there. It is not the number the compilation table reports and it is
-  not a defect.
+  in-memory it comes out below 1x. That is expected: SQLite executes a query
+  faster than QueryTurbo fingerprints it, so the cache is a net loss there. It
+  is not the number the compilation table reports and it is not a defect. The
+  measured value and its run-to-run spread are on the guide page linked above,
+  and are deliberately not repeated here.
 
 ### Prepared Statement Savings (PostgreSQL + psycopg3)
 
