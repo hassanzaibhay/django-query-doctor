@@ -15,6 +15,7 @@ from rest_framework import serializers  # noqa: E402
 
 from query_doctor.analyzers.serializer_method import SerializerMethodAnalyzer  # noqa: E402
 from query_doctor.types import IssueType, Severity  # noqa: E402
+from tests.testapp.models import Book  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Test serializer classes defined inline
@@ -57,10 +58,21 @@ class BadFilterSerializer(serializers.Serializer):
         return User.objects.filter(id=obj.id).count()
 
 
-class BadChainSerializer(serializers.Serializer):
-    """Pattern 3: Deep attribute chain -- obj.author.name."""
+class BadChainSerializer(serializers.ModelSerializer):
+    """Pattern 3: Deep attribute chain -- obj.author.name.
+
+    A ``ModelSerializer``, unlike the other fixtures here, because the
+    deep-chain site prescribes ``select_related`` and that needs the model to
+    confirm ``author`` is a forward FK. With no model there is nothing to
+    check the kind against and the site suppresses -- see
+    :class:`TestDeepChainPrescribesOnlySelectRelatableFields`.
+    """
 
     author_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Book
+        fields = ("author_name",)
 
     def get_author_name(self, obj):
         return obj.author.name
@@ -523,3 +535,136 @@ class TestLoopOverScalarAttribute:
         loop_results = [r for r in results if r.extra.get("pattern") == "loop_queryset"]
         assert len(loop_results) == 1
         assert "prefetch_related('review_set')" in loop_results[0].fix_suggestion
+
+
+class TestDeepChainPrescribesOnlySelectRelatableFields:
+    """B5 site 7: `select_related` needs relation *kind*, not relation existence.
+
+    ``_check_deep_chain`` prescribes ``select_related(chain[1])`` for any
+    three-deep attribute access. ``is_relation`` is true for reverse and
+    many-to-many descriptors too, and ``select_related`` rejects both, so the
+    guard the loop branch uses is not the guard this site needs:
+
+        Book.objects.select_related('categories')
+            -> FieldError: Invalid field name(s) given in select_related:
+               'categories'. Choices are: author, publisher
+
+    Django's default reverse accessor suffix is the same story. It is a
+    prefetch signal, and site 7 does not prescribe prefetching.
+    """
+
+    def setup_method(self):
+        """Create analyzer instance."""
+        self.analyzer = SerializerMethodAnalyzer()
+
+    @staticmethod
+    def _chain_findings(analyzer, serializer_cls):
+        """Return only this site's findings."""
+        return [
+            r
+            for r in analyzer.analyze_serializer(serializer_cls)
+            if r.extra.get("pattern") == "deep_attribute_chain"
+        ]
+
+    def test_forward_fk_is_still_prescribed(self):
+        """Positive control: the case select_related actually fixes."""
+        from tests.testapp.models import Book
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return obj.author.name
+
+        found = self._chain_findings(self.analyzer, S)
+        assert len(found) == 1, found
+        assert "select_related('author')" in found[0].fix_suggestion
+
+    def test_many_to_many_is_not_prescribed(self):
+        """`is_relation` admits it; select_related raises on it."""
+        from tests.testapp.models import Book
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return obj.categories.name
+
+        assert self._chain_findings(self.analyzer, S) == []
+
+    def test_non_relation_is_not_prescribed(self):
+        """A CharField chain: the original B5 symptom at this site."""
+        from tests.testapp.models import Book
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            # A terminal attribute, not a method: `upper` is in _SAFE_METHODS
+            # and `count` in _QUERYSET_METHODS, and either would make this
+            # pass at an earlier guard than the one under test.
+            def get_n(self, obj):
+                return obj.title.length
+
+        assert self._chain_findings(self.analyzer, S) == []
+
+    def test_reverse_accessor_is_not_prescribed_without_a_model(self):
+        """The `_set` branch is a prefetch signal, so it must not reach here."""
+
+        class S(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                return obj.review_set.headline
+
+        assert self._chain_findings(self.analyzer, S) == []
+
+    def test_an_unresolvable_attribute_is_not_prescribed(self):
+        """No model to consult and no structural signal: suppress."""
+
+        class S(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                return obj.payload.theme
+
+        assert self._chain_findings(self.analyzer, S) == []
+
+    def test_the_resolver_never_renames_on_either_arm(self):
+        """Baseline keys embed the name, so resolution must not rewrite it.
+
+        `baseline.py` keys an issue on ``analyzer:file_path:message`` and every
+        one of these descriptions interpolates the resolved name. A resolver
+        that returned an accessor name instead of the source token would
+        silently rekey every stored entry.
+        """
+        from tests.testapp.models import Book
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return obj.author.name
+
+        for attr in ("author", "publisher", "categories", "title", "nope"):
+            for cls in (S, serializers.Serializer):
+                assert SerializerMethodAnalyzer._resolve_relation_name(cls, attr) in (attr, None)
+                assert SerializerMethodAnalyzer._resolve_select_related_name(cls, attr) in (
+                    attr,
+                    None,
+                )

@@ -459,6 +459,30 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
         return None
 
     @staticmethod
+    def _model_field(serializer_cls: Any, attr: str) -> tuple[bool, Any]:
+        """Look ``attr`` up on the serializer's model, once.
+
+        Both resolvers below need the same ``_meta`` read, and both need to
+        tell "there is no model to consult" apart from "the model does not
+        declare this attribute". The first falls back to a structural signal;
+        the second is a definite no.
+
+        Args:
+            serializer_cls: The serializer class being analyzed.
+            attr: The attribute name.
+
+        Returns:
+            ``(has_model, field_or_None)``.
+        """
+        model = getattr(getattr(serializer_cls, "Meta", None), "model", None)
+        if model is None:
+            return False, None
+        try:
+            return True, model._meta.get_field(attr)
+        except Exception:
+            return True, None
+
+    @staticmethod
     def _resolve_relation_name(serializer_cls: Any, attr: str) -> str | None:
         """Return ``attr`` if it is demonstrably a relation, else None.
 
@@ -475,6 +499,15 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
         Anything else yields None and the finding is suppressed, because
         prescribing ``prefetch_related`` for a non-relation raises.
 
+        This answers "can it be prefetched". For ``select_related`` see
+        :meth:`_resolve_select_related_name`: relation *existence* is not
+        enough there.
+
+        Returns ``attr`` unchanged or None -- never a different name. Every
+        description built from the result interpolates it, and
+        ``baseline.py`` keys a stored issue on the description, so a resolver
+        that renamed would silently rekey every baseline entry.
+
         Args:
             serializer_cls: The serializer class being analyzed.
             attr: The attribute name the loop iterates.
@@ -482,14 +515,44 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
         Returns:
             The name to prefetch, or None if it cannot be established.
         """
-        model = getattr(getattr(serializer_cls, "Meta", None), "model", None)
-        if model is not None:
-            try:
-                field = model._meta.get_field(attr)
-            except Exception:
-                return None
+        has_model, field = SerializerMethodAnalyzer._model_field(serializer_cls, attr)
+        if has_model:
             return attr if getattr(field, "is_relation", False) else None
         return attr if attr.endswith("_set") else None
+
+    @staticmethod
+    def _resolve_select_related_name(serializer_cls: Any, attr: str) -> str | None:
+        """Return ``attr`` if ``select_related`` can actually take it.
+
+        ``is_relation`` is relation *existence*; ``select_related`` needs
+        relation *kind*. It follows a single forward join, so it accepts a
+        forward ``ForeignKey`` or either side of a ``OneToOneField`` and
+        rejects everything else -- including relations the weaker guard
+        admits::
+
+            Book.objects.select_related('categories')
+                -> FieldError: Invalid field name(s) given in select_related:
+                   'categories'. Choices are: author, publisher
+
+        The ``_set`` fallback is deliberately absent. A default reverse
+        accessor is a prefetch signal, and a reverse many-valued relation is
+        exactly what ``select_related`` cannot take, so with no model to
+        consult there is nothing to prescribe.
+
+        Like :meth:`_resolve_relation_name`, returns ``attr`` unchanged or
+        None, never a different name.
+
+        Args:
+            serializer_cls: The serializer class being analyzed.
+            attr: The first attribute in the chain.
+
+        Returns:
+            The name to select_related, or None if it cannot be established.
+        """
+        _has_model, field = SerializerMethodAnalyzer._model_field(serializer_cls, attr)
+        if getattr(field, "many_to_one", False) or getattr(field, "one_to_one", False):
+            return attr
+        return None
 
     def _check_comprehension(
         self,
@@ -613,7 +676,13 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
         if "objects" in chain[1:]:
             return None
 
-        related = chain[1]
+        # `select_related` takes a single forward join and nothing else, so
+        # the relation has to be established by kind, not merely to exist.
+        # An M2M or a reverse accessor here raises FieldError when followed.
+        related = self._resolve_select_related_name(serializer_cls, chain[1])
+        if related is None:
+            return None
+
         accessed = ".".join(chain[1:])
         return {
             "description": (
