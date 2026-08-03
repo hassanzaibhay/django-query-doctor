@@ -42,7 +42,7 @@ No other dependencies are required for the base install.
 ```python
 >>> import query_doctor
 >>> print(query_doctor.__version__)
-1.0.3
+2.3.0
 ```
 
 ## Add to Django

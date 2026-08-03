@@ -30,7 +30,7 @@ This runs the full analysis and saves all detected issues to the specified JSON 
 
 ```json
 {
-  "version": "2.1.0",
+  "version": "2.3.0",
   "issue_count": 12,
   "issues": [
     {

@@ -69,7 +69,7 @@ Example output:
 
 ```json
 {
-  "version": "2.1.0",
+  "version": "2.3.0",
   "timestamp": "2026-07-14T12:00:00+00:00",
   "summary": {
     "total_queries": 127,
