@@ -31,6 +31,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `--baseline=... --fail-on-regression` exits 1 with no code change. The
   identical mechanism was documented correctly for the 2.1.x upgrade in the
   same file. `UPGRADING.md` now says so, and names the regeneration step.
+- **`check_serializers` no longer prescribes a queryset call that raises.** Of
+  the seven places `serializer_method` builds a finding, only one established
+  that the attribute it was about to name was a relation. The other four that
+  prescribe `prefetch_related` took the attribute straight from the source, so
+  `get_theme(self, obj): return obj.payload.get("theme")` produced
+  `prefetch_related('payload')`, which raises `AttributeError`; a `CharField`
+  produced `prefetch_related('title')`, which raises `ValueError`. All four now
+  resolve the attribute against `Meta.model`, or against Django's `_set`
+  reverse-accessor suffix when the serializer has no model, and suppress the
+  finding when neither establishes a relation.
+- **The deep-chain check no longer prescribes `select_related` for relations it
+  cannot take.** `select_related` follows a single forward join, so
+  `obj.categories.name` on a many-to-many produced
+  `select_related('categories')` and `FieldError` when followed. It now
+  requires a forward `ForeignKey` or a `OneToOneField`, and a serializer with
+  no model gets no prescription here at all, because a reverse accessor is a
+  prefetch signal rather than a `select_related` one.
 
 ## [2.3.0] - 2026-08-01
 
