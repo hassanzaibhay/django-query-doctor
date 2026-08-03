@@ -13,6 +13,7 @@ from django.db import connection
 from query_doctor.analyzers.nplusone import NPlusOneAnalyzer
 from query_doctor.interceptor import QueryInterceptor
 from query_doctor.types import IssueType, Severity
+from tests.conftest import apply_prescription, capture_queries
 from tests.factories import BookFactory, CategoryFactory
 
 
@@ -199,33 +200,17 @@ class TestPrescriptionsResolveOnRealModels:
     comparison that a reworded message would silently satisfy.
     """
 
+    # `_capture_queries` and `_apply` moved to tests/conftest.py so the
+    # serializer analyzer's prescriptions can be executed by the same helper.
+    # Kept as thin delegates rather than rewriting every call site, so this
+    # extraction is verifiably behaviour-preserving on its own.
     def _capture_queries(self, func):
-        """Helper to capture queries from a callable."""
-        interceptor = QueryInterceptor()
-        with connection.execute_wrapper(interceptor):
-            func()
-        return interceptor.get_queries()
+        """Delegate to the shared helper."""
+        return capture_queries(func)
 
     def _apply(self, rx) -> None:
-        """Run whatever relation the prescription names, or its bulk fetch.
-
-        Raises whatever Django raises. A prescription that names no relation
-        is exercised through its bulk-fetch advice instead, so every code
-        path this test covers ends in a real query.
-        """
-        from django.apps import apps
-
-        model = apps.get_model(rx.extra["model"])
-        field = rx.extra.get("field")
-        strategy = rx.extra["strategy"]
-        if strategy == "select_related":
-            list(model.objects.select_related(field)[:1])
-        elif strategy == "prefetch_related":
-            list(model.objects.prefetch_related(field)[:1])
-        else:
-            assert strategy == "bulk_fetch", strategy
-            assert field is None
-            list(model.objects.filter(pk__in=[1, 2, 3]))
+        """Delegate to the shared helper."""
+        apply_prescription(rx)
 
     def test_pk_loop_prescription_is_applicable(self) -> None:
         """`Model.objects.get(pk=...)` in a loop must not prescribe a bad field.
