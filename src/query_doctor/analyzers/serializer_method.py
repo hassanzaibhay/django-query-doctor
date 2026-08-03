@@ -346,7 +346,9 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
         if isinstance(func.value, ast.Attribute) and method_name in _QUERYSET_METHODS:
             chain = self._get_attribute_chain(func)
             if chain and chain[0] == obj_param and len(chain) >= 3:
-                related = chain[1]
+                related = self._resolve_relation_name(serializer_cls, chain[1])
+                if related is None:
+                    return None
                 return {
                     "description": (
                         f"N+1 risk in {serializer_cls.__name__}.get_{field_name}(): "
@@ -410,9 +412,9 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
         if isinstance(iter_node, ast.Call) and isinstance(iter_node.func, ast.Attribute):
             chain = self._get_attribute_chain(iter_node.func)
             if chain and chain[0] == obj_param and len(chain) >= 3:
-                related = chain[1]
+                related = self._resolve_relation_name(serializer_cls, chain[1])
                 method = chain[-1]
-                if method in _QUERYSET_METHODS:
+                if related is not None and method in _QUERYSET_METHODS:
                     return {
                         "description": (
                             f"N+1 risk in {serializer_cls.__name__}"
@@ -583,9 +585,9 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
             if isinstance(iter_node, ast.Call) and isinstance(iter_node.func, ast.Attribute):
                 chain = self._get_attribute_chain(iter_node.func)
                 if chain and chain[0] == obj_param and len(chain) >= 3:
-                    related = chain[1]
+                    related = self._resolve_relation_name(serializer_cls, chain[1])
                     method = chain[-1]
-                    if method in _QUERYSET_METHODS:
+                    if related is not None and method in _QUERYSET_METHODS:
                         comp_type = type(node).__name__
                         return {
                             "description": (
@@ -607,7 +609,9 @@ class SerializerMethodAnalyzer(BaseAnalyzer):
             if isinstance(iter_node, ast.Attribute):
                 chain = self._get_attribute_chain(iter_node)
                 if chain and chain[0] == obj_param and len(chain) >= 2:
-                    related = chain[1]
+                    related = self._resolve_relation_name(serializer_cls, chain[1])
+                    if related is None:
+                        continue
                     comp_type = type(node).__name__
                     return {
                         "description": (

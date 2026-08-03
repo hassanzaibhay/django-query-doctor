@@ -16,6 +16,8 @@ drf = pytest.importorskip("rest_framework")
 from django.core.management import call_command  # noqa: E402
 from django.core.management.base import CommandError  # noqa: E402
 
+from tests.testapp.models import Author, Book  # noqa: E402
+
 
 class TestCheckSerializersCommand:
     """Tests for the check_serializers management command."""
@@ -70,7 +72,11 @@ class TestCheckSerializersCommandWithInlineSerializers:
 
         from query_doctor.analyzers.serializer_method import SerializerMethodAnalyzer
 
-        class InlineBadSerializer(serializers.Serializer):
+        class InlineBadSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Author
+                fields = ("total",)
+
             total = serializers.SerializerMethodField()
 
             def get_total(self, obj):
@@ -142,7 +148,11 @@ class TestCheckSerializersWithMocks:
         """Create a serializer with a known N+1 pattern for testing."""
         from rest_framework import serializers
 
-        class MockBadSerializer(serializers.Serializer):
+        class MockBadSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Author
+                fields = ("total",)
+
             total = serializers.SerializerMethodField()
 
             def get_total(self, obj):
@@ -331,13 +341,21 @@ class TestCheckSerializersWithMocks:
         """Command analyzes multiple serializers and aggregates results."""
         from rest_framework import serializers
 
-        class Ser1(serializers.Serializer):
+        class Ser1(serializers.ModelSerializer):
+            class Meta:
+                model = Author
+                fields = ("a",)
+
             a = serializers.SerializerMethodField()
 
             def get_a(self, obj):
                 return obj.items.count()
 
-        class Ser2(serializers.Serializer):
+        class Ser2(serializers.ModelSerializer):
+            class Meta:
+                model = Book
+                fields = ("b",)
+
             b = serializers.SerializerMethodField()
 
             def get_b(self, obj):
