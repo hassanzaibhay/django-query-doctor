@@ -89,6 +89,12 @@ jobs:
       # project import, so it runs in this install-free job too.
       - name: ASCII dash gate
         run: python -m scripts.dash_gate
+      # Same property again: an ast/regex pass over `git ls-files`, importing
+      # nothing from the package, so the install-free property of this job
+      # holds. It does shell `git show` to evaluate a historical revision in
+      # its own tests, which needs the full history actions/checkout provides.
+      - name: Staleness gate
+        run: python -m scripts.staleness_gate
 
   # Deliberately a separate job from `docs-gate`, not another step in it.
   # `docs-gate` documents itself as needing no install because the sweep

@@ -55,6 +55,12 @@ repos:
         language: python
         pass_filenames: false
         always_run: true
+      - id: staleness-gate
+        name: Staleness gate
+        entry: python scripts/hookenv.py scripts.staleness_gate
+        language: python
+        pass_filenames: false
+        always_run: true
       - id: pytest
         name: pytest
         entry: python scripts/hookenv.py pytest -q --cov=query_doctor --cov-report=xml

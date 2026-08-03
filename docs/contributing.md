@@ -186,6 +186,7 @@ configuration.
    ruff check src/ tests/ scripts/ benchmarks/
    ruff format src/ tests/ scripts/ benchmarks/ --check
    mypy src/query_doctor/ scripts/ benchmarks/
+   python -m scripts.staleness_gate
    ```
 6. **Commit** with a conventional commit message:
    ```bash

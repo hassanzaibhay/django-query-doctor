@@ -41,6 +41,9 @@ mypy src/query_doctor/ scripts/ benchmarks/
 
 # ASCII dash gate: no em/en dash in a comment, a docstring or a config file
 python -m scripts.dash_gate
+
+# Staleness gate: no document may quote tool output src/ cannot emit
+python -m scripts.staleness_gate
 ```
 
 ## Coding Standards
@@ -107,7 +110,7 @@ pre-commit install --hook-type pre-push
 ```
 
 This runs `ruff check`, `ruff format --check`, `mypy`, the docs truth sweep,
-the ASCII dash gate, and `pytest` on `git push`; any failure aborts the push. It needs the dev
+the ASCII dash gate, the staleness gate, and `pytest` on `git push`; any failure aborts the push. It needs the dev
 deps (`pip install -e ".[dev]"`) installed in your active environment -- 
 normally your virtualenv. `scripts/hookenv.py` resolves that interpreter
 explicitly rather than reading `PATH`, and prints which one it used.
