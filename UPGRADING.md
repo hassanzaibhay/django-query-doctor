@@ -52,9 +52,21 @@ for a loop over a scalar attribute.
 If you use `check_queries --baseline`, **regenerate the baseline after
 upgrading.** Until you do, the command prints a version-mismatch warning
 (`Baseline was created with query-doctor 2.2.0; current version is 2.3.0`) and
-reports the disappeared findings as resolved. Neither is an error, and
-`--fail-on-regression` is unaffected: fewer findings cannot create a
-regression.
+reports the disappeared findings as resolved.
+
+**`--fail-on-regression` is affected, and will exit 1 with no code change.**
+A baseline snapshot keys each issue on `analyzer : file_path : message`, and
+item 2 above changed the N+1 `message`. So every N+1 that a 2.2.x baseline
+recorded is simultaneously reported as *resolved* under its old key and as a
+*new regression* under its new one. This is the same mechanism the 2.1.x
+upgrade hit, documented below under "Callsites move out of `site-packages`" --
+only the component of the key that changed is different.
+
+Regenerate the snapshot once, on the upgraded version, before the first CI run:
+
+```bash
+python manage.py check_queries --url /api/books/ --save-baseline .query-baseline.json
+```
 
 **4. Prescription order has changed, and the console prints a new note.**
 Findings are now returned in the order the fixes should be applied -- N+1

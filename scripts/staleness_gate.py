@@ -57,6 +57,13 @@ SCOPE_PREFIXES = ("docs/", "examples/", "scripts/")
 SCOPE_FILES = ("README.md", "UPGRADING.md", "CHANGELOG.md", "CONTRIBUTING.md")
 SCOPE_SUFFIXES = (".md", ".py", ".txt", ".svg", ".json", ".html", ".sh")
 
+# This module is exempt from its own scan. Every emitted string appearing here
+# is either the worked example in the docstring above, the justification on an
+# allowlist entry, or a comment explaining why a check is shaped the way it is
+# -- none of them is a document telling a reader what the tool prints. The
+# same reasoning excludes `tests/`, whose fixtures are inputs.
+SELF = "scripts/staleness_gate.py"
+
 # A template needs enough literal text to identify itself. Below this a short
 # anchor such as f"{a}: {b}" would match unrelated prose.
 MIN_SEGMENTS = 2
@@ -335,6 +342,8 @@ def read_version(read: Callable[[str], str | None]) -> str:
 
 def in_scope(relpath: str) -> bool:
     """Report whether a tracked path is a document this gate reads."""
+    if relpath == SELF:
+        return False
     if not relpath.endswith(SCOPE_SUFFIXES):
         return False
     if relpath in SCOPE_FILES:

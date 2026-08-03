@@ -13,9 +13,11 @@ from typing import ClassVar
 import pytest
 
 from scripts.staleness_gate import (
+    SELF,
     check_emitted_strings,
     check_version_literals,
     group_by_trigger,
+    in_scope,
     line_matches_template,
     sweep,
     trigger_of,
@@ -47,6 +49,16 @@ class TestGateIsCleanAtHead:
     def test_no_violations_at_head(self) -> None:
         """A gate that is red on its own tree gets disabled, not fixed."""
         assert sweep() == []
+
+    def test_the_gate_scans_its_own_directory(self) -> None:
+        """`scripts/` must stay in scope: the defect that motivated it lived there.
+
+        Only this module is exempt, and only because its strings are the
+        check's own definition. Exempting the directory would restore the
+        blind spot.
+        """
+        assert in_scope("scripts/regen_examples.py")
+        assert not in_scope(SELF)
 
 
 @needs_history

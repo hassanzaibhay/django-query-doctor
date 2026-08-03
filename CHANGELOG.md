@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **The 2.3.0 upgrade notes were wrong about `--fail-on-regression`.** They
+  stated it was "unaffected: fewer findings cannot create a regression", four
+  paragraphs after stating that the N+1 prescription text had changed. A
+  baseline snapshot keys each issue on `analyzer : file_path : message`
+  (`baseline.py`), so the changed message rehashes every N+1 entry: the same
+  unfixed finding is reported as *resolved* under its old key and as a *new
+  regression* under its new one, and a CI job running
+  `--baseline=... --fail-on-regression` exits 1 with no code change. The
+  identical mechanism was documented correctly for the 2.1.x upgrade in the
+  same file. `UPGRADING.md` now says so, and names the regeneration step.
+
 ## [2.3.0] - 2026-08-01
 
 ### Added
