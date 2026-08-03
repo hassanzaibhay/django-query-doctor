@@ -1,13 +1,13 @@
 ============================================================
 Query Doctor Report
-Total queries: 15 | Time: 0.4ms | Issues: 4
+Total queries: 15 | Time: 0.3ms | Issues: 4
 ============================================================
 
 CRITICAL: N+1 detected: 12 queries for table "testapp_author" (via Book.author)
    Location: scripts/regen_examples.py:196 in test_capture_console_output
    Code: _ = book.author.name  # N+1
    Fix: Add .select_related('author') to your Book queryset
-   Queries: 12 | Est. savings: ~0.3ms
+   Queries: 12 | Est. savings: ~0.2ms
 
 WARNING: Duplicate query: 2 identical queries for table "testapp_book"
    Location: scripts/regen_examples.py:197 in test_capture_console_output
@@ -18,7 +18,7 @@ WARNING: Duplicate query: 2 identical queries for table "testapp_book"
 INFO: Missing index: column "title" on Book (table "testapp_book") is used in WHERE/ORDER BY but has no index
    Location: scripts/regen_examples.py:197 in test_capture_console_output
    Code: Book.objects.filter(title=books[0].title).count()  # duplicate x2
-   Fix: Add to Book's Meta.indexes: indexes = [models.Index(fields=["title"], name="idx_testapp_book_title")]
+   Fix: Add to Book's Meta.indexes: indexes = [models.Index(fields=["title"])]
    Queries: 1 | Est. savings: ~0.0ms
 
 INFO: Fat SELECT: 8 columns from "testapp_book" including large fields: description

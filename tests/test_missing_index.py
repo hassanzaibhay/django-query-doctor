@@ -6,6 +6,8 @@ on non-indexed columns and suggests adding Meta.indexes with models.Index().
 
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 import pytest
 
 from query_doctor.analyzers.missing_index import MissingIndexAnalyzer
@@ -38,6 +40,94 @@ def _make_query(
         is_select=True,
         tables=tables or [],
     )
+
+
+def _index_from(fix_suggestion: str) -> Any:
+    """Build the ``models.Index`` the prescription literally tells the user to add.
+
+    The emitted string *is* the input under test, so it is evaluated rather
+    than pattern-matched. A regex over the name would have stayed green while
+    the suggestion was unusable: the defect was never in the shape of the
+    text, it was in a length Django rejects.
+    """
+    from django.db import models
+
+    start = fix_suggestion.index("[models.Index(")
+    expr = fix_suggestion[start:]
+    indexes = eval(expr, {"models": models})
+    assert len(indexes) == 1, indexes
+    return indexes[0]
+
+
+class TestPrescribedIndexIsAcceptedByDjango:
+    """Django must accept the index the prescription tells the user to paste.
+
+    ``Index.max_name_length`` is 30 and ``Model._check_indexes`` enforces it
+    for every configured database with no backend gate, so an over-long name
+    is a hard `models.E034` at ``manage.py check`` time -- the user's project
+    stops passing checks because they followed our advice.
+    """
+
+    def setup_method(self) -> None:
+        """Set up analyzer instance."""
+        self.analyzer = MissingIndexAnalyzer()
+
+    def _emitted_index(self, table: str, column: str, model: Any) -> Any:
+        """Return the ``models.Index`` the prescription tells the user to paste."""
+        rx = self.analyzer._build_prescription(table, column, model, _make_query("SELECT 1"))
+        return _index_from(rx.fix_suggestion)
+
+    @pytest.mark.django_db
+    def test_django_accepts_the_emitted_index(self) -> None:
+        """Declare the emitted index on a real model and run Django's checks.
+
+        This is the assertion the old tests lacked: they asserted
+        ``"Meta.indexes" in fix_suggestion``, which any string containing that
+        substring satisfies. Here Django itself is the judge, so the test
+        cannot pass while the advice is unusable.
+
+        ``isolate_apps`` is required rather than convenient: a model really
+        registered under ``testapp`` would be found by
+        ``_get_model_for_table``'s ``apps.get_models()`` scan and perturb the
+        other tests in this file.
+        """
+        from django.apps import apps
+        from django.db import models
+        from django.test.utils import isolate_apps
+
+        source = apps.get_model("testapp", "Book")
+        emitted = self._emitted_index("testapp_book", "published_date", source)
+
+        with isolate_apps("tests.testapp"):
+
+            class IndexProbe(models.Model):
+                published_date = models.DateField(null=True)
+
+                class Meta:
+                    app_label = "testapp"
+                    indexes: ClassVar[list[Any]] = [emitted]
+
+            errors = IndexProbe.check(databases=["default"])
+
+        codes = [e.id for e in errors]
+        assert "models.E034" not in codes, [str(e) for e in errors]
+        assert errors == [], [str(e) for e in errors]
+
+    @pytest.mark.django_db
+    def test_the_suggestion_names_no_index(self) -> None:
+        """Django auto-names, which removes the length class rather than capping it.
+
+        ``set_name_with_model`` builds ``table[:11]_column[:7]_<hash>_idx``,
+        which is bounded under 30 by construction and hashed over the table
+        and columns, so it is collision-safe in a way a truncation is not.
+        """
+        from django.apps import apps
+
+        model = apps.get_model("testapp", "Book")
+        rx = self.analyzer._build_prescription(
+            "testapp_book", "published_date", model, _make_query("SELECT 1")
+        )
+        assert "name=" not in rx.fix_suggestion, rx.fix_suggestion
 
 
 class TestMissingIndexAnalyzer:

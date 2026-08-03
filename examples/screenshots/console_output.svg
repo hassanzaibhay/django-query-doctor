@@ -28,7 +28,7 @@
 <text x="40" y="390" class="terminal-text" font-size="13" fill="#808080" >Queries: 2 | Est. savings: ~0.0ms</text>
 <text x="16" y="430" class="terminal-text" font-size="13" fill="#569CD6" font-weight="700">INFO: Missing index: column &quot;title&quot; on Book (table &quot;testapp_book&quot;) is used in WHERE/ORDER BY but has no index</text>
 <text x="40" y="450" class="terminal-text" font-size="13" fill="#808080" >Location: myapp/views.py:27 in book_list</text>
-<text x="40" y="470" class="terminal-text" font-size="13" fill="#4EC9B0" >Fix: Add to Book&#x27;s Meta.indexes: indexes = [models.Index(fields=[&quot;title&quot;], name=&quot;idx_testapp_book_title&quot;)]</text>
+<text x="40" y="470" class="terminal-text" font-size="13" fill="#4EC9B0" >Fix: Add to Book&#x27;s Meta.indexes: indexes = [models.Index(fields=[&quot;title&quot;])]</text>
 <text x="16" y="510" class="terminal-text" font-size="13" fill="#569CD6" font-weight="700">INFO: Fat SELECT: 8 columns from &quot;testapp_book&quot; including large fields: description</text>
 <text x="40" y="530" class="terminal-text" font-size="13" fill="#808080" >Location: myapp/views.py:24 in book_list</text>
 <text x="40" y="550" class="terminal-text" font-size="13" fill="#4EC9B0" >Fix: Use .defer(&#x27;description&#x27;) to skip loading large fields, or .values()/.values_list() if you don&#x27;t need model instances</text>

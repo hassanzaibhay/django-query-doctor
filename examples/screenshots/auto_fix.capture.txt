@@ -17,7 +17,7 @@ Dry run: showing proposed changes:
 @@ -6,1 +6,1 @@
   [Missing index: column "published_date" on Book (table "testapp_book") is used in WHERE/ORDER BY but has no index]
 -     recent = Book.objects.filter(published_date__gte=cutoff)
-+     # TODO: Consider adding an index via Meta.indexes - Add to Book's Meta.indexes: indexes = [models.Index(fields=["published_date"], name="idx_testapp_book_published_date")]
++     # TODO: Consider adding an index via Meta.indexes - Add to Book's Meta.indexes: indexes = [models.Index(fields=["published_date"])]
 +     recent = Book.objects.filter(published_date__gte=cutoff)
 
 3 fix(es) available. Run with --apply to write changes.

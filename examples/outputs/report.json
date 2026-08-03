@@ -1,9 +1,9 @@
 {
   "version": "2.3.0",
-  "timestamp": "2026-08-03T03:33:04.211467+00:00",
+  "timestamp": "2026-08-03T04:02:58.290979+00:00",
   "summary": {
     "total_queries": 43,
-    "total_time_ms": 2.5127999542746693,
+    "total_time_ms": 0.9014999959617853,
     "issues_found": 5,
     "critical": 2,
     "warnings": 1,
@@ -21,7 +21,7 @@
         "function": "test_regenerate_outputs"
       },
       "query_count": 20,
-      "estimated_savings_ms": 0.4634099343093112
+      "estimated_savings_ms": 0.376009960018564
     },
     {
       "issue_type": "n_plus_one",
@@ -34,7 +34,7 @@
         "function": "test_regenerate_outputs"
       },
       "query_count": 20,
-      "estimated_savings_ms": 0.4126800180529244
+      "estimated_savings_ms": 0.3815200296230614
     },
     {
       "issue_type": "duplicate_query",
@@ -47,13 +47,13 @@
         "function": "test_regenerate_outputs"
       },
       "query_count": 2,
-      "estimated_savings_ms": 0.7690500060562044
+      "estimated_savings_ms": 0.027600006433203816
     },
     {
       "issue_type": "missing_index",
       "severity": "info",
       "description": "Missing index: column \"title\" on Book (table \"testapp_book\") is used in WHERE/ORDER BY but has no index",
-      "fix_suggestion": "Add to Book's Meta.indexes: indexes = [models.Index(fields=[\"title\"], name=\"idx_testapp_book_title\")]",
+      "fix_suggestion": "Add to Book's Meta.indexes: indexes = [models.Index(fields=[\"title\"])]",
       "location": {
         "file": "scripts/regen_examples.py",
         "line": 143,

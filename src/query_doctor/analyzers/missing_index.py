@@ -215,9 +215,21 @@ class MissingIndexAnalyzer(BaseAnalyzer):
                 f'Missing index: column "{column}" on {model_name} (table "{table}") '
                 f"is used in WHERE/ORDER BY but has no index"
             ),
+            # The index is deliberately left unnamed. `Index.max_name_length`
+            # is 30 and `Model._check_indexes` enforces it on every backend, so
+            # any name built from `{table}_{column}` fails `models.E034` as soon
+            # as the two exceed 25 characters together -- ordinary under
+            # Django's default `{app_label}_{modelname}` table naming, which is
+            # why the shipped examples happened to stay under it. Omitting
+            # `name=` hands the job to `set_name_with_model`, which builds
+            # `table[:11]_column[:7]_<hash>_idx`: bounded by construction and
+            # hashed over the table and columns, so it is collision-safe in a
+            # way a truncation would not be. `name` is mandatory only for an
+            # index carrying `opclasses`, `condition` or expressions, none of
+            # which this suggestion emits.
             fix_suggestion=(
                 f"Add to {model_name}'s Meta.indexes: "
-                f'indexes = [models.Index(fields=["{column}"], name="idx_{table}_{column}")]'
+                f'indexes = [models.Index(fields=["{column}"])]'
             ),
             callsite=query.callsite,
             query_count=1,

@@ -53,7 +53,7 @@ h1 { color: #2c3e50; margin-bottom: 20px; }
 <div class="stat-label">Total Queries</div>
 </div>
 <div class="stat">
-<div class="stat-value">2.5ms</div>
+<div class="stat-value">0.9ms</div>
 <div class="stat-label">Total Time</div>
 </div>
 <div class="stat">
@@ -79,7 +79,7 @@ h1 { color: #2c3e50; margin-bottom: 20px; }
 <div class="description">N+1 detected: 20 queries for table &quot;testapp_author&quot; (via Book.author)</div>
 <div class="location">Location: scripts/regen_examples.py:140 in test_regenerate_outputs</div><div class="code-context">_ = b.author.name  # N+1 on author</div>
 <div class="fix">Fix: Add .select_related(&#x27;author&#x27;) to your Book queryset</div>
-<div class="metrics">Queries: 20 | Est. savings: ~0.5ms</div>
+<div class="metrics">Queries: 20 | Est. savings: ~0.4ms</div>
 </div>
 <div class="prescription critical">
 <span class="severity critical">CRITICAL</span>
@@ -93,13 +93,13 @@ h1 { color: #2c3e50; margin-bottom: 20px; }
 <div class="description">Duplicate query: 2 identical queries for table &quot;testapp_book&quot;</div>
 <div class="location">Location: scripts/regen_examples.py:143 in test_regenerate_outputs</div><div class="code-context">Book.objects.filter(title=books[0].title).count()</div>
 <div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
-<div class="metrics">Queries: 2 | Est. savings: ~0.8ms</div>
+<div class="metrics">Queries: 2 | Est. savings: ~0.0ms</div>
 </div>
 <div class="prescription info">
 <span class="severity info">INFO</span>
 <div class="description">Missing index: column &quot;title&quot; on Book (table &quot;testapp_book&quot;) is used in WHERE/ORDER BY but has no index</div>
 <div class="location">Location: scripts/regen_examples.py:143 in test_regenerate_outputs</div><div class="code-context">Book.objects.filter(title=books[0].title).count()</div>
-<div class="fix">Fix: Add to Book&#x27;s Meta.indexes: indexes = [models.Index(fields=[&quot;title&quot;], name=&quot;idx_testapp_book_title&quot;)]</div>
+<div class="fix">Fix: Add to Book&#x27;s Meta.indexes: indexes = [models.Index(fields=[&quot;title&quot;])]</div>
 <div class="metrics">Queries: 1 | Est. savings: ~0.0ms</div>
 </div>
 <div class="prescription info">
