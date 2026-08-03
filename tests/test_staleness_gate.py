@@ -22,6 +22,7 @@ from scripts.staleness_gate import (
     sweep,
     tracked_files,
     trigger_of,
+    unexplained_triggers,
 )
 
 # The released revision whose defects motivated this gate: B1 (a version
@@ -178,6 +179,92 @@ class TestNonEmptyGapRule:
     def test_a_line_without_the_anchor_is_not_matched(self) -> None:
         """Unrelated prose is not this template."""
         assert not line_matches_template("Use .defer('description') instead", self.SEGMENTS)
+
+
+class TestTwoQuotationsOnOneLineAreJudgedApart:
+    """A healthy clause must not vouch for a stale one beside it.
+
+    ``nplusone.py:356-358`` builds one prescription by concatenating two
+    f-strings, so a document line quoting it carries two triggers at disjoint
+    offsets. Accepting the line because *some* template matched let the
+    healthy tail clear the stale head, and the sentence break inside the
+    borrowed gap is what tells the two apart. Both defects met at
+    ``docs/examples/index.md:30``.
+    """
+
+    FIX: ClassVar[list[str]] = ["Add .", "('", "') to your ", " queryset"]
+    TAIL: ClassVar[list[str]] = [". For advanced filtering, use Prefetch('", "', queryset=...)"]
+
+    # The exact bytes of docs/examples/index.md:30 at 96cee41: the fix clause
+    # is stale (no model name), the Prefetch tail is current.
+    STALE = (
+        "   Fix: Add .prefetch_related('orderitem') to your queryset. "
+        "For advanced filtering, use Prefetch('orderitem', queryset=...)"
+    )
+    # The same line as src/ emits it today.
+    CURRENT = (
+        "   Fix: Add .prefetch_related('orderitem') to your Order queryset. "
+        "For advanced filtering, use Prefetch('orderitem', queryset=...)"
+    )
+
+    @property
+    def grouped(self) -> dict[str, list[list[str]]]:
+        """The two templates, grouped as the gate groups them."""
+        return group_by_trigger([self.FIX, self.TAIL])
+
+    def test_the_stale_line_is_reported(self) -> None:
+        """End to end, on the line that motivated the rule."""
+        found = check_emitted_strings("docs/x.md", self.STALE, self.grouped)
+        assert len(found) == 1, found
+
+    def test_the_current_line_is_clean(self) -> None:
+        """Positive control: the same two clauses, both current, pass."""
+        assert check_emitted_strings("docs/x.md", self.CURRENT, self.grouped) == []
+
+    def test_only_the_stale_clauses_trigger_is_unexplained(self) -> None:
+        """The tail matches, so it explains itself and nothing else."""
+        unexplained = unexplained_triggers(self.STALE, self.grouped)
+        assert [t for _, t in unexplained] == ["') to your "], unexplained
+
+    def test_the_borrowed_segment_is_denied_by_the_sentence_break(self) -> None:
+        """The mechanism, isolated: the gap spans a clause boundary."""
+        assert not line_matches_template(self.STALE, self.FIX)
+        assert line_matches_template(self.CURRENT, self.FIX)
+
+    def test_a_value_with_a_comma_is_still_a_value(self) -> None:
+        """Only a sentence break disqualifies a gap, not any punctuation."""
+        segments = ["Use .defer(", ") to skip loading large fields"]
+        assert line_matches_template(
+            "Use .defer('description', 'body') to skip loading large fields", segments
+        )
+
+    def test_overlapping_triggers_are_still_pooled(self) -> None:
+        """Substring triggers are competing readings of one span, not two.
+
+        Regression guard for the 8 false positives that motivated pooling.
+        """
+        nplus = ["N+1 detected: ", ' queries for table "', '"']
+        dupe = ["Duplicate: ", ' identical queries for table "', '"']
+        grouped = group_by_trigger([nplus, dupe])
+        line = 'Duplicate: 4 identical queries for table "testapp_book"'
+        assert unexplained_triggers(line, grouped) == []
+        assert check_emitted_strings("docs/x.md", line, grouped) == []
+
+    def test_one_template_spanning_two_triggers_explains_both(self) -> None:
+        """The fat-SELECT shape: a longer form contains the shorter's trigger.
+
+        `fat_select.py:236` and `:245` emit two forms whose triggers land at
+        disjoint offsets on the same line. The longer form's span covers both,
+        so a line matching it is clean -- the case a window-per-trigger rule
+        got wrong.
+        """
+        short = ["Fat SELECT: ", ' columns from "', '"']
+        long_ = ["Fat SELECT: ", ' columns from "', '" including large fields: ']
+        grouped = group_by_trigger([short, long_])
+        line = (
+            'INFO: Fat SELECT: 8 columns from "testapp_book" including large fields: description'
+        )
+        assert unexplained_triggers(line, grouped) == []
 
 
 class TestTriggerSelection:

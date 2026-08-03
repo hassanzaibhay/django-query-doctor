@@ -18,6 +18,13 @@ A. **Emitted-string shape.** Every f-string an analyzer builds is reduced by
    `` queryset`` and fails, while ``... to your Book queryset`` leaves ``Book``
    and passes.
 
+   A gap must also not span a sentence break, and a template accounts only for
+   the triggers inside the span it matched. Both exist because one prescription
+   can be built from several concatenated f-strings: without them, the healthy
+   second clause of such a line vouches for a stale first clause, and the first
+   template reaches into the second for its trailing segment. See
+   :func:`template_span` and :func:`unexplained_triggers`.
+
 B. **Version literals.** A version presented as *output* -- a bare ``X.Y.Z``
    in a block that printed ``__version__``, or a ``"version": "X.Y.Z"`` field
    a reporter emits -- must agree with ``src/query_doctor/__init__.py``. One
@@ -108,6 +115,14 @@ ALLOWLIST: set[tuple[str, str]] = {
     (
         SELF,
         '        # sits inside `" identical queries for table \\""` -- so a duplicate-query',
+    ),
+    (
+        # `template_span` quoting the exact stale line it was written to
+        # catch: docs/examples/index.md:30 at 96cee41. Keyed by content, so
+        # the day the explanation is reworded this entry stops applying and
+        # the module fails until it is updated with the new wording.
+        SELF,
+        "       ``Add .prefetch_related('orderitem') to your queryset`` has no room for",
     ),
 }
 
@@ -207,12 +222,54 @@ def emitted_templates(read: Callable[[str], str | None], files: Iterable[str]) -
     return templates
 
 
-def line_matches_template(line: str, segments: list[str]) -> bool:
-    """Report whether ``line`` carries every segment in order with real gaps.
+# A gap is an interpolated value: a model, field or table name, a number, or
+# a comma-joined list of those. None of them contains a sentence break, so a
+# gap carrying one is prose the template ran across, not a value it produced.
+_SENTENCE_BREAK = ". "
 
-    A gap is the interpolated value the template omits. Requiring it non-empty
-    is the whole discriminating power of the check: without it, a line that
-    simply concatenated the constants would pass.
+
+def template_span(line: str, segments: list[str]) -> tuple[int, int] | None:
+    """Return the span ``line`` devotes to this template, or None.
+
+    Two rules decide it, and both exist because the segment search runs over
+    the whole line and will otherwise reach as far as it likes:
+
+    1. Each gap is non-empty. Without it, a line that simply concatenated the
+       constants would pass.
+    2. No gap contains a sentence break. This is what stops a template from
+       satisfying a trailing segment out of a *later* clause.
+       ``docs/examples/index.md:30`` at 96cee41 did exactly that: the stale
+       ``Add .prefetch_related('orderitem') to your queryset`` has no room for
+       the model name, but the prescription's own
+       ``. For advanced filtering, use Prefetch('orderitem', queryset=...)``
+       tail carried a second `` queryset`` 59 characters downstream, and the
+       prose in between passed as the interpolated value.
+
+    Args:
+        line: A single line of a document.
+        segments: Ordered constant segments of one template.
+
+    Returns:
+        ``(start, end)`` of the matched region, or None when it does not match.
+    """
+    start = line.find(segments[0])
+    if start < 0:
+        return None
+    pos = start + len(segments[0])
+    for seg in segments[1:]:
+        found = line.find(seg, pos)
+        if found < 0:
+            return None
+        if found == pos:  # empty gap: nothing was interpolated
+            return None
+        if _SENTENCE_BREAK in line[pos:found]:  # prose, not a value
+            return None
+        pos = found + len(seg)
+    return start, pos
+
+
+def line_matches_template(line: str, segments: list[str]) -> bool:
+    """Report whether ``line`` is consistent with one template.
 
     Args:
         line: A single line of a document.
@@ -221,18 +278,7 @@ def line_matches_template(line: str, segments: list[str]) -> bool:
     Returns:
         ``True`` when the line is consistent with the template.
     """
-    pos = line.find(segments[0])
-    if pos < 0:
-        return False
-    pos += len(segments[0])
-    for seg in segments[1:]:
-        found = line.find(seg, pos)
-        if found < 0:
-            return False
-        if found == pos:  # empty gap: nothing was interpolated
-            return False
-        pos = found + len(seg)
-    return True
+    return template_span(line, segments) is not None
 
 
 def allowlist_line_span(text: str) -> set[int]:
@@ -297,6 +343,54 @@ def group_by_trigger(templates: list[list[str]]) -> dict[str, list[list[str]]]:
     return grouped
 
 
+def unexplained_triggers(line: str, grouped: dict[str, list[list[str]]]) -> list[tuple[int, str]]:
+    """Return the trigger occurrences no matching template accounts for.
+
+    A trigger says the line is quoting *something* the tool emits. A template
+    that matches accounts for the triggers inside the span it matched -- and
+    only those.
+
+    That distinction is the whole point. Two triggers land on one line for two
+    opposite reasons:
+
+    *Alternative readings of one span.* One trigger is often a substring of
+    another -- ``" queries for table \\""`` sits inside
+    ``" identical queries for table \\""`` -- so a duplicate-query line trips
+    the N+1 trigger too. The matching template's span covers both, so both are
+    explained. Judging such a line against only the first trigger found
+    reported 8 false positives on this tree.
+
+    *Two separate quotations.* ``nplusone.py:356-358`` builds one prescription
+    by concatenating two f-strings, so a line quoting it carries two triggers
+    at disjoint offsets. Accepting the line because *some* template matched
+    let the healthy second clause vouch for a stale first one: that is how
+    ``docs/examples/index.md:30`` survived at 96cee41. Here the tail's span
+    covers only the tail, so the stale clause's trigger stays unexplained.
+
+    Args:
+        line: The readable text of one document line.
+        grouped: Output of :func:`group_by_trigger`.
+
+    Returns:
+        ``(offset, trigger)`` for each unexplained occurrence, left to right.
+    """
+    hits = [(start, trigger) for trigger in grouped if (start := line.find(trigger)) >= 0]
+    if not hits:
+        return []
+
+    covered = [
+        span
+        for forms in grouped.values()
+        for segments in forms
+        if (span := template_span(line, segments)) is not None
+    ]
+    return sorted(
+        (start, trigger)
+        for start, trigger in hits
+        if not any(lo <= start and start + len(trigger) <= hi for lo, hi in covered)
+    )
+
+
 def check_emitted_strings(
     relpath: str,
     text: str,
@@ -321,20 +415,13 @@ def check_emitted_strings(
             continue
         line = _readable(raw, markup=markup)
 
-        # Every template the line could be quoting, not just the first. One
-        # trigger is often a substring of another -- `" queries for table \""`
-        # sits inside `" identical queries for table \""` -- so a duplicate-query
-        # line trips the N+1 trigger too. Judging it against only the first
-        # trigger found reported 8 false positives on this tree.
-        candidates = [
-            segments for trigger, forms in grouped.items() if trigger in line for segments in forms
-        ]
-        if not candidates:
-            continue
-        if any(line_matches_template(line, segments) for segments in candidates):
+        unexplained = unexplained_triggers(line, grouped)
+        if not unexplained:
             continue
 
-        shapes = " | ".join(" ... ".join(s) for s in candidates)
+        shapes = " | ".join(
+            " ... ".join(segments) for _, trigger in unexplained for segments in grouped[trigger]
+        )
         violations.append(
             f"{relpath}:{number}: quotes tool output but matches no string src/ emits ({shapes})"
         )
