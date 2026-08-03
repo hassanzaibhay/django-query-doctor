@@ -43,20 +43,22 @@ Console output (plain-text renderer; Rich adds colors and panels):
 ```
 ============================================================
 Query Doctor Report
-Total queries: 13 | Time: 0.2ms | Issues: 2
+Total queries: 13 | Time: 0.4ms | Issues: 2
 ============================================================
 
-CRITICAL: N+1 detected: 12 queries for table "myapp_author" (field: author)
+CRITICAL: N+1 detected: 12 queries for table "testapp_author" (via Book.author)
    Location: myapp/views.py:12 in list_books
-   Code: _ = book.author.name  # triggers N+1
-   Fix: Add .select_related('author') to your queryset
-   Queries: 12 | Est. savings: ~0.2ms
+   Code: _ = book.author.name
+   Fix: Add .select_related('author') to your Book queryset
+   Queries: 12 | Est. savings: ~0.3ms
 
-INFO: Fat SELECT: 8 columns from "myapp_book" including large fields: description
+INFO: Fat SELECT: 8 columns from "testapp_book" including large fields: description
    Location: myapp/views.py:10 in list_books
    Code: books = list(Book.objects.all())
    Fix: Use .defer('description') to skip loading large fields, or .values()/.values_list() if you don't need model instances
    Queries: 1 | Est. savings: ~0.0ms
+
+Note: findings are listed in the order to apply them. Resolving the N+1 above with select_related() widens the base query, so re-read the fat SELECT findings only after that.
 ```
 
 ## What It Detects

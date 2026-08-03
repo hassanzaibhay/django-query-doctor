@@ -16,7 +16,7 @@
 <text x="16" y="130" class="terminal-text" font-size="13" fill="#F44747" >--- myapp/views.py</text>
 <text x="16" y="150" class="terminal-text" font-size="13" fill="#28CA41" >+++ myapp/views.py</text>
 <text x="16" y="170" class="terminal-text" font-size="13" fill="#569CD6" >@@ -2,1 +2,1 @@</text>
-<text x="16" y="190" class="terminal-text" font-size="13" fill="#DCDCAA" >  [N+1 detected: 12 queries for table &quot;myapp_author&quot; (field: author)] [MANUAL FIX ONLY]</text>
+<text x="16" y="190" class="terminal-text" font-size="13" fill="#DCDCAA" >  [N+1 detected: 12 queries for table &quot;testapp_author&quot; (via Book.author)] [MANUAL FIX ONLY]</text>
 <text x="16" y="210" class="terminal-text" font-size="13" fill="#F44747" >-     books = Book.objects.all()</text>
 <text x="16" y="230" class="terminal-text" font-size="13" fill="#28CA41" >+     books = Book.objects.all().select_related(&#x27;author&#x27;)</text>
 <text x="16" y="250" class="terminal-text" font-size="13" fill="#F44747" >--- myapp/views.py</text>
@@ -28,9 +28,9 @@
 <text x="16" y="370" class="terminal-text" font-size="13" fill="#F44747" >--- myapp/views.py</text>
 <text x="16" y="390" class="terminal-text" font-size="13" fill="#28CA41" >+++ myapp/views.py</text>
 <text x="16" y="410" class="terminal-text" font-size="13" fill="#569CD6" >@@ -6,1 +6,1 @@</text>
-<text x="16" y="430" class="terminal-text" font-size="13" fill="#DCDCAA" >  [Missing index: column &quot;published_date&quot; on Book (table &quot;myapp_book&quot;) is used in WHERE/ORDER BY but has no index]</text>
+<text x="16" y="430" class="terminal-text" font-size="13" fill="#DCDCAA" >  [Missing index: column &quot;published_date&quot; on Book (table &quot;testapp_book&quot;) is used in WHERE/ORDER BY but has no index]</text>
 <text x="16" y="450" class="terminal-text" font-size="13" fill="#F44747" >-     recent = Book.objects.filter(published_date__gte=cutoff)</text>
-<text x="16" y="470" class="terminal-text" font-size="13" fill="#28CA41" >+     # TODO: Consider adding an index via Meta.indexes - Add db_index=True to the &#x27;published_date&#x27; field</text>
+<text x="16" y="470" class="terminal-text" font-size="13" fill="#28CA41" >+     # TODO: Consider adding an index via Meta.indexes - Add to Book&#x27;s Meta.indexes: indexes = [models.Index(fields=[&quot;published_date&quot;], name=&quot;idx_testapp_book_published_date&quot;)]</text>
 <text x="16" y="490" class="terminal-text" font-size="13" fill="#28CA41" >+     recent = Book.objects.filter(published_date__gte=cutoff)</text>
 <text x="16" y="530" class="terminal-text" font-size="13" fill="#DCDCAA" font-weight="700">3 fix(es) available. Run with --apply to write changes.</text>
 <text x="16" y="550" class="terminal-text" font-size="13" fill="#808080" >([MANUAL FIX ONLY] fixes are shown here but refused by --apply)</text>

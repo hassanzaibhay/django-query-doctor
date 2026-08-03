@@ -11,6 +11,7 @@ Regenerates:
 - examples/outputs/report.html          (HTMLReporter, same run)
 - examples/outputs/query_budget_output.txt  (@query_budget result)
 - examples/screenshots/console_output.capture.txt  (ConsoleReporter plain render)
+- examples/screenshots/readme_console.capture.txt  (the README "See It in Action" block)
 - examples/screenshots/auto_fix.capture.txt        (QueryFixer dry-run diff)
 
 The two ``.capture.txt`` files are the source text for the SVG line data in
@@ -202,14 +203,64 @@ def test_capture_console_output() -> None:
     _write(SCREENSHOTS / "console_output.capture.txt", output)
 
 
+@pytest.mark.django_db
+def test_capture_readme_console_output() -> None:
+    """Capture the console render used by the README's "See It in Action" block.
+
+    Shaped to produce exactly one N+1 and one fat SELECT so that
+    ``ConsoleReporter._ordering_note`` fires: the note only appears when a
+    report carries both, and the README block is the one place it is quoted.
+    """
+    from tests.factories import AuthorFactory, BookFactory
+
+    from query_doctor.context_managers import diagnose_queries
+    from query_doctor.reporters.console import ConsoleReporter
+    from query_doctor.types import IssueType
+
+    for _ in range(12):
+        BookFactory(author=AuthorFactory())
+
+    from tests.testapp.models import Book
+
+    with diagnose_queries() as report:
+        books = list(Book.objects.all())
+        for book in books:
+            _ = book.author.name  # N+1 on author; the base query is the fat SELECT
+
+    kinds = {p.issue_type for p in report.prescriptions}
+    # Positive control for the ordering note: it renders only when both are present.
+    assert IssueType.N_PLUS_ONE in kinds, kinds
+    assert IssueType.FAT_SELECT in kinds, kinds
+
+    output = ConsoleReporter()._render_plain(report)
+    output.encode("ascii")  # README block must stay ASCII
+    _write(SCREENSHOTS / "readme_console.capture.txt", output)
+
+
+@pytest.mark.django_db
 def test_capture_fix_queries_dry_run(tmp_path: Path) -> None:
     """Capture a real QueryFixer dry-run diff for auto_fix.svg.
 
     Exactly what fix_queries prints on the dry-run path, including the
     [MANUAL FIX ONLY] tag on the N+1 hunk that --apply refuses to write.
+
+    The prescriptions are produced by a real analyzer run and only their
+    *callsite* is retargeted onto the synthetic ``views.py`` -- the fixer
+    needs line numbers inside a file it can diff, which a live run cannot
+    supply. Retargeting the callsite is the same deliberate divergence the
+    module docstring already allows for paths; the description and fix text
+    are never authored here. They were, once: hardcoded literals kept
+    reproducing the pre-2.3.0 N+1 wording after the analyzer stopped emitting
+    it, and the staleness check could not see it because the generator and the
+    artifact agreed with each other.
     """
+    import dataclasses
+
+    from tests.factories import AuthorFactory, BookFactory
+
+    from query_doctor.context_managers import diagnose_queries
     from query_doctor.fixer import QueryFixer
-    from query_doctor.types import CallSite, IssueType, Prescription, Severity
+    from query_doctor.types import CallSite, IssueType, Prescription
 
     source = tmp_path / "views.py"
     source.write_text(
@@ -222,36 +273,39 @@ def test_capture_fix_queries_dry_run(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    def rx(issue_type: IssueType, line: int, description: str, fix: str) -> Prescription:
-        return Prescription(
-            issue_type=issue_type,
-            severity=Severity.WARNING,
-            description=description,
-            fix_suggestion=fix,
-            callsite=CallSite(filepath=str(source), line_number=line, function_name="book_list"),
-        )
+    for _ in range(12):
+        BookFactory(author=AuthorFactory())
 
-    prescriptions = [
-        rx(
-            IssueType.N_PLUS_ONE,
-            2,
-            'N+1 detected: 12 queries for table "myapp_author" (field: author)',
-            "Add .select_related('author') to your queryset",
-        ),
-        rx(
-            IssueType.QUERYSET_EVAL,
-            5,
-            "Inefficient queryset evaluation: len(qs)",
-            "Use .count() instead of len() to let the database count rows",
-        ),
-        rx(
-            IssueType.MISSING_INDEX,
-            6,
-            'Missing index: column "published_date" on Book (table "myapp_book") '
-            "is used in WHERE/ORDER BY but has no index",
-            "Add db_index=True to the 'published_date' field",
-        ),
-    ]
+    from tests.testapp.models import Book
+
+    with diagnose_queries() as report:
+        books = list(Book.objects.all())
+        for book in books:
+            _ = book.author.name  # N+1 on author
+        total = len(Book.objects.all())  # queryset_eval  # noqa: F841
+        recent = list(Book.objects.filter(published_date__gte="2020-01-01"))  # noqa: F841
+
+    # The line in the synthetic source each issue type is reported against.
+    lines = {
+        IssueType.N_PLUS_ONE: 2,
+        IssueType.QUERYSET_EVAL: 5,
+        IssueType.MISSING_INDEX: 6,
+    }
+    harvested: dict[IssueType, Prescription] = {}
+    for rx in report.prescriptions:
+        if rx.issue_type in lines and rx.issue_type not in harvested:
+            harvested[rx.issue_type] = dataclasses.replace(
+                rx,
+                callsite=CallSite(
+                    filepath=str(source),
+                    line_number=lines[rx.issue_type],
+                    function_name="book_list",
+                ),
+            )
+    # Positive control: a live run really did produce all three.
+    assert set(harvested) == set(lines), sorted(k.value for k in harvested)
+
+    prescriptions = [harvested[kind] for kind in lines]
 
     fixer = QueryFixer()
     fixes = fixer.generate_fixes(prescriptions)

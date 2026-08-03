@@ -3,7 +3,7 @@ Dry run: showing proposed changes:
 --- <tmpdir>/views.py
 +++ <tmpdir>/views.py
 @@ -2,1 +2,1 @@
-  [N+1 detected: 12 queries for table "myapp_author" (field: author)] [MANUAL FIX ONLY]
+  [N+1 detected: 12 queries for table "testapp_author" (via Book.author)] [MANUAL FIX ONLY]
 -     books = Book.objects.all()
 +     books = Book.objects.all().select_related('author')
 --- <tmpdir>/views.py
@@ -15,9 +15,9 @@ Dry run: showing proposed changes:
 --- <tmpdir>/views.py
 +++ <tmpdir>/views.py
 @@ -6,1 +6,1 @@
-  [Missing index: column "published_date" on Book (table "myapp_book") is used in WHERE/ORDER BY but has no index]
+  [Missing index: column "published_date" on Book (table "testapp_book") is used in WHERE/ORDER BY but has no index]
 -     recent = Book.objects.filter(published_date__gte=cutoff)
-+     # TODO: Consider adding an index via Meta.indexes - Add db_index=True to the 'published_date' field
++     # TODO: Consider adding an index via Meta.indexes - Add to Book's Meta.indexes: indexes = [models.Index(fields=["published_date"], name="idx_testapp_book_published_date")]
 +     recent = Book.objects.filter(published_date__gte=cutoff)
 
 3 fix(es) available. Run with --apply to write changes.

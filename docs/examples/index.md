@@ -20,14 +20,14 @@ class OrderListView(ListAPIView):
 Prescription output:
 
 ```
-CRITICAL: N+1 detected: 50 queries for table "orders_customer" (field: customer)
+CRITICAL: N+1 detected: 50 queries for table "orders_customer" (via Order.customer)
    Location: orders/views.py:9 in get_queryset
-   Fix: Add .select_related('customer') to your queryset
+   Fix: Add .select_related('customer') to your Order queryset
    Queries: 50 | Est. savings: ~110.0ms
 
-CRITICAL: N+1 detected: 150 queries for table "orders_orderitem" (field: orderitem)
+CRITICAL: N+1 detected: 150 queries for table "orders_orderitem" (via Order.orderitem)
    Location: orders/serializers.py:14 in get_items
-   Fix: Add .prefetch_related('orderitem') to your queryset. For advanced filtering, use Prefetch('orderitem', queryset=...)
+   Fix: Add .prefetch_related('orderitem') to your Order queryset. For advanced filtering, use Prefetch('orderitem', queryset=...)
    Queries: 150 | Est. savings: ~320.0ms
 ```
 

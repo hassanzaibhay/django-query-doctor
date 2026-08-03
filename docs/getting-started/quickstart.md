@@ -33,9 +33,9 @@ Query Doctor Report
 Total queries: 53 | Time: 127.3ms | Issues: 3
 ============================================================
 
-CRITICAL: N+1 detected: 47 queries for table "myapp_author" (field: author)
+CRITICAL: N+1 detected: 47 queries for table "myapp_author" (via Book.author)
    Location: myapp/views.py:83 in get_queryset
-   Fix: Add .select_related('author') to your queryset
+   Fix: Add .select_related('author') to your Book queryset
    Queries: 47 | Est. savings: ~89.0ms
 
 WARNING: Duplicate query: 6 identical queries for table "myapp_book"
