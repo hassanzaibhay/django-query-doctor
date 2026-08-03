@@ -1,5 +1,31 @@
 # Upgrading django-query-doctor
 
+## From 2.3.0 to 2.3.1
+
+Nothing to do. No public API, settings key or command flag changed, and no
+prescription `description` changed, so **committed baselines stay valid** --
+`baseline.py` keys each issue on `analyzer : file_path : message`, and only
+`fix_suggestion` moved. (That claim is checked rather than assumed; giving it
+without checking the key is the mistake corrected in item 3 below.)
+
+One symptom is worth being able to search for. The `missing_index` prescription
+no longer names the index it suggests: it emits
+`indexes = [models.Index(fields=["<column>"])]` and lets Django generate the
+name, because the name it used to build exceeded Django's 30-character limit
+and failed `models.E034` at `manage.py check` for ordinary table and column
+names.
+
+**No prescription that previously worked has stopped working.** The column the
+analyzer names is scraped from SQL rather than read from Django's metadata, and
+where that column is not a model field the suggestion was already broken -- it
+raised `models.E012` at check time. What changed for that case is *when and how*
+it fails: `ModelBase._prepare` names an unnamed index at class-creation time, so
+you now get `FieldDoesNotExist` when `models.py` is imported, which takes the
+app down rather than surfacing at `manage.py check`. If you see
+`FieldDoesNotExist` naming a column you pasted from a `missing_index`
+suggestion, the suggestion was wrong before the upgrade too; drop it and index
+the field you meant.
+
 ## From 2.2.x to 2.3.0
 
 ### Breaking / behavior changes
