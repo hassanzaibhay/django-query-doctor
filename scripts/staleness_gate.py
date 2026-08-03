@@ -23,7 +23,11 @@ B. **Version literals.** A version presented as *output* -- a bare ``X.Y.Z``
    a reporter emits -- must agree with ``src/query_doctor/__init__.py``. One
    such line read ``1.0.3`` for six releases.
 
-Scoped to ``git ls-files``, so a gitignored ``site/`` build is invisible.
+Scoped to ``git ls-files``, so a gitignored ``site/`` build is invisible --
+and so is an *untracked* file, including this one. That is why the module
+scans itself and why a test asserts it is tracked: a clean run made before
+the file under test is staged is a clean run over a different tree.
+
 ``scripts/`` is in scope deliberately: a docs-only gate would have stayed
 green through the defect that motivated this one. ``tests/`` is out of scope,
 because a fixture is allowed to carry any string it likes as input.
@@ -57,11 +61,11 @@ SCOPE_PREFIXES = ("docs/", "examples/", "scripts/")
 SCOPE_FILES = ("README.md", "UPGRADING.md", "CHANGELOG.md", "CONTRIBUTING.md")
 SCOPE_SUFFIXES = (".md", ".py", ".txt", ".svg", ".json", ".html", ".sh")
 
-# This module is exempt from its own scan. Every emitted string appearing here
-# is either the worked example in the docstring above, the justification on an
-# allowlist entry, or a comment explaining why a check is shaped the way it is
-# -- none of them is a document telling a reader what the tool prints. The
-# same reasoning excludes `tests/`, whose fixtures are inputs.
+# This module scans itself. It is the one file guaranteed to be in the scan
+# whenever the gate runs, so its presence is what proves the scan is reading
+# the tree being committed rather than a stale or partial one -- see
+# `test_the_gate_module_is_tracked`. Its own quotations of stale output are
+# allowlisted line by line below rather than waved through wholesale.
 SELF = "scripts/staleness_gate.py"
 
 # A template needs enough literal text to identify itself. Below this a short
@@ -81,6 +85,29 @@ ALLOWLIST: set[tuple[str, str]] = {
         # `[n_plus_one]` prefix is not something the reporter prints either.
         "docs/guides/how-it-works.md",
         'before: [n_plus_one] N+1 detected: 6 queries for table "testapp_author"',
+    ),
+    # The four entries below are this module quoting the pre-2.3.0 strings in
+    # order to explain itself. They are listed individually rather than by
+    # exempting the file, because the file must stay in its own scan: it is
+    # the one path guaranteed present on every run, so its presence is what
+    # shows the scan is reading the tree being committed. Each is keyed by
+    # exact content, so rewording any of them fails until this list is
+    # updated -- which is the intended cost.
+    (
+        SELF,
+        "   ``Add .select_related('author') to your queryset`` runs out of room before",
+    ),
+    (
+        SELF,
+        "        'before: [n_plus_one] N+1 detected: 6 queries for table \"testapp_author\"',",
+    ),
+    (
+        SELF,
+        '        # trigger is often a substring of another -- `" queries for table \\""`',
+    ),
+    (
+        SELF,
+        '        # sits inside `" identical queries for table \\""` -- so a duplicate-query',
     ),
 }
 
@@ -208,6 +235,30 @@ def line_matches_template(line: str, segments: list[str]) -> bool:
     return True
 
 
+def allowlist_line_span(text: str) -> set[int]:
+    """Return the lines the ``ALLOWLIST`` literal occupies in this module.
+
+    Allowlisting a line means writing that line out again, so the entry
+    quotes the very string it excuses and trips the check a second time.
+    Skipping the literal's own span resolves that without exempting the
+    module: every string inside it is, by construction, a quotation of a
+    line already justified there.
+    """
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return set()
+    for node in ast.walk(tree):
+        target = getattr(node, "target", None)
+        if (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(target, ast.Name)
+            and target.id == "ALLOWLIST"
+        ):
+            return set(range(node.lineno, (node.end_lineno or node.lineno) + 1))
+    return set()
+
+
 def _readable(line: str, *, markup: bool) -> str:
     """Return the text a reader sees, undoing the quoting a format adds.
 
@@ -247,7 +298,10 @@ def group_by_trigger(templates: list[list[str]]) -> dict[str, list[list[str]]]:
 
 
 def check_emitted_strings(
-    relpath: str, text: str, grouped: dict[str, list[list[str]]]
+    relpath: str,
+    text: str,
+    grouped: dict[str, list[list[str]]],
+    skip_lines: set[int] | None = None,
 ) -> list[str]:
     """Flag lines that quote a template's trigger but match none of its forms.
 
@@ -261,8 +315,9 @@ def check_emitted_strings(
     """
     markup = relpath.endswith((".svg", ".html"))
     violations: list[str] = []
+    skip = skip_lines or set()
     for number, raw in enumerate(text.splitlines(), start=1):
-        if (relpath, raw) in ALLOWLIST:
+        if number in skip or (relpath, raw) in ALLOWLIST:
             continue
         line = _readable(raw, markup=markup)
 
@@ -342,8 +397,6 @@ def read_version(read: Callable[[str], str | None]) -> str:
 
 def in_scope(relpath: str) -> bool:
     """Report whether a tracked path is a document this gate reads."""
-    if relpath == SELF:
-        return False
     if not relpath.endswith(SCOPE_SUFFIXES):
         return False
     if relpath in SCOPE_FILES:
@@ -372,7 +425,8 @@ def sweep(rev: str | None = None) -> list[str]:
         text = read(relpath)
         if text is None:
             continue
-        violations.extend(check_emitted_strings(relpath, text, grouped))
+        skip = allowlist_line_span(text) if relpath == SELF else None
+        violations.extend(check_emitted_strings(relpath, text, grouped, skip))
         violations.extend(check_version_literals(relpath, text, version))
     return violations
 

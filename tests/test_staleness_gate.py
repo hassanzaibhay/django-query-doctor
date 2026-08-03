@@ -20,6 +20,7 @@ from scripts.staleness_gate import (
     in_scope,
     line_matches_template,
     sweep,
+    tracked_files,
     trigger_of,
 )
 
@@ -51,14 +52,57 @@ class TestGateIsCleanAtHead:
         assert sweep() == []
 
     def test_the_gate_scans_its_own_directory(self) -> None:
-        """`scripts/` must stay in scope: the defect that motivated it lived there.
-
-        Only this module is exempt, and only because its strings are the
-        check's own definition. Exempting the directory would restore the
-        blind spot.
-        """
+        """`scripts/` must stay in scope: the defect that motivated it lived there."""
         assert in_scope("scripts/regen_examples.py")
-        assert not in_scope(SELF)
+
+    def test_the_gate_scans_itself(self) -> None:
+        """No self-exemption. The module is a document like any other."""
+        assert in_scope(SELF)
+
+    def test_the_gate_module_is_tracked(self) -> None:
+        """The scan must be reading the tree being committed.
+
+        `tracked_files` shells `git ls-files`, so an untracked file is
+        invisible to the gate -- including the gate itself. This actually
+        happened: the gate reported clean in the commit that introduced it,
+        purely because its own file was not yet staged, and only started
+        reporting on itself once committed. A clean run made before the file
+        under test is tracked says nothing.
+
+        `dash_gate.tracked_files` has the identical property, so this is a
+        class rather than an instance. It is bounded in practice -- pre-commit
+        runs against the index and CI checks out a fully tracked tree -- but
+        the local failure mode is a gate reporting on a different tree than
+        the one being committed.
+        """
+        assert SELF in tracked_files()
+
+    def test_every_scanned_file_is_tracked(self) -> None:
+        """Generalises the above: the scan's input is exactly the tracked set."""
+        scanned = [p for p in tracked_files() if in_scope(p)]
+        assert scanned, "nothing in scope; the check would prove nothing"
+        assert set(scanned) <= set(tracked_files())
+
+    def test_only_the_allowlist_literal_is_skipped_in_self(self) -> None:
+        """The span skip must cover the entries and nothing beyond them.
+
+        Allowlisting a line means writing it out again, so the entry quotes
+        the string it excuses. Skipping the literal's span resolves that;
+        skipping more would blind the module to its own prose.
+        """
+        from pathlib import Path
+
+        from scripts.staleness_gate import allowlist_line_span
+
+        text = Path(SELF).read_text(encoding="utf-8")
+        span = allowlist_line_span(text)
+        lines = text.splitlines()
+
+        assert span, "the ALLOWLIST literal was not located"
+        assert lines[min(span) - 1].startswith("ALLOWLIST"), lines[min(span) - 1]
+        assert lines[max(span) - 1].strip() == "}", lines[max(span) - 1]
+        # The module docstring sits above it and stays in the scan.
+        assert 1 not in span
 
 
 @needs_history
