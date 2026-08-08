@@ -7,6 +7,7 @@ only way to know is to point it at the revision that carried them.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from typing import ClassVar
 
@@ -40,8 +41,31 @@ def _rev_exists() -> bool:
     return done.returncode == 0
 
 
+def should_skip_history(rev_present: bool, in_ci: bool) -> bool:
+    """Decide whether to skip the acceptance criterion, given clone and env.
+
+    A shallow local clone is a legitimate reason to skip -- a contributor
+    running ``pytest`` after ``git clone --depth 1`` has no 96cee41 to point
+    at. CI is not: there the checkout is ours to configure, so a missing
+    revision means the ``fetch-depth: 0`` this file depends on was lost, and
+    skipping would report that regression as green. A skip is a zero, so under
+    ``CI`` the criterion runs and fails loudly instead.
+
+    Args:
+        rev_present: Whether ``DEFECTIVE_REV`` is in this clone.
+        in_ci: Whether the ``CI`` environment variable is set.
+
+    Returns:
+        True if the acceptance criterion should be skipped.
+    """
+    return not rev_present and not in_ci
+
+
+_IN_CI = bool(os.environ.get("CI"))
+
 needs_history = pytest.mark.skipif(
-    not _rev_exists(), reason=f"{DEFECTIVE_REV} not present (shallow clone)"
+    should_skip_history(_rev_exists(), _IN_CI),
+    reason=f"{DEFECTIVE_REV} not present (shallow clone, local run)",
 )
 
 
@@ -106,6 +130,29 @@ class TestGateIsCleanAtHead:
         assert 1 not in span
 
 
+class TestTheHistoryGuardRunsWhereItMatters:
+    """The acceptance criterion below must not be skippable in CI.
+
+    It was: the ``test`` job's checkout took the default ``fetch-depth: 1``,
+    96cee41 was absent in all 18 cells, and every test in the class below
+    skipped while the job reported success. The guard is exercised directly
+    rather than through the environment so both arms are asserted.
+    """
+
+    def test_ci_never_skips(self) -> None:
+        """A missing revision under CI is a checkout regression, not a skip."""
+        assert should_skip_history(rev_present=False, in_ci=True) is False
+
+    def test_a_shallow_local_clone_still_skips(self) -> None:
+        """Off CI a shallow clone is legitimate and must not fail the suite."""
+        assert should_skip_history(rev_present=False, in_ci=False) is True
+
+    def test_a_present_revision_never_skips(self) -> None:
+        """Positive control: with history available the criterion always runs."""
+        assert should_skip_history(rev_present=True, in_ci=False) is False
+        assert should_skip_history(rev_present=True, in_ci=True) is False
+
+
 @needs_history
 class TestGateCatchesTheDefectsThatMotivatedIt:
     """The acceptance criterion: fails at 96cee41, naming B1 and B3.
@@ -118,6 +165,11 @@ class TestGateCatchesTheDefectsThatMotivatedIt:
     @classmethod
     def violations(cls) -> list[str]:
         """Every violation the gate reports at the defective revision."""
+        assert _rev_exists(), (
+            f"{DEFECTIVE_REV} is absent from this clone, so the acceptance "
+            "criterion cannot run. Reached under CI this means the `test` job's "
+            "checkout lost its `fetch-depth: 0` (.github/workflows/ci.yml)."
+        )
         return sweep(DEFECTIVE_REV)
 
     def test_the_gate_fails_there(self, violations: list[str]) -> None:
