@@ -3,6 +3,10 @@
 Uses Django's connection.execute_wrapper() mechanism to intercept all SQL
 queries without requiring DEBUG=True. Stores captured queries per-context
 using contextvars.ContextVar for both thread and async safety.
+
+Each interceptor owns one ContextVar, so every construction site is expected
+to call ``release()`` once it has read the captures. See ``release()`` for what
+accumulates otherwise.
 """
 
 from __future__ import annotations
@@ -59,8 +63,14 @@ class QueryInterceptor:
                 default=None,
             )
         )
-        # Initialize with a fresh list for this context.
-        self._queries_var.set([])
+        # Initialize with a fresh list for this context. The token is kept so
+        # ``release()`` can take the entry back out again: ``set()`` stores the
+        # variable in the *running* context, and under WSGI that context is the
+        # worker thread's own and lives for the life of the process. Dropping
+        # the interceptor does not undo it -- the context holds the reference.
+        self._token: contextvars.Token[list[CapturedQuery] | None] | None = self._queries_var.set(
+            []
+        )
 
     def __call__(
         self,
@@ -137,6 +147,35 @@ class QueryInterceptor:
     def clear(self) -> None:
         """Reset the captured query list for the current context."""
         self._queries_var.set([])
+
+    def release(self) -> None:
+        """Remove this interceptor's entry from the context that created it.
+
+        Call once the captures have been read, at the end of the unit of work
+        that built the interceptor -- a request, a task, a management command
+        run. Without it every unit leaves one more ``ContextVar`` in the
+        ambient context, each holding that unit's full ``CapturedQuery`` list,
+        and a long-lived worker accumulates both without bound.
+
+        Idempotent, and never raises. A token is only valid in the context that
+        produced it, so a caller that constructs on one thread and finalises on
+        another gets a logged no-op rather than a ``ValueError`` in the host
+        application's request path.
+
+        After release, ``get_queries()`` reports an empty list.
+        """
+        token = self._token
+        if token is None:
+            return
+        self._token = None
+        try:
+            self._queries_var.reset(token)
+        except (ValueError, RuntimeError):
+            logger.debug(
+                "query_doctor: could not release capture storage; the "
+                "interceptor was finalized outside the context that built it",
+                exc_info=True,
+            )
 
 
 def build_interceptor() -> QueryInterceptor:

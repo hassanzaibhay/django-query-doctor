@@ -213,32 +213,35 @@ class Command(BaseCommand):
         request = RequestFactory().get(url)
 
         try:
-            match = resolve(url)
-        except Resolver404 as exc:
-            raise CommandError(
-                f"--url '{url}' does not resolve against ROOT_URLCONF. "
-                f"Nothing was analysed. Check the path, including its leading "
-                f"and trailing slashes."
-            ) from exc
-
-        with connection.execute_wrapper(interceptor):
             try:
-                match.func(request, *match.args, **match.kwargs)
-            except Exception as exc:
+                match = resolve(url)
+            except Resolver404 as exc:
                 raise CommandError(
-                    f"The view serving '{url}' raised "
-                    f"{type(exc).__name__}: {exc}. The analysis is incomplete, "
-                    f"so it is reported as a failure rather than as a clean run."
+                    f"--url '{url}' does not resolve against ROOT_URLCONF. "
+                    f"Nothing was analysed. Check the path, including its leading "
+                    f"and trailing slashes."
                 ) from exc
 
-        queries = interceptor.get_queries()
-        report.captured_queries = queries
-        report.total_queries = len(queries)
-        report.total_time_ms = sum(q.duration_ms for q in queries)
+            with connection.execute_wrapper(interceptor):
+                try:
+                    match.func(request, *match.args, **match.kwargs)
+                except Exception as exc:
+                    raise CommandError(
+                        f"The view serving '{url}' raised "
+                        f"{type(exc).__name__}: {exc}. The analysis is incomplete, "
+                        f"so it is reported as a failure rather than as a clean run."
+                    ) from exc
 
-        report.prescriptions = pipeline_analyze(queries, source="check_queries")
+            queries = interceptor.get_queries()
+            report.captured_queries = queries
+            report.total_queries = len(queries)
+            report.total_time_ms = sum(q.duration_ms for q in queries)
 
-        return report
+            report.prescriptions = pipeline_analyze(queries, source="check_queries")
+
+            return report
+        finally:
+            interceptor.release()
 
     def _render_console(self, report: DiagnosisReport) -> None:
         """Render report to console output."""

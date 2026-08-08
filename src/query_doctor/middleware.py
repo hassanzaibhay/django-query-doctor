@@ -166,14 +166,17 @@ class QueryDoctorMiddleware:
 
         from django.db import connection
 
-        with connection.execute_wrapper(interceptor):
-            response = await self.get_response(request)
-            await self._warn_if_executor_is_unreachable(interceptor)
-
         try:
-            self._analyze_and_report(interceptor, config, request)
-        except Exception:
-            logger.warning("query_doctor: analysis failed", exc_info=True)
+            with connection.execute_wrapper(interceptor):
+                response = await self.get_response(request)
+                await self._warn_if_executor_is_unreachable(interceptor)
+
+            try:
+                self._analyze_and_report(interceptor, config, request)
+            except Exception:
+                logger.warning("query_doctor: analysis failed", exc_info=True)
+        finally:
+            interceptor.release()
 
         return response
 
@@ -262,13 +265,18 @@ class QueryDoctorMiddleware:
 
         from django.db import connection
 
-        with connection.execute_wrapper(interceptor):
-            response = self.get_response(request)
-
         try:
-            self._analyze_and_report(interceptor, config, request)
-        except Exception:
-            logger.warning("query_doctor: analysis failed", exc_info=True)
+            with connection.execute_wrapper(interceptor):
+                response = self.get_response(request)
+
+            try:
+                self._analyze_and_report(interceptor, config, request)
+            except Exception:
+                logger.warning("query_doctor: analysis failed", exc_info=True)
+        finally:
+            # One entry per request would otherwise stay in the worker
+            # thread's context for the life of the process.
+            interceptor.release()
 
         return response
 

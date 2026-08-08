@@ -219,34 +219,40 @@ class ProjectDiagnoser:
         start = time.perf_counter()
 
         try:
-            from django.db import connection
+            try:
+                from django.db import connection
 
-            with connection.execute_wrapper(interceptor):
-                response = client.get(resolved_path)
-                status_code = response.status_code
-        except Exception as e:
+                with connection.execute_wrapper(interceptor):
+                    response = client.get(resolved_path)
+                    status_code = response.status_code
+            except Exception as e:
+                elapsed = (time.perf_counter() - start) * 1000
+                return URLDiagnosisResult(url=url, report=None, error=str(e), duration_ms=elapsed)
+
             elapsed = (time.perf_counter() - start) * 1000
-            return URLDiagnosisResult(url=url, report=None, error=str(e), duration_ms=elapsed)
 
-        elapsed = (time.perf_counter() - start) * 1000
+            # Build report
+            queries = interceptor.get_queries()
+            report = DiagnosisReport(
+                total_queries=len(queries),
+                total_time_ms=sum(q.duration_ms for q in queries),
+                captured_queries=queries,
+            )
 
-        # Build report
-        queries = interceptor.get_queries()
-        report = DiagnosisReport(
-            total_queries=len(queries),
-            total_time_ms=sum(q.duration_ms for q in queries),
-            captured_queries=queries,
-        )
+            # Run analyzers and apply .queryignore filtering via the shared pipeline.
+            report.prescriptions = pipeline_analyze(
+                queries, source=f"project_diagnoser:{url.pattern}"
+            )
 
-        # Run analyzers and apply .queryignore filtering via the shared pipeline.
-        report.prescriptions = pipeline_analyze(queries, source=f"project_diagnoser:{url.pattern}")
-
-        return URLDiagnosisResult(
-            url=url,
-            report=report,
-            duration_ms=elapsed,
-            status_code=status_code,
-        )
+            return URLDiagnosisResult(
+                url=url,
+                report=report,
+                duration_ms=elapsed,
+                status_code=status_code,
+            )
+        finally:
+            # One diagnosis run walks every discovered URL in one process.
+            interceptor.release()
 
     def _resolve_parameters(self, url: DiscoveredURL) -> str | None:
         """Try to resolve URL path parameters with real database values.

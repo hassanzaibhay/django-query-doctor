@@ -82,13 +82,16 @@ class Command(BaseCommand):
 
         from django.db import connection
 
-        with connection.execute_wrapper(interceptor):
-            if execute_code:
-                exec(execute_code)
+        try:
+            with connection.execute_wrapper(interceptor):
+                if execute_code:
+                    exec(execute_code)
 
-        queries = interceptor.get_queries()
-        return DiagnosisReport(
-            total_queries=len(queries),
-            total_time_ms=sum(q.duration_ms for q in queries),
-            captured_queries=queries,
-        )
+            queries = interceptor.get_queries()
+            return DiagnosisReport(
+                total_queries=len(queries),
+                total_time_ms=sum(q.duration_ms for q in queries),
+                captured_queries=queries,
+            )
+        finally:
+            interceptor.release()

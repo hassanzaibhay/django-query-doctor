@@ -21,6 +21,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- **The interceptor no longer leaks one `ContextVar` per request.**
+  `QueryInterceptor.__init__` called `ContextVar.set()` and nothing ever undid
+  it. `set()` stores the variable and its value in the *running* context, and
+  under WSGI that context belongs to the worker thread and outlives every
+  request the thread serves, so each request left one more variable behind --
+  each still holding that request's full `CapturedQuery` list. Dropping the
+  interceptor did not help, because the context holds the reference rather than
+  the caller. A long-running worker therefore accumulated both entries and
+  captured query data without bound, contradicting the "no accumulation across
+  requests" claim in `docs/deep-dive/performance.md`. The interceptor now keeps
+  its token and exposes `release()`, which removes the entry from the context
+  that created it; it is idempotent and never raises, so a token used from
+  another thread logs a debug message instead of taking a `ValueError` into the
+  host application. All nine construction sites -- both middleware paths,
+  `diagnose_queries()`, the Celery task decorator, the pytest fixture, the
+  project diagnoser, and the three management commands -- release in a
+  `finally`, so a failed analysis does not leak either.
 - **The 2.3.0 upgrade notes were wrong about `--fail-on-regression`.** They
   stated it was "unaffected: fewer findings cannot create a regression", four
   paragraphs after stating that the N+1 prescription text had changed. A

@@ -402,10 +402,17 @@ class QueryInterceptor:
                 default=None,
             )
         )
-        self._queries_var.set([])
+        self._token = self._queries_var.set([])
+
+    def release(self) -> None:
+        token, self._token = self._token, None
+        if token is not None:
+            self._queries_var.reset(token)  # (error handling elided)
 ```
 
-What keeps *concurrent requests* from interfering with each other, however, is not the `ContextVar` -- it is that every request builds its **own interceptor**. `build_interceptor()` is called per request (`middleware.py:162,194`), and the result is a local variable; no two requests ever share one. Under ASGI, Django additionally opens a `ThreadSensitiveContext` per request, so they do not share an executor thread either.
+The `release()` is not optional bookkeeping. `ContextVar.set()` stores the variable and its value in the *running* context, and under WSGI that context belongs to the worker thread and outlives every request the thread serves. Dropping the interceptor does not undo the `set()` -- the context holds the reference, not the caller -- so before 2.3.1 each request left one more variable behind, each still holding that request's full `CapturedQuery` list. `reset()` is the only operation that takes the entry back out, which is why the token is kept. Every construction site calls `release()` once it has read the captures; `tests/test_interceptor.py::TestEveryDispatchSiteReleases` checks that against the AST rather than by review.
+
+What keeps *concurrent requests* from interfering with each other, however, is not the `ContextVar` -- it is that every request builds its **own interceptor**. `build_interceptor()` is called per request (`middleware.py:165,264`), and the result is a local variable; no two requests ever share one. Under ASGI, Django additionally opens a `ThreadSensitiveContext` per request, so they do not share an executor thread either.
 
 Cross-request isolation is therefore over-determined: it holds in multi-threaded WSGI servers (e.g. gunicorn with sync workers) and in ASGI servers (e.g. uvicorn, daphne), and it would still hold if the `ContextVar` were replaced by a plain instance attribute. The `ContextVar` earns its place on the narrower guarantee stated above -- correctness *within* one interceptor across `await` boundaries and across threads -- not on cross-request isolation.
 
@@ -417,7 +424,7 @@ Concurrent ASGI requests do not contaminate each other's reports. This behaviour
 
 !!! note "What that test does and does not establish"
 
-    It pins the observable behaviour, which is what users depend on. It does **not** identify the cause: per-request interceptor instances, per-request executor threads, and contextvars all independently produce the same passing result, so the test would stay green if any one of them were removed. No test in this repository discriminates between them, and while interceptors are built per request none can -- there is no shared state left for a mechanism to protect. The contextvars *storage* claim above is backed (`src/query_doctor/interceptor.py:56-63`); a causal claim that contextvars is what isolates requests would be asserted, not demonstrated, so this page does not make one.
+    It pins the observable behaviour, which is what users depend on. It does **not** identify the cause: per-request interceptor instances, per-request executor threads, and contextvars all independently produce the same passing result, so the test would stay green if any one of them were removed. No test in this repository discriminates between them, and while interceptors are built per request none can -- there is no shared state left for a mechanism to protect. The contextvars *storage* claim above is backed (`src/query_doctor/interceptor.py:60-73`); a causal claim that contextvars is what isolates requests would be asserted, not demonstrated, so this page does not make one.
 
 Django's `execute_wrapper()` is per-connection, and Django stores connections in thread-local storage. Under ASGI that makes *which thread the middleware runs on* decisive: it must be the same thread the ORM runs on, or the wrapper is installed on a connection object the queries never touch. `QueryDoctorMiddleware` therefore declares `async_capable = False`, so Django adapts it with `sync_to_async(thread_sensitive=True)` and runs it in the same thread-sensitive executor it runs ORM work in.
 
