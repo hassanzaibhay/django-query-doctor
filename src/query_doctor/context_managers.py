@@ -73,17 +73,22 @@ def diagnose_queries() -> Generator[DiagnosisReport, None, None]:
 
     from django.db import connection
 
-    with connection.execute_wrapper(interceptor):
-        yield report
-
-    # After context exits, run analysis
     try:
-        queries = interceptor.get_queries()
-        report.captured_queries = queries
-        report.total_queries = len(queries)
-        report.total_time_ms = sum(q.duration_ms for q in queries)
+        with connection.execute_wrapper(interceptor):
+            yield report
 
-        # Run analyzers and apply .queryignore filtering via the shared pipeline.
-        report.prescriptions = pipeline_analyze(queries, source="context_manager")
-    except Exception:
-        logger.warning("query_doctor: context manager analysis failed", exc_info=True)
+        # After context exits, run analysis
+        try:
+            queries = interceptor.get_queries()
+            report.captured_queries = queries
+            report.total_queries = len(queries)
+            report.total_time_ms = sum(q.duration_ms for q in queries)
+
+            # Run analyzers and apply .queryignore filtering via the shared pipeline.
+            report.prescriptions = pipeline_analyze(queries, source="context_manager")
+        except Exception:
+            logger.warning("query_doctor: context manager analysis failed", exc_info=True)
+    finally:
+        # The report keeps the queries; the context must not keep a second
+        # reference to them once the block is done with.
+        interceptor.release()

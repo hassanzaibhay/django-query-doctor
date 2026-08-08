@@ -41,9 +41,9 @@ Query Doctor Report
 Total queries: 127 | Time: 342.5ms | Issues: 2
 ============================================================
 
-CRITICAL: N+1 detected: 50 queries for table "myapp_author" (field: author)
+CRITICAL: N+1 detected: 50 queries for table "myapp_author" (via Book.author)
    Location: /app/myapp/views.py:42 in book_list
-   Fix: Add .select_related('author') to your queryset
+   Fix: Add .select_related('author') to your Book queryset
    Queries: 50 | Est. savings: ~120.0ms
 
 WARNING: Duplicate query: 12 identical queries for table "books_category"
@@ -69,7 +69,7 @@ Example output:
 
 ```json
 {
-  "version": "2.1.0",
+  "version": "2.3.0",
   "timestamp": "2026-07-14T12:00:00+00:00",
   "summary": {
     "total_queries": 127,
@@ -83,8 +83,8 @@ Example output:
     {
       "issue_type": "n_plus_one",
       "severity": "critical",
-      "description": "N+1 detected: 50 queries for table \"myapp_author\" (field: author)",
-      "fix_suggestion": "Add .select_related('author') to your queryset",
+      "description": "N+1 detected: 50 queries for table \"myapp_author\" (via Book.author)",
+      "fix_suggestion": "Add .select_related('author') to your Book queryset",
       "location": {"file": "/app/myapp/views.py", "line": 42, "function": "book_list"},
       "query_count": 50,
       "estimated_savings_ms": 120.0

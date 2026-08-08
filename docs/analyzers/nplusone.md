@@ -46,9 +46,9 @@ books = Book.objects.prefetch_related("categories")  # 2 queries total
 Console output for a detected N+1:
 
 ```
-CRITICAL: N+1 detected: 100 queries for table "app_author" (field: author)
+CRITICAL: N+1 detected: 100 queries for table "app_author" (via Book.author)
    Location: /app/myapp/views.py:8 in book_list
-   Fix: Add .select_related('author') to your queryset
+   Fix: Add .select_related('author') to your Book queryset
    Queries: 100 | Est. savings: ~99.0ms
 ```
 

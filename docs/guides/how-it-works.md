@@ -80,7 +80,7 @@ Every issue detected by an analyzer is returned as a **Prescription** dataclass.
 | `issue_type` | `IssueType` enum | The category of issue (e.g., `N_PLUS_ONE`, `DUPLICATE_QUERY`, `MISSING_INDEX`) |
 | `severity` | `Severity` enum | One of `CRITICAL`, `WARNING`, `INFO` |
 | `description` | `str` | Human-readable description of the problem |
-| `fix_suggestion` | `str` | A ready-to-apply code fix (e.g., `Add .select_related('author') to your queryset`) |
+| `fix_suggestion` | `str` | A ready-to-apply code fix (e.g., `Add .select_related('author') to your Book queryset`) |
 | `callsite` | `CallSite` | Source file path, line number, and function name where the issue originates |
 | `query_count` | `int` | Number of queries involved in this issue |
 | `time_saved_ms` | `float` | Estimated time savings if the fix is applied |

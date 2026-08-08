@@ -20,6 +20,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **The interceptor no longer leaks one `ContextVar` per request.**
+  `QueryInterceptor.__init__` called `ContextVar.set()` and nothing ever undid
+  it. `set()` stores the variable and its value in the *running* context, and
+  under WSGI that context belongs to the worker thread and outlives every
+  request the thread serves, so each request left one more variable behind --
+  each still holding that request's full `CapturedQuery` list. Dropping the
+  interceptor did not help, because the context holds the reference rather than
+  the caller. A long-running worker therefore accumulated both entries and
+  captured query data without bound, contradicting the "no accumulation across
+  requests" claim in `docs/deep-dive/performance.md`. The interceptor now keeps
+  its token and exposes `release()`, which removes the entry from the context
+  that created it; it is idempotent and never raises, so a token used from
+  another thread logs a debug message instead of taking a `ValueError` into the
+  host application. All nine construction sites -- both middleware paths,
+  `diagnose_queries()`, the Celery task decorator, the pytest fixture, the
+  project diagnoser, and the three management commands -- release in a
+  `finally`, so a failed analysis does not leak either.
+- **The 2.3.0 upgrade notes were wrong about `--fail-on-regression`.** They
+  stated it was "unaffected: fewer findings cannot create a regression", four
+  paragraphs after stating that the N+1 prescription text had changed. A
+  baseline snapshot keys each issue on `analyzer : file_path : message`
+  (`baseline.py`), so the changed message rehashes every N+1 entry: the same
+  unfixed finding is reported as *resolved* under its old key and as a *new
+  regression* under its new one, and a CI job running
+  `--baseline=... --fail-on-regression` exits 1 with no code change. The
+  identical mechanism was documented correctly for the 2.1.x upgrade in the
+  same file. `UPGRADING.md` now says so, and names the regeneration step.
+- **`check_serializers` no longer prescribes a queryset call that raises.** Of
+  the seven places `serializer_method` builds a finding, only one established
+  that the attribute it was about to name was a relation. The other four that
+  prescribe `prefetch_related` took the attribute straight from the source, so
+  `get_theme(self, obj): return obj.payload.get("theme")` produced
+  `prefetch_related('payload')`, which raises `AttributeError`; a `CharField`
+  produced `prefetch_related('title')`, which raises `ValueError`. All four now
+  resolve the attribute against `Meta.model`, or against Django's `_set`
+  reverse-accessor suffix when the serializer has no model, and suppress the
+  finding when neither establishes a relation.
+- **The deep-chain check no longer prescribes `select_related` for relations it
+  cannot take.** `select_related` follows a single forward join, so
+  `obj.categories.name` on a many-to-many produced
+  `select_related('categories')` and `FieldError` when followed. It now
+  requires a forward `ForeignKey` or a `OneToOneField`, and a serializer with
+  no model gets no prescription here at all, because a reverse accessor is a
+  prefetch signal rather than a `select_related` one.
+
 ## [2.3.0] - 2026-08-01
 
 ### Added

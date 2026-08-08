@@ -33,9 +33,9 @@ Query Doctor Report
 Total queries: 53 | Time: 127.3ms | Issues: 3
 ============================================================
 
-CRITICAL: N+1 detected: 47 queries for table "myapp_author" (field: author)
+CRITICAL: N+1 detected: 47 queries for table "myapp_author" (via Book.author)
    Location: myapp/views.py:83 in get_queryset
-   Fix: Add .select_related('author') to your queryset
+   Fix: Add .select_related('author') to your Book queryset
    Queries: 47 | Est. savings: ~89.0ms
 
 WARNING: Duplicate query: 6 identical queries for table "myapp_book"
@@ -45,7 +45,7 @@ WARNING: Duplicate query: 6 identical queries for table "myapp_book"
 
 INFO: Missing index: column "published_date" on Book (table "myapp_book") is used in WHERE/ORDER BY but has no index
    Location: myapp/views.py:83 in get_queryset
-   Fix: Add to Book's Meta.indexes: indexes = [models.Index(fields=["published_date"], name="idx_myapp_book_published_date")]
+   Fix: Add to Book's Meta.indexes: indexes = [models.Index(fields=["published_date"])]
 ```
 
 (With [Rich](https://github.com/Textualize/rich) installed, the same content renders with colors and panels.)

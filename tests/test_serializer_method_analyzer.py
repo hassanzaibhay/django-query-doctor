@@ -15,6 +15,7 @@ from rest_framework import serializers  # noqa: E402
 
 from query_doctor.analyzers.serializer_method import SerializerMethodAnalyzer  # noqa: E402
 from query_doctor.types import IssueType, Severity  # noqa: E402
+from tests.testapp.models import Author, Book  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Test serializer classes defined inline
@@ -37,10 +38,14 @@ class SafeSerializer(serializers.Serializer):
         return obj.name.upper()
 
 
-class BadCountSerializer(serializers.Serializer):
+class BadCountSerializer(serializers.ModelSerializer):
     """Pattern 1: Related manager access -- obj.items.count()."""
 
     total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Author
+        fields = ("total",)
 
     def get_total(self, obj):
         return obj.items.count()
@@ -57,10 +62,21 @@ class BadFilterSerializer(serializers.Serializer):
         return User.objects.filter(id=obj.id).count()
 
 
-class BadChainSerializer(serializers.Serializer):
-    """Pattern 3: Deep attribute chain -- obj.author.name."""
+class BadChainSerializer(serializers.ModelSerializer):
+    """Pattern 3: Deep attribute chain -- obj.author.name.
+
+    A ``ModelSerializer``, unlike the other fixtures here, because the
+    deep-chain site prescribes ``select_related`` and that needs the model to
+    confirm ``author`` is a forward FK. With no model there is nothing to
+    check the kind against and the site suppresses -- see
+    :class:`TestDeepChainPrescribesOnlySelectRelatableFields`.
+    """
 
     author_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Book
+        fields = ("author_name",)
 
     def get_author_name(self, obj):
         return obj.author.name
@@ -75,11 +91,18 @@ class LoopSerializer(serializers.Serializer):
         return [i.name for i in obj.related_set.all()]
 
 
-class MultipleIssuesSerializer(serializers.Serializer):
+class MultipleIssuesSerializer(serializers.ModelSerializer):
     """Multiple SerializerMethodFields, some safe, some dangerous."""
 
     safe = serializers.SerializerMethodField()
     dangerous = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Author
+        fields = (
+            "safe",
+            "dangerous",
+        )
 
     def get_safe(self, obj):
         return str(obj.id)
@@ -105,10 +128,14 @@ class ObjectsGetSerializer(serializers.Serializer):
         return User.objects.get(id=obj.id)
 
 
-class ExistsCheckSerializer(serializers.Serializer):
+class ExistsCheckSerializer(serializers.ModelSerializer):
     """Pattern 1 variant: obj.related.exists()."""
 
     has_items = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Author
+        fields = ("has_items",)
 
     def get_has_items(self, obj):
         return obj.items.exists()
@@ -305,7 +332,11 @@ class TestSerializerMethodAnalyzerEdgeCases:
     def test_method_on_parent_class(self):
         """Method defined on parent class should be found via MRO."""
 
-        class ParentSerializer(serializers.Serializer):
+        class ParentSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Author
+                fields = ("total",)
+
             total = serializers.SerializerMethodField()
 
             def get_total(self, obj):
@@ -340,7 +371,11 @@ class TestComprehensionDetection:
     def test_list_comprehension_with_queryset_call(self):
         """List comprehension iterating over obj.related.all() is detected."""
 
-        class ListCompSerializer(serializers.Serializer):
+        class ListCompSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Author
+                fields = ("names",)
+
             names = serializers.SerializerMethodField()
 
             def get_names(self, obj):
@@ -354,7 +389,11 @@ class TestComprehensionDetection:
     def test_generator_expression_with_queryset_call(self):
         """Generator expression iterating over obj.related.filter() is detected."""
 
-        class GenExpSerializer(serializers.Serializer):
+        class GenExpSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Author
+                fields = ("ids",)
+
             ids = serializers.SerializerMethodField()
 
             def get_ids(self, obj):
@@ -367,7 +406,11 @@ class TestComprehensionDetection:
     def test_set_comprehension_with_queryset(self):
         """Set comprehension iterating over queryset is detected."""
 
-        class SetCompSerializer(serializers.Serializer):
+        class SetCompSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Book
+                fields = ("unique_names",)
+
             unique_names = serializers.SerializerMethodField()
 
             def get_unique_names(self, obj):
@@ -380,7 +423,11 @@ class TestComprehensionDetection:
     def test_dict_comprehension_with_queryset(self):
         """Dict comprehension iterating over queryset is detected."""
 
-        class DictCompSerializer(serializers.Serializer):
+        class DictCompSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Author
+                fields = ("mapping",)
+
             mapping = serializers.SerializerMethodField()
 
             def get_mapping(self, obj):
@@ -393,7 +440,11 @@ class TestComprehensionDetection:
     def test_comprehension_with_implicit_iteration(self):
         """Comprehension iterating over obj.related (no .all()) is detected."""
 
-        class ImplicitCompSerializer(serializers.Serializer):
+        class ImplicitCompSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Author
+                fields = ("vals",)
+
             vals = serializers.SerializerMethodField()
 
             def get_vals(self, obj):
@@ -420,7 +471,11 @@ class TestComprehensionDetection:
     def test_comprehension_severity_is_warning(self):
         """Comprehension queryset issues have WARNING severity."""
 
-        class SevCompSerializer(serializers.Serializer):
+        class SevCompSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Author
+                fields = ("names",)
+
             names = serializers.SerializerMethodField()
 
             def get_names(self, obj):
@@ -523,3 +578,443 @@ class TestLoopOverScalarAttribute:
         loop_results = [r for r in results if r.extra.get("pattern") == "loop_queryset"]
         assert len(loop_results) == 1
         assert "prefetch_related('review_set')" in loop_results[0].fix_suggestion
+
+
+class TestDeepChainPrescribesOnlySelectRelatableFields:
+    """B5 site 7: `select_related` needs relation *kind*, not relation existence.
+
+    ``_check_deep_chain`` prescribes ``select_related(chain[1])`` for any
+    three-deep attribute access. ``is_relation`` is true for reverse and
+    many-to-many descriptors too, and ``select_related`` rejects both, so the
+    guard the loop branch uses is not the guard this site needs:
+
+        Book.objects.select_related('categories')
+            -> FieldError: Invalid field name(s) given in select_related:
+               'categories'. Choices are: author, publisher
+
+    Django's default reverse accessor suffix is the same story. It is a
+    prefetch signal, and site 7 does not prescribe prefetching.
+    """
+
+    def setup_method(self):
+        """Create analyzer instance."""
+        self.analyzer = SerializerMethodAnalyzer()
+
+    @staticmethod
+    def _chain_findings(analyzer, serializer_cls):
+        """Return only this site's findings."""
+        return [
+            r
+            for r in analyzer.analyze_serializer(serializer_cls)
+            if r.extra.get("pattern") == "deep_attribute_chain"
+        ]
+
+    def test_forward_fk_is_still_prescribed(self):
+        """Positive control: the case select_related actually fixes."""
+        from tests.testapp.models import Book
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return obj.author.name
+
+        found = self._chain_findings(self.analyzer, S)
+        assert len(found) == 1, found
+        assert "select_related('author')" in found[0].fix_suggestion
+
+    def test_many_to_many_is_not_prescribed(self):
+        """`is_relation` admits it; select_related raises on it."""
+        from tests.testapp.models import Book
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return obj.categories.name
+
+        assert self._chain_findings(self.analyzer, S) == []
+
+    def test_non_relation_is_not_prescribed(self):
+        """A CharField chain: the original B5 symptom at this site."""
+        from tests.testapp.models import Book
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            # A terminal attribute, not a method: `upper` is in _SAFE_METHODS
+            # and `count` in _QUERYSET_METHODS, and either would make this
+            # pass at an earlier guard than the one under test.
+            def get_n(self, obj):
+                return obj.title.length
+
+        assert self._chain_findings(self.analyzer, S) == []
+
+    def test_reverse_accessor_is_not_prescribed_without_a_model(self):
+        """The `_set` branch is a prefetch signal, so it must not reach here."""
+
+        class S(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                return obj.review_set.headline
+
+        assert self._chain_findings(self.analyzer, S) == []
+
+    def test_an_unresolvable_attribute_is_not_prescribed(self):
+        """No model to consult and no structural signal: suppress."""
+
+        class S(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                return obj.payload.theme
+
+        assert self._chain_findings(self.analyzer, S) == []
+
+    def test_the_resolver_never_renames_on_either_arm(self):
+        """Baseline keys embed the name, so resolution must not rewrite it.
+
+        `baseline.py` keys an issue on ``analyzer:file_path:message`` and every
+        one of these descriptions interpolates the resolved name. A resolver
+        that returned an accessor name instead of the source token would
+        silently rekey every stored entry.
+        """
+        from tests.testapp.models import Book
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Book
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return obj.author.name
+
+        for attr in ("author", "publisher", "categories", "title", "nope"):
+            for cls in (S, serializers.Serializer):
+                assert SerializerMethodAnalyzer._resolve_relation_name(cls, attr) in (attr, None)
+                assert SerializerMethodAnalyzer._resolve_select_related_name(cls, attr) in (
+                    attr,
+                    None,
+                )
+
+
+class TestEveryPrefetchSiteRoutesThroughTheRelationGuard:
+    """B5: all four ``prefetch_related`` sites must establish the relation first.
+
+    ``_resolve_relation_name`` existed and was called from exactly one of the
+    seven issue-emitting sites. The other three prefetch sites bound
+    ``related = chain[1]`` straight from the source token, so an attribute the
+    model does not declare -- or does declare, as a scalar -- was named in a
+    prescription that raises when followed::
+
+        Author.objects.prefetch_related('bio')
+            -> ValueError: 'bio' does not resolve to an item that supports
+               prefetching
+
+    Four arms per site, because a site that stopped firing for an unrelated
+    reason would pass the two negatives on its own:
+
+    * a scalar the model declares       -> suppressed
+    * an attribute it does not declare  -> suppressed
+    * a real relation                   -> still fires, still names it
+    * ``_set`` with no model at all     -> still fires
+
+    The last arm matters here and not at site 7: these four prescribe
+    ``prefetch_related``, which a reverse accessor is exactly right for.
+
+    Site ordinals are file order over the seven issue dicts. Site 4 was
+    already guarded; site 7 prescribes ``select_related`` and is covered by
+    :class:`TestDeepChainPrescribesOnlySelectRelatableFields`; site 2 binds a
+    model name rather than a relation and is out of the class.
+    """
+
+    def setup_method(self):
+        """Create analyzer instance."""
+        self.analyzer = SerializerMethodAnalyzer()
+
+    def _fired(self, serializer_cls, pattern, fragment):
+        """Findings from one site: its pattern plus a description fragment.
+
+        Sites 5 and 6 share the ``comprehension_queryset`` pattern, so the
+        fragment is what separates them.
+        """
+        return [
+            r
+            for r in self.analyzer.analyze_serializer(serializer_cls)
+            if r.extra.get("pattern") == pattern and fragment in r.description
+        ]
+
+    def _assert_arms(self, arms, pattern, fragment):
+        """Run the four arms and say which one broke."""
+        scalar, undeclared, relation, set_suffix = arms
+        assert self._fired(scalar, pattern, fragment) == [], "scalar attribute was prescribed"
+        assert self._fired(undeclared, pattern, fragment) == [], "undeclared attr was prescribed"
+
+        fired = self._fired(relation, pattern, fragment)
+        assert fired, "the real relation stopped firing"
+        assert all("prefetch_related('items')" in r.fix_suggestion for r in fired), [
+            r.fix_suggestion for r in fired
+        ]
+
+        assert self._fired(set_suffix, pattern, fragment), "the _set arm stopped firing"
+
+    def test_site_1_related_manager_call(self):
+        """obj.<attr>.count() -- serializer_method.py:351."""
+
+        class Scalar(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return obj.bio.count()
+
+        class Undeclared(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return obj.nope.count()
+
+        class Relation(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return obj.items.count()
+
+        class SetSuffix(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                return obj.thing_set.count()
+
+        self._assert_arms(
+            (Scalar, Undeclared, Relation, SetSuffix), "related_manager_access", "()'"
+        )
+
+    def test_site_3_for_loop_over_a_queryset_call(self):
+        """for x in obj.<attr>.all() -- serializer_method.py:417."""
+
+        class Scalar(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                for _x in obj.bio.all():
+                    pass
+
+        class Undeclared(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                for _x in obj.nope.all():
+                    pass
+
+        class Relation(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                for _x in obj.items.all():
+                    pass
+
+        class SetSuffix(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                for _x in obj.thing_set.all():
+                    pass
+
+        self._assert_arms((Scalar, Undeclared, Relation, SetSuffix), "loop_queryset", "loop over")
+
+    def test_site_5_comprehension_over_a_queryset_call(self):
+        """[x for x in obj.<attr>.all()] -- serializer_method.py:528."""
+
+        class Scalar(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return [x for x in obj.bio.all()]
+
+        class Undeclared(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return [x for x in obj.nope.all()]
+
+        class Relation(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return [x for x in obj.items.all()]
+
+        class SetSuffix(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                return [x for x in obj.thing_set.all()]
+
+        self._assert_arms(
+            (Scalar, Undeclared, Relation, SetSuffix),
+            "comprehension_queryset",
+            "comprehension over",
+        )
+
+    def test_site_6_comprehension_over_an_implicit_iteration(self):
+        """[x for x in obj.<attr>] -- serializer_method.py:550."""
+
+        class Scalar(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return [x for x in obj.bio]
+
+        class Undeclared(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return [x for x in obj.nope]
+
+        class Relation(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return [x for x in obj.items]
+
+        class SetSuffix(serializers.Serializer):
+            n = serializers.SerializerMethodField()
+
+            def get_n(self, obj):
+                return [x for x in obj.thing_set]
+
+        self._assert_arms(
+            (Scalar, Undeclared, Relation, SetSuffix),
+            "comprehension_queryset",
+            "comprehension over",
+        )
+
+
+class TestASuppressedGeneratorDoesNotSilenceTheOnesAfterIt:
+    """Sites 5 and 6 share one ``for generator in node.generators`` loop.
+
+    A suppression that returned early instead of moving to the next generator
+    would let a first generator over a scalar hide every finding behind it.
+    Site 6 needs an explicit ``continue`` for this. Site 5 does not: its guard
+    is folded into the ``and`` at ``serializer_method.py:590``, so a
+    suppressed generator falls through to the implicit-iteration arm, which
+    cannot match a ``Call`` node, and the loop proceeds on its own.
+
+    Both are asserted here rather than reasoned about, because the two
+    branches differ in mechanism and only one of them is obvious from
+    reading it.
+    """
+
+    def setup_method(self):
+        """Create analyzer instance."""
+        self.analyzer = SerializerMethodAnalyzer()
+
+    def test_site_5_first_generator_suppressed_second_still_fires(self):
+        """`obj.bio.all()` then `obj.items.all()` in one comprehension."""
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return [y for _x in obj.bio.all() for y in obj.items.all()]
+
+        found = [
+            r
+            for r in self.analyzer.analyze_serializer(S)
+            if r.extra.get("pattern") == "comprehension_queryset"
+        ]
+        assert found, "the second generator was silenced by the first"
+        assert all("prefetch_related('items')" in r.fix_suggestion for r in found), [
+            r.fix_suggestion for r in found
+        ]
+        assert not any("bio" in r.description for r in found), [r.description for r in found]
+
+    def test_site_6_first_generator_suppressed_second_still_fires(self):
+        """`obj.bio` then `obj.items`, both implicit iterations."""
+
+        class S(serializers.ModelSerializer):
+            n = serializers.SerializerMethodField()
+
+            class Meta:
+                model = Author
+                fields = ("n",)
+
+            def get_n(self, obj):
+                return [y for _x in obj.bio for y in obj.items]
+
+        found = [
+            r
+            for r in self.analyzer.analyze_serializer(S)
+            if r.extra.get("pattern") == "comprehension_queryset"
+        ]
+        assert found, "the second generator was silenced by the first"
+        assert all("prefetch_related('items')" in r.fix_suggestion for r in found), [
+            r.fix_suggestion for r in found
+        ]
+        assert not any("bio" in r.description for r in found), [r.description for r in found]

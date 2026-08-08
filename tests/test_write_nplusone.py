@@ -452,20 +452,27 @@ class TestWriteNPlusOneAgainstRealDjango:
         cascade table gets its own fingerprint group, so the assertion covers all
         of them rather than only Book -- an earlier version of this rule that
         only looked at the primary table would have left the cascade findings.
+
+        The counts are derived from ``Book``'s cascade set rather than written
+        as bare literals, because they are a property of the model graph: they
+        moved once already when ``Book.tags`` was added.
         """
         from tests.testapp.models import Book
 
         ids = [b.pk for b in self._books(9, "dl")]
+        chunks = (ids[0:3], ids[3:6], ids[6:9])
+        # Book itself, its two M2M through tables, and Review.
+        cascade_tables = 4
 
         def batched_queryset_delete() -> None:
-            for chunk in (ids[0:3], ids[3:6], ids[6:9]):
+            for chunk in chunks:
                 Book.objects.filter(pk__in=chunk).delete()
 
         captured = self._capture(batched_queryset_delete)
 
         deletes = [q for q in captured if q.normalized_sql.lstrip().startswith("delete")]
-        assert len(deletes) == 9
-        assert len({q.fingerprint for q in deletes}) == 3
+        assert len(deletes) == len(chunks) * cascade_tables
+        assert len({q.fingerprint for q in deletes}) == cascade_tables
 
         assert WriteNPlusOneAnalyzer().analyze(captured) == []
 

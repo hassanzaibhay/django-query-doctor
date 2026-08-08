@@ -43,7 +43,7 @@ The diff format (from `QueryFixer.generate_diff`) shows the file, the line numbe
 --- myapp/views.py
 +++ myapp/views.py
 @@ -8,1 +8,1 @@
-  [N+1 detected: 47 queries for table "myapp_author" (field: author)]
+  [N+1 detected: 47 queries for table "myapp_author" (via Book.author)]
 - books = Book.objects.all()
 + books = Book.objects.all().select_related('author')
 ```

@@ -30,16 +30,16 @@ This runs the full analysis and saves all detected issues to the specified JSON 
 
 ```json
 {
-  "version": "2.1.0",
+  "version": "2.3.0",
   "issue_count": 12,
   "issues": [
     {
       "issue_type": "n_plus_one",
       "severity": "warning",
-      "description": "N+1 detected: 47 queries for table \"myapp_author\" (field: author)",
+      "description": "N+1 detected: 47 queries for table \"myapp_author\" (via Book.author)",
       "file_path": "myapp/views.py",
       "line": 83,
-      "fix_suggestion": "Add .select_related('author') to your queryset"
+      "fix_suggestion": "Add .select_related('author') to your Book queryset"
     }
   ]
 }

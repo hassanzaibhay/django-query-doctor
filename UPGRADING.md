@@ -1,5 +1,31 @@
 # Upgrading django-query-doctor
 
+## From 2.3.0 to 2.3.1
+
+Nothing to do. No public API, settings key or command flag changed, and no
+prescription `description` changed, so **committed baselines stay valid** --
+`baseline.py` keys each issue on `analyzer : file_path : message`, and only
+`fix_suggestion` moved. (That claim is checked rather than assumed; giving it
+without checking the key is the mistake corrected in item 3 below.)
+
+One symptom is worth being able to search for. The `missing_index` prescription
+no longer names the index it suggests: it emits
+`indexes = [models.Index(fields=["<column>"])]` and lets Django generate the
+name, because the name it used to build exceeded Django's 30-character limit
+and failed `models.E034` at `manage.py check` for ordinary table and column
+names.
+
+**No prescription that previously worked has stopped working.** The column the
+analyzer names is scraped from SQL rather than read from Django's metadata, and
+where that column is not a model field the suggestion was already broken -- it
+raised `models.E012` at check time. What changed for that case is *when and how*
+it fails: `ModelBase._prepare` names an unnamed index at class-creation time, so
+you now get `FieldDoesNotExist` when `models.py` is imported, which takes the
+app down rather than surfacing at `manage.py check`. If you see
+`FieldDoesNotExist` naming a column you pasted from a `missing_index`
+suggestion, the suggestion was wrong before the upgrade too; drop it and index
+the field you meant.
+
 ## From 2.2.x to 2.3.0
 
 ### Breaking / behavior changes
@@ -52,9 +78,21 @@ for a loop over a scalar attribute.
 If you use `check_queries --baseline`, **regenerate the baseline after
 upgrading.** Until you do, the command prints a version-mismatch warning
 (`Baseline was created with query-doctor 2.2.0; current version is 2.3.0`) and
-reports the disappeared findings as resolved. Neither is an error, and
-`--fail-on-regression` is unaffected: fewer findings cannot create a
-regression.
+reports the disappeared findings as resolved.
+
+**`--fail-on-regression` is affected, and will exit 1 with no code change.**
+A baseline snapshot keys each issue on `analyzer : file_path : message`, and
+item 2 above changed the N+1 `message`. So every N+1 that a 2.2.x baseline
+recorded is simultaneously reported as *resolved* under its old key and as a
+*new regression* under its new one. This is the same mechanism the 2.1.x
+upgrade hit, documented below under "Callsites move out of `site-packages`" --
+only the component of the key that changed is different.
+
+Regenerate the snapshot once, on the upgraded version, before the first CI run:
+
+```bash
+python manage.py check_queries --url /api/books/ --save-baseline .query-baseline.json
+```
 
 **4. Prescription order has changed, and the console prints a new note.**
 Findings are now returned in the order the fixes should be applied -- N+1

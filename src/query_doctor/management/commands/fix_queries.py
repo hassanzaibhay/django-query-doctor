@@ -171,28 +171,31 @@ class Command(BaseCommand):
         report = DiagnosisReport()
 
         try:
-            from django.db import connection
-            from django.test import RequestFactory
+            try:
+                from django.db import connection
+                from django.test import RequestFactory
 
-            factory = RequestFactory()
-            request = factory.get(url)
+                factory = RequestFactory()
+                request = factory.get(url)
 
-            from django.urls import resolve
+                from django.urls import resolve
 
-            with connection.execute_wrapper(interceptor):
-                try:
-                    match = resolve(url)
-                    match.func(request, *match.args, **match.kwargs)
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                with connection.execute_wrapper(interceptor):
+                    try:
+                        match = resolve(url)
+                        match.func(request, *match.args, **match.kwargs)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
 
-        queries = interceptor.get_queries()
-        report.captured_queries = queries
-        report.total_queries = len(queries)
-        report.total_time_ms = sum(q.duration_ms for q in queries)
+            queries = interceptor.get_queries()
+            report.captured_queries = queries
+            report.total_queries = len(queries)
+            report.total_time_ms = sum(q.duration_ms for q in queries)
 
-        report.prescriptions = pipeline_analyze(queries, source="fix_queries")
+            report.prescriptions = pipeline_analyze(queries, source="fix_queries")
 
-        return report
+            return report
+        finally:
+            interceptor.release()

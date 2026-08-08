@@ -65,7 +65,7 @@ Console output (severity is always INFO):
 ```
 INFO: Missing index: column "published_date" on Book (table "app_book") is used in WHERE/ORDER BY but has no index
    Location: /app/myapp/views.py:6 in recent_books
-   Fix: Add to Book's Meta.indexes: indexes = [models.Index(fields=["published_date"], name="idx_app_book_published_date")]
+   Fix: Add to Book's Meta.indexes: indexes = [models.Index(fields=["published_date"])]
 ```
 
 After adding the index, generate and apply a migration

@@ -1,0 +1,170 @@
+6 identical queries for table "testapp_publisher"
+<script>alert("xss")</script>
+Crit
+Critical duplicate
+Dup
+Dup query
+Duplicate publisher queries
+Duplicate queries
+Duplicate query detected
+Duplicate query: 2 identical queries for table "testapp_book"
+Duplicate query: 3 identical queries for table "testapp_book"
+Duplicate query: 5 identical queries for table "testapp_author"
+Duplicate query: 6 identical queries for "publisher"
+Duplicate query: SELECT * FROM django_session WHERE id = 1
+Fat SELECT: 3 columns from "t"
+Fat SELECT: 3 columns from "testapp_book" including large fields: description
+Fat SELECT: 4 columns from "t"
+Fat SELECT: 4 columns from "testapp_author" including large fields: bio
+Fat SELECT: 4 columns from "testapp_book" including large fields: description
+Fat SELECT: 8 columns from "testapp_book" including large fields: description
+Inefficient queryset evaluation: bool(qs)
+Inefficient queryset evaluation: len(qs)
+Inefficient queryset evaluation: list(qs)[0]
+Info
+Issue #0
+Issue #1
+Issue #10
+Issue #11
+Issue #12
+Issue #13
+Issue #14
+Issue #15
+Issue #16
+Issue #17
+Issue #18
+Issue #19
+Issue #2
+Issue #20
+Issue #21
+Issue #22
+Issue #23
+Issue #24
+Issue #25
+Issue #26
+Issue #27
+Issue #28
+Issue #29
+Issue #3
+Issue #30
+Issue #31
+Issue #32
+Issue #33
+Issue #34
+Issue #35
+Issue #36
+Issue #37
+Issue #38
+Issue #39
+Issue #4
+Issue #40
+Issue #41
+Issue #42
+Issue #43
+Issue #44
+Issue #45
+Issue #46
+Issue #47
+Issue #48
+Issue #49
+Issue #5
+Issue #6
+Issue #7
+Issue #8
+Issue #9
+Issue 0
+Issue 1
+Issue 2
+Issue 3
+Issue 4
+Missing index on published_date
+Missing index: column "name" on Publisher (table "testapp_publisher") is used in WHERE/ORDER BY but has no index
+Missing index: column "price" on Book (table "testapp_book") is used in WHERE/ORDER BY but has no index
+Missing index: column "published_date" on Book (table "testapp_book") is used in WHERE/ORDER BY but has no index
+Missing index: column "title" on Book (table "testapp_book") is used in WHERE/ORDER BY but has no index
+N+1
+N+1 detected
+N+1 detected: 10 queries for "author"
+N+1 detected: 10 queries for author
+N+1 detected: 12 queries for table "blog_author"
+N+1 detected: 12 queries for table "blog_author" (one row per iteration, no relation traversed)
+N+1 detected: 12 queries for table "testapp_author" (via Book.author)
+N+1 detected: 3 queries for table "testapp_author" (via Book.author)
+N+1 detected: 4 queries for table "testapp_author" (via Book.author)
+N+1 detected: 47 queries for Author
+N+1 detected: 47 queries for table "testapp_author"
+N+1 detected: 5 queries
+N+1 detected: 5 queries for table "testapp_author" (one row per iteration, no relation traversed)
+N+1 detected: 5 queries for table "testapp_author" (via Book.author)
+N+1 detected: 5 queries for table "testapp_book" (via Author.books)
+N+1 detected: 5 queries for table "testapp_book_categories" (via Book.categories)
+N+1 detected: 5 queries for table "testapp_publisher" (via Author.publisher)
+N+1 detected: 6 queries for table "testapp_author" (via Book.author)
+N+1 for author
+N+1 for publisher
+N+1 issue found
+N+1 risk in BadCountSerializer.get_total(): 'obj.items.count()' triggers a query per object
+N+1 risk in BadFilterSerializer.get_recent(): 'User.objects.filter()' executes a query per object
+N+1 risk in BookCategoriesSerializer.get_n(): loop over 'obj.categories' may trigger a query per object
+N+1 risk in ChildSerializer.get_total(): 'obj.items.count()' triggers a query per object
+N+1 risk in DictCompSerializer.get_mapping(): 'obj.items.all()' triggers a query per object
+N+1 risk in DictCompSerializer.get_mapping(): comprehension over 'obj.items.all()' triggers a query per object
+N+1 risk in ExistsCheckSerializer.get_has_items(): 'obj.items.exists()' triggers a query per object
+N+1 risk in GenExpSerializer.get_ids(): 'obj.items.filter()' triggers a query per object
+N+1 risk in GenExpSerializer.get_ids(): comprehension over 'obj.items.filter()' triggers a query per object
+N+1 risk in ImplicitCompSerializer.get_vals(): comprehension over 'obj.items' may trigger a query per object
+N+1 risk in InlineBadSerializer.get_total(): 'obj.items.count()' triggers a query per object
+N+1 risk in ListCompSerializer.get_names(): 'obj.items.all()' triggers a query per object
+N+1 risk in ListCompSerializer.get_names(): comprehension over 'obj.items.all()' triggers a query per object
+N+1 risk in LoopSerializer.get_items(): 'obj.related_set.all()' triggers a query per object
+N+1 risk in LoopSerializer.get_items(): comprehension over 'obj.related_set.all()' triggers a query per object
+N+1 risk in MockBadSerializer.get_total(): 'obj.items.count()' triggers a query per object
+N+1 risk in MultipleIssuesSerializer.get_dangerous(): 'obj.items.count()' triggers a query per object
+N+1 risk in ObjectsGetSerializer.get_profile(): 'User.objects.get()' executes a query per object
+N+1 risk in PlainSetSerializer.get_n(): loop over 'obj.review_set' may trigger a query per object
+N+1 risk in Ser1.get_a(): 'obj.items.count()' triggers a query per object
+N+1 risk in Ser2.get_b(): 'obj.tags.all()' triggers a query per object
+N+1 risk in SetCompSerializer.get_unique_names(): 'obj.tags.all()' triggers a query per object
+N+1 risk in SetCompSerializer.get_unique_names(): comprehension over 'obj.tags.all()' triggers a query per object
+N+1 risk in SevCompSerializer.get_names(): 'obj.items.all()' triggers a query per object
+N+1 risk in SevCompSerializer.get_names(): comprehension over 'obj.items.all()' triggers a query per object
+Possible N+1 in BadChainSerializer.get_author_name(): 'obj.author.name' may trigger a query per object if 'author' is not select_related
+Query complexity score 10 exceeds threshold 8
+Query complexity score 12 exceeds threshold 8
+Query complexity score 4 exceeds threshold 4
+Query complexity score 8 exceeds threshold 8
+Query complexity score 9 exceeds threshold 8
+QuerySet eval
+Test
+Test critical issue
+Test duplicate_query issue
+Test info issue
+Test issue
+Test missing_index issue
+Test n_plus_one issue
+Test warning issue
+Warn
+Write N+1 detected: 10 single-row INSERT statements for table "t". One bulk statement replaces all 10.
+Write N+1 detected: 3 single-row INSERT statements for Book. One bulk statement replaces all 3.
+Write N+1 detected: 4 single-row DELETE statements for Book. One bulk statement replaces all 4.
+Write N+1 detected: 4 single-row DELETE statements for Review. One bulk statement replaces all 4.
+Write N+1 detected: 4 single-row DELETE statements for table "testapp_book_categories". One bulk statement replaces all 4.
+Write N+1 detected: 4 single-row INSERT statements for Book. One bulk statement replaces all 4.
+Write N+1 detected: 4 single-row UPDATE statements for Book. One bulk statement replaces all 4.
+Write N+1 detected: 5 single-row DELETE statements for Book. One bulk statement replaces all 5.
+Write N+1 detected: 5 single-row INSERT statements for Book. One bulk statement replaces all 5.
+Write N+1 detected: 5 single-row INSERT statements for table "legacy_audit_rows". One bulk statement replaces all 5.
+Write N+1 detected: 5 single-row UPDATE statements for Book. One bulk statement replaces all 5.
+Write N+1 detected: 9 single-row INSERT statements for table "t". One bulk statement replaces all 9.
+a
+c
+crit issue
+duplicate
+e
+fat_select
+info issue
+missing_index
+n_plus_one
+test
+test issue
+warn issue

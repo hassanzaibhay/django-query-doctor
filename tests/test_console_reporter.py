@@ -45,7 +45,7 @@ class TestConsoleReporter:
                     issue_type=IssueType.N_PLUS_ONE,
                     severity=Severity.CRITICAL,
                     description='N+1 detected: 47 queries for table "testapp_author"',
-                    fix_suggestion="Add .select_related('author') to your queryset",
+                    fix_suggestion="Add .select_related('author') to your Book queryset",
                     callsite=CallSite(
                         filepath="myapp/views.py",
                         line_number=83,

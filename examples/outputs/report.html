@@ -53,7 +53,7 @@ h1 { color: #2c3e50; margin-bottom: 20px; }
 <div class="stat-label">Total Queries</div>
 </div>
 <div class="stat">
-<div class="stat-value">0.8ms</div>
+<div class="stat-value">0.9ms</div>
 <div class="stat-label">Total Time</div>
 </div>
 <div class="stat">
@@ -77,35 +77,35 @@ h1 { color: #2c3e50; margin-bottom: 20px; }
 <div class="prescription critical">
 <span class="severity critical">CRITICAL</span>
 <div class="description">N+1 detected: 20 queries for table &quot;testapp_author&quot; (via Book.author)</div>
-<div class="location">Location: scripts/regen_examples.py:139 in test_regenerate_outputs</div><div class="code-context">_ = b.author.name  # N+1 on author</div>
+<div class="location">Location: scripts/regen_examples.py:140 in test_regenerate_outputs</div><div class="code-context">_ = b.author.name  # N+1 on author</div>
 <div class="fix">Fix: Add .select_related(&#x27;author&#x27;) to your Book queryset</div>
 <div class="metrics">Queries: 20 | Est. savings: ~0.4ms</div>
 </div>
 <div class="prescription critical">
 <span class="severity critical">CRITICAL</span>
 <div class="description">N+1 detected: 20 queries for table &quot;testapp_publisher&quot; (via Author.publisher)</div>
-<div class="location">Location: scripts/regen_examples.py:140 in test_regenerate_outputs</div><div class="code-context">_ = b.publisher.name  # N+1 on publisher</div>
+<div class="location">Location: scripts/regen_examples.py:141 in test_regenerate_outputs</div><div class="code-context">_ = b.publisher.name  # N+1 on publisher</div>
 <div class="fix">Fix: Add .select_related(&#x27;publisher&#x27;) to your Author queryset</div>
-<div class="metrics">Queries: 20 | Est. savings: ~0.3ms</div>
+<div class="metrics">Queries: 20 | Est. savings: ~0.4ms</div>
 </div>
 <div class="prescription warning">
 <span class="severity warning">WARNING</span>
 <div class="description">Duplicate query: 2 identical queries for table &quot;testapp_book&quot;</div>
-<div class="location">Location: scripts/regen_examples.py:142 in test_regenerate_outputs</div><div class="code-context">Book.objects.filter(title=books[0].title).count()</div>
+<div class="location">Location: scripts/regen_examples.py:143 in test_regenerate_outputs</div><div class="code-context">Book.objects.filter(title=books[0].title).count()</div>
 <div class="fix">Fix: Assign the queryset result to a variable and reuse it instead of executing the same query multiple times</div>
 <div class="metrics">Queries: 2 | Est. savings: ~0.0ms</div>
 </div>
 <div class="prescription info">
 <span class="severity info">INFO</span>
 <div class="description">Missing index: column &quot;title&quot; on Book (table &quot;testapp_book&quot;) is used in WHERE/ORDER BY but has no index</div>
-<div class="location">Location: scripts/regen_examples.py:142 in test_regenerate_outputs</div><div class="code-context">Book.objects.filter(title=books[0].title).count()</div>
-<div class="fix">Fix: Add to Book&#x27;s Meta.indexes: indexes = [models.Index(fields=[&quot;title&quot;], name=&quot;idx_testapp_book_title&quot;)]</div>
+<div class="location">Location: scripts/regen_examples.py:143 in test_regenerate_outputs</div><div class="code-context">Book.objects.filter(title=books[0].title).count()</div>
+<div class="fix">Fix: Add to Book&#x27;s Meta.indexes: indexes = [models.Index(fields=[&quot;title&quot;])]</div>
 <div class="metrics">Queries: 1 | Est. savings: ~0.0ms</div>
 </div>
 <div class="prescription info">
 <span class="severity info">INFO</span>
 <div class="description">Fat SELECT: 8 columns from &quot;testapp_book&quot; including large fields: description</div>
-<div class="location">Location: scripts/regen_examples.py:137 in test_regenerate_outputs</div><div class="code-context">books = list(Book.objects.all())</div>
+<div class="location">Location: scripts/regen_examples.py:138 in test_regenerate_outputs</div><div class="code-context">books = list(Book.objects.all())</div>
 <div class="fix">Fix: Use .defer(&#x27;description&#x27;) to skip loading large fields, or .values()/.values_list() if you don&#x27;t need model instances</div>
 <div class="metrics">Queries: 1 | Est. savings: ~0.0ms</div>
 </div>

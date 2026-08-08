@@ -127,6 +127,10 @@ def query_doctor(request: pytest.FixtureRequest) -> DiagnosisReport:
                     exc_info=True,
                 )
 
+            # A session runs the fixture once per test in one process; the
+            # report above now owns the queries, so the context must let go.
+            interceptor.release()
+
         request.addfinalizer(_finalize)
     except Exception:
         logger.warning(

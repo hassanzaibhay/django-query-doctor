@@ -27,6 +27,15 @@ jobs:
             django-version: "6.0"
     steps:
       - uses: actions/checkout@v4
+        with:
+          # `tests/test_staleness_gate.py` expresses the gate's acceptance
+          # criterion against a historical revision: it shells `git show` to
+          # evaluate 96cee41, the tree that carried B1 and B3. The default
+          # `fetch-depth: 1` leaves that commit absent, the guard skips, and
+          # the criterion executes in none of the 18 cells while the job stays
+          # green. A skip is a zero. The guard also fails rather than skips
+          # when `CI` is set, so a regression here goes red instead of quiet.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -89,6 +98,13 @@ jobs:
       # project import, so it runs in this install-free job too.
       - name: ASCII dash gate
         run: python -m scripts.dash_gate
+      # Same property again: an ast/regex pass over `git ls-files`, importing
+      # nothing from the package, so the install-free property of this job
+      # holds. This step scans the working tree only and needs no history --
+      # the gate's historical-revision test lives in the `test` job, whose
+      # checkout carries the `fetch-depth: 0` that test requires.
+      - name: Staleness gate
+        run: python -m scripts.staleness_gate
 
   # Deliberately a separate job from `docs-gate`, not another step in it.
   # `docs-gate` documents itself as needing no install because the sweep

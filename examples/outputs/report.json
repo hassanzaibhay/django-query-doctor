@@ -1,9 +1,9 @@
 {
   "version": "2.3.0",
-  "timestamp": "2026-08-01T14:37:36.381310+00:00",
+  "timestamp": "2026-08-03T04:02:58.290979+00:00",
   "summary": {
     "total_queries": 43,
-    "total_time_ms": 0.830199962365441,
+    "total_time_ms": 0.9014999959617853,
     "issues_found": 5,
     "critical": 2,
     "warnings": 1,
@@ -17,11 +17,11 @@
       "fix_suggestion": "Add .select_related('author') to your Book queryset",
       "location": {
         "file": "scripts/regen_examples.py",
-        "line": 139,
+        "line": 140,
         "function": "test_regenerate_outputs"
       },
       "query_count": 20,
-      "estimated_savings_ms": 0.37201997110969387
+      "estimated_savings_ms": 0.376009960018564
     },
     {
       "issue_type": "n_plus_one",
@@ -30,11 +30,11 @@
       "fix_suggestion": "Add .select_related('publisher') to your Author queryset",
       "location": {
         "file": "scripts/regen_examples.py",
-        "line": 140,
+        "line": 141,
         "function": "test_regenerate_outputs"
       },
       "query_count": 20,
-      "estimated_savings_ms": 0.312169999233447
+      "estimated_savings_ms": 0.3815200296230614
     },
     {
       "issue_type": "duplicate_query",
@@ -43,20 +43,20 @@
       "fix_suggestion": "Assign the queryset result to a variable and reuse it instead of executing the same query multiple times",
       "location": {
         "file": "scripts/regen_examples.py",
-        "line": 142,
+        "line": 143,
         "function": "test_regenerate_outputs"
       },
       "query_count": 2,
-      "estimated_savings_ms": 0.03704999835463241
+      "estimated_savings_ms": 0.027600006433203816
     },
     {
       "issue_type": "missing_index",
       "severity": "info",
       "description": "Missing index: column \"title\" on Book (table \"testapp_book\") is used in WHERE/ORDER BY but has no index",
-      "fix_suggestion": "Add to Book's Meta.indexes: indexes = [models.Index(fields=[\"title\"], name=\"idx_testapp_book_title\")]",
+      "fix_suggestion": "Add to Book's Meta.indexes: indexes = [models.Index(fields=[\"title\"])]",
       "location": {
         "file": "scripts/regen_examples.py",
-        "line": 142,
+        "line": 143,
         "function": "test_regenerate_outputs"
       },
       "query_count": 1,
@@ -69,7 +69,7 @@
       "fix_suggestion": "Use .defer('description') to skip loading large fields, or .values()/.values_list() if you don't need model instances",
       "location": {
         "file": "scripts/regen_examples.py",
-        "line": 137,
+        "line": 138,
         "function": "test_regenerate_outputs"
       },
       "query_count": 1,

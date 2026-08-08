@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextvars
+
 import pytest
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
@@ -142,3 +144,59 @@ class TestSamplingRate:
             assert response.status_code == 200
         finally:
             get_config.cache_clear()
+
+
+@pytest.mark.django_db
+class TestNoAccumulationAcrossRequests:
+    """``docs/deep-dive/performance.md`` claims requests leave nothing behind.
+
+    The middleware builds one interceptor per request, and each one sets a
+    ``ContextVar`` in the running context. Under WSGI that context belongs to
+    the worker thread and outlives every request it serves, so the entries --
+    and the ``CapturedQuery`` list each holds -- accumulated for the life of
+    the process. Asserted against the ambient context rather than against the
+    middleware, because the context is what was doing the retaining.
+    """
+
+    @staticmethod
+    def _live_query_vars() -> set[str]:
+        """Names of every capture ContextVar set in this context."""
+        return {
+            var.name
+            for var in contextvars.copy_context()
+            if var.name.startswith("query_doctor_queries_")
+        }
+
+    def test_serving_many_requests_leaves_nothing_behind(self) -> None:
+        """Twenty requests through one middleware instance, as one worker sees it."""
+        BookFactory.create_batch(3)
+        before = self._live_query_vars()
+
+        middleware = QueryDoctorMiddleware(_nplusone_view)
+        factory = RequestFactory()
+        for _ in range(20):
+            response = middleware(factory.get("/"))
+            assert response.status_code == 200
+
+        assert self._live_query_vars() == before
+
+    def test_a_request_whose_analysis_raises_still_releases(self) -> None:
+        """The release is in a finally: a failed report must not leak either.
+
+        ``_sync_call`` catches an analysis failure and logs it, so the request
+        still succeeds. The release sits in the enclosing ``finally``, outside
+        that ``except``, so it runs on the failing path as well as the clean
+        one -- an app whose reporting is broken must not also leak.
+        """
+        before = self._live_query_vars()
+
+        middleware = QueryDoctorMiddleware(_nplusone_view)
+
+        def _boom(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("analysis exploded")
+
+        middleware._analyze_and_report = _boom  # type: ignore[method-assign]
+        response = middleware(RequestFactory().get("/"))
+
+        assert response.status_code == 200
+        assert self._live_query_vars() == before

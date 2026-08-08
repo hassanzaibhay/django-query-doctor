@@ -102,17 +102,21 @@ def _wrap_task(
         interceptor = build_interceptor()
 
         try:
-            from django.db import connection
+            try:
+                from django.db import connection
 
-            with connection.execute_wrapper(interceptor):
-                result = func(*args, **kwargs)
-        except Exception:
-            # Still try to analyze what we captured before re-raising
+                with connection.execute_wrapper(interceptor):
+                    result = func(*args, **kwargs)
+            except Exception:
+                # Still try to analyze what we captured before re-raising
+                _finalize_report(interceptor, report, on_report)
+                raise
+
             _finalize_report(interceptor, report, on_report)
-            raise
-
-        _finalize_report(interceptor, report, on_report)
-        return result
+            return result
+        finally:
+            # A Celery worker process runs many tasks in one context.
+            interceptor.release()
 
     return wrapper  # type: ignore[return-value]
 

@@ -15,9 +15,9 @@ Groups prescriptions by `{file_path}:{issue_type}`. All prescriptions from the s
 **Before grouping** -- five individual prescriptions:
 
 ```
-WARNING: N+1 detected: 4 queries for table "myapp_author" (field: author)
-WARNING: N+1 detected: 3 queries for table "myapp_publisher" (field: publisher)
-WARNING: N+1 detected: 3 queries for table "myapp_tag" (field: tags)
+WARNING: N+1 detected: 4 queries for table "myapp_author" (via Book.author)
+WARNING: N+1 detected: 3 queries for table "myapp_publisher" (via Book.publisher)
+WARNING: N+1 detected: 3 queries for table "myapp_tag" (via Book.tags)
 WARNING: Duplicate query: 2 identical queries for table "myapp_book"
 INFO: Fat SELECT: 12 columns from "otherapp_report"
 ```
@@ -25,7 +25,7 @@ INFO: Fat SELECT: 12 columns from "otherapp_report"
 **After grouping (`--group file_analyzer`)** -- one line per group; single-member groups keep their original description:
 
 ```
-WARNING: 3 related issues in myapp/views.py: N+1 detected: 4 queries for table "myapp_author" (field: author) (and 2 more)
+WARNING: 3 related issues in myapp/views.py: N+1 detected: 4 queries for table "myapp_author" (via Book.author) (and 2 more)
 WARNING: Duplicate query: 2 identical queries for table "myapp_book"
 INFO: Fat SELECT: 12 columns from "otherapp_report"
 ```

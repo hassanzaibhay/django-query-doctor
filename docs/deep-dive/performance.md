@@ -85,7 +85,11 @@ A rough estimate of **~800 bytes per query** is useful for capacity planning.
 | Complex report | 150 | ~120 KB |
 | Unoptimized N+1 page | 500 | ~400 KB |
 
-All captured query data is released at the end of the request when the context variable is cleared. There is no accumulation across requests.
+All captured query data is released at the end of the request, when the middleware calls `interceptor.release()` and the context variable is removed from the context that held it. There is no accumulation across requests.
+
+!!! warning "Releases 2.0.0 through 2.3.0"
+
+    In those releases nothing removed the variable. Each request added one more `ContextVar` to the worker thread's context, holding that request's full `CapturedQuery` list, for the life of the process -- so the per-request figures above accumulated instead of being reclaimed. Fixed in 2.3.1; the sentence above describes 2.3.1 onwards.
 
 > **Tip:** If memory is a concern for requests with very high query counts (500+), consider fixing the underlying query issues first --- that is exactly what django-query-doctor is for. A request with 500 queries has far bigger problems than 400 KB of diagnostic memory.
 

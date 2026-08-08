@@ -57,10 +57,18 @@ EDITORIAL_ANNOTATIONS: dict[str, set[str]] = {
     "auto_fix.svg": {"([MANUAL FIX ONLY] fixes are shown here but refused by --apply)"},
 }
 
-# SVGs with no capture to pin against. regen_examples.py produces exactly two
-# .capture.txt files, so these four are hand-authored end to end and this test
-# cannot verify them. Listed by relpath so the gap is named and cannot grow
-# silently: a new SVG added without a capture fails the guard below.
+# Captures that pin something other than an SVG, so they have no ``<name>.svg``
+# and must be excluded from the SVG parametrization rather than KeyError-ing.
+# Declared, not inferred, so a capture that loses its consumer is noticed.
+CAPTURES_WITHOUT_SVG = {
+    # Pins the README's "See It in Action" block; checked by
+    # TestReadmeBlockMatchesCapture below rather than by an SVG.
+    "readme_console.svg",
+}
+
+# SVGs with no capture to pin against. These four are hand-authored end to end
+# and this test cannot verify them. Listed by relpath so the gap is named and
+# cannot grow silently: a new SVG added without a capture fails the guard below.
 UNPINNED_SVGS = {
     "project_diagnosis.svg",
     "query_budget.svg",
@@ -83,13 +91,32 @@ def _svg_specs() -> dict[str, list[str]]:
 
 
 def _captures() -> dict[str, Path]:
-    """Map ``<name>.svg`` to its ``<name>.capture.txt``."""
+    """Map ``<name>.svg`` to its ``<name>.capture.txt``, SVG-backed ones only."""
+    found = {p.name.replace(".capture.txt", ".svg"): p for p in SCREENSHOTS.glob("*.capture.txt")}
+    return {name: path for name, path in found.items() if name not in CAPTURES_WITHOUT_SVG}
+
+
+def _all_captures() -> dict[str, Path]:
+    """Every capture, including those with no SVG consumer."""
     return {p.name.replace(".capture.txt", ".svg"): p for p in SCREENSHOTS.glob("*.capture.txt")}
 
 
+# Durations differ on every run, so an exact diff of a regenerated capture
+# would be permanently red. Masking them leaves everything that actually
+# indicates drift: the wording, the counts, the callsites, the ordering.
+_VOLATILE_RE = re.compile(r"\d+\.\d+ *ms")
+
+
 def _normalize(text: str) -> str:
-    """Collapse whitespace so indentation choices do not count as drift."""
-    return re.sub(r"\s+", " ", text.strip())
+    """Collapse whitespace so indentation choices do not count as drift.
+
+    Durations are masked for the same reason ``_stable`` masks them below:
+    they differ on every run, so an unmasked comparison would turn red
+    whenever the captures are regenerated, for a reason that says nothing
+    about correctness. The wording, counts, callsites and ordering are all
+    still content-matched.
+    """
+    return _VOLATILE_RE.sub("<ms>", re.sub(r"\s+", " ", text.strip()))
 
 
 def _strip_trailing_comment(text: str) -> str:
@@ -150,11 +177,88 @@ class TestSVGLineDataMatchesCaptures:
             "scripts/regen_examples.py, or update UNPINNED_SVGS with a reason."
         )
 
+    def test_captures_without_an_svg_are_exactly_the_declared_set(self) -> None:
+        """A capture whose consumer disappears must be noticed, not skipped.
 
-# Durations differ on every run, so an exact diff of a regenerated capture
-# would be permanently red. Masking them leaves everything that actually
-# indicates drift: the wording, the counts, the callsites, the ordering.
-_VOLATILE_RE = re.compile(r"\d+\.\d+ *ms")
+        ``_captures`` filters these out so the parametrization above does not
+        look for an SVG that was never meant to exist. Without this guard the
+        filter would also silently swallow a capture whose SVG was deleted.
+        """
+        orphans = set(_all_captures()) - set(_svg_specs())
+        assert orphans == CAPTURES_WITHOUT_SVG, (
+            "Captures without an SVG changed. Either the capture has a new "
+            "consumer, or CAPTURES_WITHOUT_SVG needs updating with a reason."
+        )
+
+
+README = REPO_ROOT / "README.md"
+
+
+def _readme_console_block() -> list[str]:
+    """Return the lines of the README's console-output fenced block.
+
+    Located by content rather than by line number so the test survives edits
+    above it. Exactly one fenced block may contain the report banner.
+    """
+    lines = README.read_text(encoding="utf-8").splitlines()
+    blocks: list[list[str]] = []
+    current: list[str] | None = None
+    for line in lines:
+        if line.startswith("```"):
+            if current is None:
+                current = []
+            else:
+                blocks.append(current)
+                current = None
+            continue
+        if current is not None:
+            current.append(line)
+    matching = [b for b in blocks if any(line.strip() == "Query Doctor Report" for line in b)]
+    assert len(matching) == 1, (
+        f"expected exactly one console block in README.md, got {len(matching)}"
+    )
+    return matching[0]
+
+
+class TestReadmeBlockMatchesCapture:
+    """The README's headline output block must be real tool output.
+
+    This is the check that was missing when 2.3.0 changed the N+1 wording:
+    the block kept printing ``(field: author)`` and ``to your queryset``,
+    neither of which the analyzer can emit, on the first page a reader opens.
+    """
+
+    def test_every_readme_console_line_traces_to_the_capture(self) -> None:
+        """No line of the README block may be text the tool never produced."""
+        capture = SCREENSHOTS / "readme_console.capture.txt"
+        captured = {
+            _normalize(line) for line in capture.read_text(encoding="utf-8").splitlines()
+        } - {""}
+
+        # Positive control: an empty capture would make the assertion vacuous.
+        assert len(captured) > 5, f"{capture.name} looks empty; the check would prove nothing"
+
+        allowed = captured | {_strip_trailing_comment(line) for line in captured}
+        unmatched = [
+            line
+            for line in (_normalize(raw) for raw in _readme_console_block())
+            if line and not line.startswith(PRESENTATION_SUBSTITUTED) and line not in allowed
+        ]
+
+        assert unmatched == [], (
+            f"README.md shows {len(unmatched)} console line(s) with no source in "
+            f"{capture.name}: {unmatched}"
+        )
+
+    def test_readme_block_carries_the_ordering_note(self) -> None:
+        """The note is the third thing 2.3.0 changed and the README dropped.
+
+        Guards the two lines above from passing on a block that simply
+        omits output: containment cannot catch a missing line.
+        """
+        block = " ".join(_readme_console_block())
+        assert "findings are listed in the order to apply them" in block
+
 
 OUTPUTS = REPO_ROOT / "examples" / "outputs"
 
@@ -254,10 +358,32 @@ class TestCapturesAreNotStale:
             "Re-run: pytest scripts/regen_examples.py -c pyproject.toml -q -s"
         )
 
+    @pytest.mark.django_db
+    def test_readme_capture_matches_a_fresh_run(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Same for the README capture, which the README block is pasted from."""
+        from scripts import regen_examples
+
+        monkeypatch.setattr(regen_examples, "SCREENSHOTS", tmp_path)
+        regen_examples.test_capture_readme_console_output()
+
+        fresh = (tmp_path / "readme_console.capture.txt").read_text(encoding="utf-8")
+        committed = (SCREENSHOTS / "readme_console.capture.txt").read_text(encoding="utf-8")
+        assert _stable(fresh) == _stable(committed), (
+            "examples/screenshots/readme_console.capture.txt is stale. "
+            "Re-run: pytest scripts/regen_examples.py -c pyproject.toml -q -s"
+        )
+
+    @pytest.mark.django_db
     def test_auto_fix_capture_matches_a_fresh_run(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Same for the fixer dry-run capture, whose tmpdir is now normalized."""
+        """Same for the fixer dry-run capture, whose tmpdir is now normalized.
+
+        Needs the database: the capture is built from a real analyzer run,
+        not from hand-written prescriptions.
+        """
         from scripts import regen_examples
 
         out_dir = tmp_path / "out"
